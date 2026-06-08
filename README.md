@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RebondPro Formation
 
-## Getting Started
+Le cockpit intelligent des centres de formation. Application SaaS multi-tenant
+(Next.js full-stack), développée en local, architecturée pour la production.
 
-First, run the development server:
+> Cahier des charges : `../projet_formation/CAHIER_DES_CHARGES.md`
+
+## Stack
+
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **Tailwind CSS v4** + design system maison (`src/app/globals.css`)
+- **Prisma 6** + **PostgreSQL**
+- **Auth.js (NextAuth v5)** — credentials + session JWT, multi-tenant + rôles
+- **Redis / Mailpit** via Docker (jobs & emails de dev)
+
+## Démarrer en local
+
+Prérequis : Node 20+, Docker.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Services (PostgreSQL, Redis, Mailpit)
+docker compose up -d
+
+# 2. Variables d'env
+cp .env.example .env.local   # ajuster si besoin (un .env existe déjà pour Prisma)
+
+# 3. Base de données + données de démo
+npm install
+npm run db:migrate
+npm run db:seed
+
+# 4. Lancer
+npm run dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Connexion démo :** `demo@rebondpro.local` / `demo1234`
+(centre « Académie Horizon Formation » pré-rempli).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Mailpit (emails de dev) : http://localhost:8025
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Script | Rôle |
+|---|---|
+| `npm run dev` | Serveur de développement |
+| `npm run build` / `start` | Build & run production |
+| `npm run db:migrate` | Migrations Prisma (dev) |
+| `npm run db:seed` | Données de démonstration |
+| `npm run db:studio` | Explorateur de base Prisma |
+| `npm run db:reset` | Réinitialise la base |
+| `npm run smoke:lot5` | Smoke backend du parcours public → prospect |
+| `npm run smoke:auth` | Smoke du parcours de vérification email |
+| `npm run smoke:registration` | Smoke inscription, tenant, trial et vérification requise |
+| `npm run smoke:business` | Audit automatisé acquisition/activation du lot 5 |
+| `npm run smoke:production` | Lint + build production |
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  app/
+    (auth)/        login, register
+    (app)/         cockpit protégé (layout = Sidebar + Topbar)
+      dashboard/   tableau de bord (branché metrics réelles)
+      formations/ sessions/ planning/ prospects/ ...
+    api/auth/      handlers Auth.js
+    onboarding/    post-inscription
+  components/      ui/ (Icon, charts, primitives) + app/ (Sidebar, Topbar)
+  lib/             prisma, auth (tenant), utils, nav
+  server/          metrics, server actions
+  auth.ts          configuration Auth.js
+prisma/            schema + seed
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Règles structurantes
 
-## Deploy on Vercel
+- **Multi-tenant** : toute requête de données filtre par `organizationId`
+  (`requireTenant()` + `tenantWhere()` dans `src/lib/tenant.ts`).
+- **Metrics centralisées** : `src/server/metrics.ts` (jamais de chiffres en dur).
+- **Services externes derrière des interfaces** (storage, email, IA) pour la bascule prod.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## État d'avancement
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] Lot 0 — Fondations (auth, multi-tenant, DB, design system, shell)
+- [x] Dashboard branché sur données réelles
+- [x] Lot 1 — CRUD métier (formations, sessions, formateurs, apprenants, CRM Kanban)
+- [x] Lot 2 — Planning intelligent (calendrier hebdo, conflits, créneaux IA, indisponibilités)
+- [x] Lot 3 — Documents & emails (PDF @react-pdf, génération unitaire/lot, envoi Mailpit)
+- [x] Lot 4 — IA opérationnelle (assistant Claude, relance/description, fallback sans clé)
+- [x] Lot 5 — Pages publiques, landing, onboarding et vérification email
+- [ ] Lot 6 — Qualité & portails
+- [ ] Lot 7 — SaaS production (facturation, calendrier, signature, paiement)

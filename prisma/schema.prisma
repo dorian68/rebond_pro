@@ -1,0 +1,779 @@
+// ============================================================
+// RebondPro Formation — schéma de données (multi-tenant)
+// Réf : CAHIER_DES_CHARGES.md §5
+// Règle P1 : chaque entité métier porte organizationId.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------- ENUMS -----------------------------
+
+enum Role {
+  OWNER
+  ADMIN
+  ASSISTANT
+  COMMERCIAL
+  TRAINER
+  LEARNER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum Modality {
+  PRESENTIEL
+  DISTANCIEL
+  HYBRIDE
+}
+
+enum Level {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+}
+
+enum FormationStatus {
+  BROUILLON
+  PUBLIE
+  ARCHIVE
+}
+
+enum SessionStatus {
+  BROUILLON
+  OUVERTE
+  COMPLETE
+  TERMINEE
+  ANNULEE
+}
+
+enum Slot {
+  MATIN
+  APRES_MIDI
+  JOURNEE
+  SOIR
+}
+
+enum ProspectStage {
+  NOUVEAU
+  CONTACTE
+  DEVIS
+  RELANCE
+  GAGNE
+  PERDU
+}
+
+enum ProspectType {
+  PARTICULIER
+  ENTREPRISE
+  ORGANISME
+}
+
+enum ProspectSource {
+  LINKEDIN
+  SITE_WEB
+  APPEL
+  RECOMMANDATION
+  SALON
+  CAMPAGNE_EMAIL
+  PAGE_PUBLIQUE
+  AUTRE
+}
+
+enum EnrollmentStatus {
+  PRE_INSCRIT
+  INSCRIT
+  CONFIRME
+  PRESENT
+  ABSENT
+  TERMINE
+}
+
+enum AvailabilityType {
+  DISPONIBLE
+  INDISPONIBLE
+  TENTATIVE
+}
+
+enum RoomType {
+  SALLE
+  VISIO
+}
+
+enum DocumentType {
+  PROGRAMME
+  CONVENTION
+  CONVOCATION
+  EMARGEMENT
+  ATTESTATION
+  CERTIFICAT
+  QUESTIONNAIRE_SATISFACTION
+  SYNTHESE_SATISFACTION
+  DEVIS
+}
+
+enum DocumentStatus {
+  A_GENERER
+  GENERE
+  ENVOYE
+}
+
+enum ComplaintStatus {
+  OUVERTE
+  EN_COURS
+  RESOLUE
+}
+
+enum ImprovementStatus {
+  OUVERTE
+  EN_COURS
+  FERMEE
+}
+
+enum ObjectifPrincipal {
+  PLANIFIER
+  VENDRE
+  DOCUMENTS
+  APPRENANTS
+  CENTRALISER
+}
+
+// --------------------------- TENANT & AUTH ---------------------------
+
+model Organization {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  siret       String?
+  website     String?
+  description String?
+  logoUrl     String?
+  // Vitrine marketplace + profil public
+  tagline       String? // accroche courte mise en avant
+  coverImageUrl String? // bannière de la fiche centre
+  city          String? // ville (filtre marketplace)
+  publicProfileEnabled Boolean @default(true)
+  publicEmail   String?
+  publicPhone   String?
+  socialLinks   Json?    // { linkedin, facebook, instagram, ... }
+  specialties   String[] @default([])
+  modalities    String[] @default([]) // PRESENTIEL, DISTANCIEL, HYBRIDE
+  certifications String[] @default([]) // Qualiopi, labels...
+  timezone    String  @default("Europe/Paris")
+  currency    String  @default("EUR")
+
+  // Coordonnées légales (documents)
+  legalName       String?
+  legalAddress    String?
+  nda             String? // n° déclaration d'activité
+  legalRep        String? // représentant
+
+  // Abonnement
+  plan         Plan      @default(FREE)
+  billingStatus String?  @default("trial")
+  trialEndsAt  DateTime?
+  // Facturation Stripe
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  currentPeriodEnd     DateTime?
+
+  // Onboarding déclaratif
+  nbFormationsDeclarees Int?
+  nbFormateursDeclares  Int?
+  nbSessionsMois        Int?
+  objectifPrincipal     ObjectifPrincipal?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships       Membership[]
+  formations        Formation[]
+  trainers          Trainer[]
+  rooms             Room[]
+  sessions          Session[]
+  prospects         Prospect[]
+  learners          Learner[]
+  enrollments       Enrollment[]
+  documents         Document[]
+  documentTemplates DocumentTemplate[]
+  complaints        Complaint[]
+  improvementActions ImprovementAction[]
+  feedbacks         Feedback[]
+  aiInteractions    AiInteraction[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  testimonials      Testimonial[]
+  faqs              Faq[]
+  changeRequests    ChangeRequest[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  avatarUrl     String?
+  emailVerified DateTime?
+  lastLoginAt   DateTime?
+  failedLoginCount Int      @default(0)
+  lockedUntil      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  trainer     Trainer?
+  ownedProspects Prospect[] @relation("ProspectOwner")
+  aiInteractions AiInteraction[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+}
+
+model Membership {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role
+  status         MembershipStatus @default(ACTIVE)
+  invitedAt      DateTime?
+  acceptedAt     DateTime?
+  invitedEmail   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// --------------------------- CATALOGUE ---------------------------
+
+model Formation {
+  id              String          @id @default(cuid())
+  organizationId  String
+  title           String
+  slug            String
+  category        String?
+  shortDescription String?
+  longDescription  String?
+  objectives      String?
+  targetAudience  String?
+  prerequisites   String?
+  program         String?
+  durationDays    Int?
+  durationHours   Int?
+  price           Int             @default(0) // centimes
+  modality        Modality        @default(PRESENTIEL)
+  level           Level           @default(DEBUTANT)
+  color           String?         @default("#5850ec")
+  coverImageUrl   String?         // visuel de couverture (marketplace)
+  status          FormationStatus @default(BROUILLON)
+  isPublic        Boolean         @default(false)
+  publicSlug      String?         @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions         Session[]
+  eligibleTrainers TrainerFormation[]
+  documents        Document[]
+  testimonials     Testimonial[]
+  faqs             Faq[]
+  prospects        Prospect[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model Trainer {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?  @unique
+  firstName      String
+  lastName       String
+  initials       String?
+  email          String?
+  phone          String?
+  color          String?  @default("#5850ec")
+  photoUrl       String?  // photo de profil publique
+  specialities   String[] @default([])
+  bio            String?
+  yearsExperience Int?    // ancienneté (vitrine formateur)
+  active         Boolean  @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  availabilities TrainerAvailability[]
+  sessions       Session[]
+  formations     TrainerFormation[]
+  changeRequests ChangeRequest[]
+
+  @@index([organizationId])
+}
+
+// Table de liaison M:N Formation <-> Trainer (formateurs éligibles)
+model TrainerFormation {
+  trainerId   String
+  formationId String
+
+  trainer   Trainer   @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  formation Formation @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  @@id([trainerId, formationId])
+  @@index([formationId])
+}
+
+model TrainerAvailability {
+  id        String           @id @default(cuid())
+  trainerId String
+  date      DateTime
+  slot      Slot
+  type      AvailabilityType @default(DISPONIBLE)
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId, date])
+}
+
+// Demande de modification d'un formateur (dispo ou affectation) vers son centre
+model ChangeRequest {
+  id             String   @id @default(cuid())
+  organizationId String
+  trainerId      String
+  sessionId      String?
+  availabilityId String?
+  requestType    String   // unavailable | partial | propose_date | conflict | other
+  reason         String?
+  proposedDate   DateTime?
+  proposedSlot   Slot?
+  proposedStart  String?
+  proposedEnd    String?
+  urgency        String   @default("normal") // low | normal | high
+  status         String   @default("pending") // pending | accepted | rejected | cancelled | counter_proposed
+  centerResponse String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  trainer      Trainer      @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([trainerId])
+}
+
+model Room {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  type           RoomType @default(SALLE)
+  capacity       Int?
+  location       String?
+  url            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+
+  @@index([organizationId])
+}
+
+// --------------------------- SESSIONS ---------------------------
+
+model Session {
+  id              String        @id @default(cuid())
+  organizationId  String
+  formationId     String
+  trainerId       String?
+  roomId          String?
+  startDate       DateTime
+  endDate         DateTime
+  slots           Slot[]        @default([])
+  capacity        Int           @default(10)
+  pricePerLearner Int           @default(0) // centimes
+  breakEvenSeats  Int           @default(1)
+  status          SessionStatus @default(BROUILLON)
+  trainerConfirmed Boolean      @default(false)
+  notes           String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formation    Formation    @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  trainer      Trainer?     @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  room         Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  enrollments  Enrollment[]
+  documents    Document[]
+
+  @@index([organizationId])
+  @@index([formationId])
+  @@index([trainerId])
+}
+
+// --------------------------- CRM ---------------------------
+
+model Prospect {
+  id                  String         @id @default(cuid())
+  organizationId      String
+  name                String
+  contactName         String?
+  type                ProspectType   @default(ENTREPRISE)
+  email               String?
+  phone               String?
+  formationOfInterestId String?
+  source              ProspectSource @default(AUTRE)
+  stage               ProspectStage  @default(NOUVEAU)
+  potentialAmount     Int            @default(0) // centimes
+  nextAction          String?
+  nextFollowUpDate    DateTime?
+  isHot               Boolean        @default(false)
+  notes               String?
+  ownerId             String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formationOfInterest Formation?        @relation(fields: [formationOfInterestId], references: [id], onDelete: SetNull)
+  owner               User?             @relation("ProspectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities          ProspectActivity[]
+
+  @@index([organizationId])
+  @@index([stage])
+}
+
+model ProspectActivity {
+  id         String   @id @default(cuid())
+  prospectId String
+  type       String   // appel, email, note, stage_change
+  content    String?
+  createdAt  DateTime @default(now())
+
+  prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([prospectId])
+}
+
+// --------------------------- APPRENANTS ---------------------------
+
+model Learner {
+  id             String   @id @default(cuid())
+  organizationId String
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  company        String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  enrollments  Enrollment[]
+  feedbacks    Feedback[]
+
+  @@index([organizationId])
+}
+
+model Enrollment {
+  id             String           @id @default(cuid())
+  organizationId String
+  learnerId      String
+  sessionId      String
+  status         EnrollmentStatus @default(INSCRIT)
+  score          Int?
+  satisfactionRating Int?
+  satisfactionComment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  learner      Learner      @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attendances  Attendance[]
+  documents    Document[]
+
+  @@unique([learnerId, sessionId])
+  @@index([organizationId])
+  @@index([sessionId])
+}
+
+model Attendance {
+  id           String   @id @default(cuid())
+  enrollmentId String
+  date         DateTime
+  slot         Slot
+  present      Boolean  @default(false)
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId])
+}
+
+// --------------------------- DOCUMENTS ---------------------------
+
+model DocumentTemplate {
+  id              String       @id @default(cuid())
+  organizationId  String?      // null = modèle global par défaut
+  type            DocumentType
+  name            String
+  contentTemplate String       // HTML/MJML avec variables {{...}}
+  variables       String[]     @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents    Document[]
+
+  @@index([organizationId])
+}
+
+model Document {
+  id             String         @id @default(cuid())
+  organizationId String
+  type           DocumentType
+  templateId     String?
+  status         DocumentStatus @default(A_GENERER)
+  fileUrl        String?
+  generatedAt    DateTime?
+  sentAt         DateTime?
+
+  // entités liées (au moins une selon le type)
+  formationId  String?
+  sessionId    String?
+  enrollmentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     DocumentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  formation    Formation?        @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  session      Session?          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment?       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([sessionId])
+}
+
+// --------------------------- QUALITÉ ---------------------------
+
+model Complaint {
+  id             String          @id @default(cuid())
+  organizationId String
+  subject        String
+  description    String?
+  status         ComplaintStatus @default(OUVERTE)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model ImprovementAction {
+  id             String            @id @default(cuid())
+  organizationId String
+  title          String
+  description    String?
+  owner          String?
+  dueDate        DateTime?
+  status         ImprovementStatus @default(OUVERTE)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Feedback {
+  id             String   @id @default(cuid())
+  organizationId String
+  learnerId      String?
+  rating         Int
+  comment        String?
+  formationTitle String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  learner      Learner?     @relation(fields: [learnerId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+}
+
+// --------------------------- IA / SYSTÈME ---------------------------
+
+model AiInteraction {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  type           String
+  inputContext   String?
+  output         String?
+  model          String?
+  tokensIn       Int?
+  tokensOut      Int?
+  acceptedByUser Boolean?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String?
+  action         String
+  entityType     String?
+  entityId       String?
+  before         Json?
+  after          Json?
+  ip             String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String?
+  type           String
+  payload        Json?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+// --------------------------- PAGES PUBLIQUES ---------------------------
+
+model Testimonial {
+  id             String   @id @default(cuid())
+  organizationId String
+  formationId    String?
+  author         String
+  role           String?
+  content        String
+  rating         Int?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formation    Formation?   @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Faq {
+  id             String   @id @default(cuid())
+  organizationId String
+  formationId    String?
+  question       String
+  answer         String
+  position       Int      @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formation    Formation?   @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+// --------------------------- JOBS ASYNCHRONES ---------------------------
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model BackgroundJob {
+  id             String    @id @default(cuid())
+  organizationId String
+  type           String    // ex: "pdf_bulk", "email_bulk"
+  payload        Json      // données nécessaires au traitement
+  status         JobStatus @default(PENDING)
+  resultUrl      String?   // résultat (URL fichier zip, etc.)
+  error          String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId])
+  @@index([status])
+}
