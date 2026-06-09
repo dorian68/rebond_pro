@@ -21,8 +21,11 @@ const parsed = schema.safeParse({
 if (!parsed.success) {
   const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(" | ");
   const msg = `[env] Configuration invalide → ${issues}`;
-  if (isProd) throw new Error(msg);
-  console.warn(`${msg} (dev : avertissement seulement)`);
+  // Pendant le build (collecte des routes), les variables peuvent être absentes :
+  // on n'échoue qu'au runtime serveur réel, pas pendant `next build`.
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+  if (isProd && !isBuildPhase) throw new Error(msg);
+  console.warn(`${msg} (${isBuildPhase ? "build : avertissement seulement" : "dev : avertissement seulement"})`);
 }
 
 // Garde-fou de sécurité : le bypass d'auth dev ne doit JAMAIS être effectif en production.
