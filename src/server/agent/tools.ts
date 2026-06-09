@@ -7,6 +7,7 @@ import { formatMoney, formatDateRange } from "@/lib/utils";
 import { MODALITY_LABELS, PROSPECT_STAGE_LABELS } from "@/lib/labels";
 import type { UIBlock } from "@/lib/ag-ui/types";
 import { WRITE_TOOLS } from "@/server/agent/write-tools";
+import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -228,6 +229,8 @@ export const AGENT_TOOLS: AgentTool[] = [
   },
   // ---- Outils d'écriture / CRUD complet (sensibles, human-in-the-loop) ----
   ...WRITE_TOOLS,
+  // ---- Outils par persona (lecture + actions ciblées) ----
+  ...PERSONA_TOOLS,
 ];
 
 export function getTool(name: string): AgentTool | undefined {

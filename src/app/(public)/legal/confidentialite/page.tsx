@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <p style={{ color: "#6b7280", marginBottom: 32 }}>En vigueur au 1er juin 2026 — conforme au RGPD</p>
 
         <h2>1. Responsable du traitement</h2>
-        <p><strong>RebondPro Formation</strong>, SAS dont le siège social est situé en Martinique (97200). Contact DPO : <a href="mailto:dpo@rebondpro.fr">dpo@rebondpro.fr</a>.</p>
+        <p><strong>RebondPro Formation</strong>, SAS dont le siège social est situé en Guadeloupe (97110, Pointe-à-Pitre). Contact DPO : <a href="mailto:dpo@rebondpro.fr">dpo@rebondpro.fr</a>.</p>
 
         <h2>2. Données collectées</h2>
         <ul>

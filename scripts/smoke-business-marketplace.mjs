@@ -3,8 +3,8 @@ import { readFile } from "node:fs/promises";
 
 // Smoke business : vérifie que la marketplace porte la valeur attendue (visibilité centres + formateurs).
 const checks = [
-  ["landing → marketplace", "src/app/page.tsx", "Catalogue des formations"],
-  ["landing → explorer CTA", "src/app/page.tsx", "Explorer le catalogue"],
+  ["landing → catalogue", "src/app/(site)/page.tsx", "catalogue"],
+  ["beneficiary catalogue access", "src/app/espace/catalogue/page.tsx", "getMarketplaceFormations"],
   ["marketplace promesse", "src/app/(public)/marketplace/page.tsx", "Trouvez la formation et le formateur"],
   ["marketplace recherche/filtres", "src/app/(public)/marketplace/page.tsx", "Toutes catégories"],
   ["marketplace annuaire centres", "src/app/(public)/marketplace/page.tsx", "Les centres de formation"],

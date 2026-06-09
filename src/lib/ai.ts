@@ -77,6 +77,7 @@ export async function chat(messages: { role: "user" | "assistant"; content: stri
 }
 
 export async function logAi(params: { organizationId: string; userId?: string | null; type: string; input?: string; output?: string; model?: string }): Promise<void> {
+  if (!params.organizationId) return; // contexte public (visiteur) : pas de traçabilité tenant
   try {
     await prisma.aiInteraction.create({
       data: {

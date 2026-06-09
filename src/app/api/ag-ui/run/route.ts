@@ -4,6 +4,8 @@ import type { TenantContext } from "@/lib/tenant";
 import type { Role } from "@prisma/client";
 import type { AGUIEvent, RunAgentInput } from "@/lib/ag-ui/types";
 import { runAgent } from "@/server/agent/runtime";
+import { resolvePersona } from "@/lib/ag-ui/persona";
+import { isPlatformAdmin } from "@/lib/platform";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,19 +38,20 @@ const inputSchema = z.object({
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session?.user?.id || !session.user.organizationId) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
-  }
+  const hasSession = Boolean(session?.user?.id);
 
-  const ctx: TenantContext = {
-    userId: session.user.id,
-    email: session.user.email ?? null,
-    name: session.user.name ?? null,
-    organizationId: session.user.organizationId,
-    organizationName: session.user.organizationName,
-    organizationSlug: session.user.organizationSlug,
-    role: (session.user.role as Role) ?? "ASSISTANT",
-  };
+  // Contexte : tenant si connecté, sinon contexte PUBLIC (visiteur) sans organisation.
+  const ctx: TenantContext = hasSession
+    ? {
+        userId: session!.user.id,
+        email: session!.user.email ?? null,
+        name: session!.user.name ?? null,
+        organizationId: session!.user.organizationId ?? "",
+        organizationName: session!.user.organizationName ?? null,
+        organizationSlug: session!.user.organizationSlug ?? null,
+        role: (session!.user.role as Role) ?? "ASSISTANT",
+      }
+    : { userId: "", email: null, name: null, organizationId: "", organizationName: null, organizationSlug: null, role: "LEARNER" };
 
   let raw: unknown;
   try {
@@ -70,6 +73,10 @@ export async function POST(req: Request) {
     forwardedProps: parsed.data.forwardedProps,
   };
 
+  // Persona = rôle + page courante (sécurité : périmètre d'outils côté serveur).
+  const platformAdmin = hasSession ? await isPlatformAdmin() : false;
+  const persona = resolvePersona({ hasSession, role: ctx.role, pathname: input.state?.pathname, isPlatformAdmin: platformAdmin });
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -82,7 +89,7 @@ export async function POST(req: Request) {
           closed = true;
         }
       };
-      runAgent(ctx, input, emit)
+      runAgent(ctx, input, emit, persona)
         .catch((err) => emit({ type: "RunError", message: err instanceof Error ? err.message : "Erreur", code: "AGUI_RUN_ERROR" }))
         .finally(() => {
           if (!closed) {

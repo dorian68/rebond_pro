@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/site/ui/button";
-import { Menu, X, Phone, Building2 } from "lucide-react";
+import { Menu, X, Phone, Building2, UserRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
@@ -59,6 +59,13 @@ const Header = () => {
 
         {/* Desktop CTAs */}
         <div className="hidden lg:flex items-center gap-3">
+          <Link
+            href="/espace"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors duration-300"
+          >
+            <UserRound className="w-3.5 h-3.5" />
+            Mon espace
+          </Link>
           <Link
             href="/centres"
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors duration-300"
@@ -133,9 +140,17 @@ const Header = () => {
                   </Button>
                 </Link>
                 <Link
-                  href="/centres"
+                  href="/espace"
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center justify-center gap-1.5 mt-1 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors"
+                >
+                  <UserRound className="w-4 h-4" />
+                  Accéder à mon espace
+                </Link>
+                <Link
+                  href="/centres"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors"
                 >
                   <Building2 className="w-4 h-4" />
                   Vous êtes un centre de formation ?

@@ -1,11 +1,9 @@
 import { readFile } from "node:fs/promises";
 
 const checks = [
-  ["landing promise", "src/app/page.tsx", "Accompagner les parcours. Faire grandir les centres."],
-  ["landing B2C entry", "src/app/page.tsx", "Particuliers & bénéficiaires"],
-  ["landing B2B entry", "src/app/page.tsx", "Centres de formation"],
-  ["landing signup CTA", "src/app/page.tsx", "Créer mon espace centre"],
-  ["landing marketplace CTA", "src/app/page.tsx", "Explorer le catalogue"],
+  ["landing B2C bilan", "src/app/(site)/page.tsx", "bilan"],
+  ["landing B2B centre", "src/app/(site)/page.tsx", "centre de formation"],
+  ["landing catalogue link", "src/app/(site)/page.tsx", "catalogue"],
   ["onboarding three steps", "src/app/onboarding/onboarding-client.tsx", "Étape {step} sur 3"],
   ["onboarding real submit", "src/app/onboarding/onboarding-client.tsx", "Ouvrir mon cockpit"],
   ["public formation CTA", "src/app/(public)/[orgSlug]/f/[publicSlug]/page.tsx", "Demander une inscription"],

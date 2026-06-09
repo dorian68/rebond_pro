@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/app/Sidebar";
 import { Topbar, type TopNotif } from "@/components/app/Topbar";
 import { AgentDock } from "@/components/agent/AgentDock";
 import { requireTenant } from "@/lib/tenant";
+import { isPlatformAdmin } from "@/lib/platform";
 import { prisma } from "@/lib/prisma";
 import { documentSuggestions } from "@/server/documents";
 
@@ -16,15 +17,17 @@ function deriveInitials(name: string | null, email: string | null): string {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireTenant();
-  // Les formateurs ont leur propre portail simplifié
+  // Les formateurs et bénéficiaires ont leur propre portail simplifié
   if (ctx.role === "TRAINER") redirect("/trainer");
+  if (ctx.role === "LEARNER") redirect("/espace");
   const now = new Date();
 
-  const [relances, suggestions] = await Promise.all([
+  const [relances, suggestions, platformAdmin] = await Promise.all([
     prisma.prospect.count({
       where: { organizationId: ctx.organizationId, deletedAt: null, nextFollowUpDate: { lte: now }, stage: { in: ["NOUVEAU", "CONTACTE", "DEVIS", "RELANCE"] } },
     }),
     documentSuggestions(ctx),
+    isPlatformAdmin(),
   ]);
   const docsToGenerate = suggestions.length;
 
@@ -37,6 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar
         user={{ name: ctx.name ?? ctx.email ?? "Utilisateur", initials: deriveInitials(ctx.name, ctx.email), orgName: ctx.organizationName ?? "Mon centre" }}
         badges={{ prospects: relances || undefined, documents: docsToGenerate || undefined }}
+        platformAdmin={platformAdmin}
       />
       <div className="main-col">
         <Topbar notifications={notifications} />

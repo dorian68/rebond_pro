@@ -38,6 +38,7 @@ export async function createCheckoutSession(plan: Plan): Promise<BillingActionRe
     const customerId = await ensureCustomer(ctx.organizationId, ctx.organizationName, ctx.email);
     const session = await getStripe().checkout.sessions.create({
       mode: "subscription",
+      payment_method_types: ["card"],
       customer: customerId,
       line_items: [{ price: def.priceId, quantity: 1 }],
       success_url: `${baseUrl()}/parametres?billing=success`,

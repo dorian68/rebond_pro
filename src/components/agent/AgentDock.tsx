@@ -14,9 +14,52 @@ function AssistantAvatar({ size = 28 }: { size?: number }) {
   );
 }
 
-function contextualSuggestions(pathname: string): { label: string; prompt: string }[] {
-  const seg = pathname.split("/").filter(Boolean)[0] ?? "dashboard";
-  const map: Record<string, { label: string; prompt: string }[]> = {
+type Suggestion = { label: string; prompt: string };
+
+/**
+ * Contexte du copilote selon la page (cohérent avec resolvePersona côté serveur) :
+ * cockpit centre, espace bénéficiaire, portail formateur, admin plateforme, ou site public visiteur.
+ * Évite qu'un bénéficiaire ou un visiteur voie des suggestions « centre » (ex : sessions à risque).
+ */
+function agentContext(pathname: string): { intro: string; suggestions: Suggestion[] } {
+  const seg = pathname.split("/").filter(Boolean)[0] ?? "";
+
+  // Espace bénéficiaire (bilan de compétences)
+  if (seg === "espace") {
+    return {
+      intro: "Je vous accompagne dans votre bilan de compétences : suivi de votre parcours et formations adaptées à votre projet.",
+      suggestions: [
+        { label: "Où en est mon bilan ?", prompt: "Donne-moi l'état d'avancement de mon bilan de compétences." },
+        { label: "Une formation pour moi", prompt: "Recommande-moi des formations adaptées à mon projet professionnel." },
+        { label: "Comment se déroule le bilan ?", prompt: "Rappelle-moi les étapes du bilan de compétences." },
+      ],
+    };
+  }
+
+  // Portail formateur
+  if (seg === "trainer") {
+    return {
+      intro: "Je vous aide à gérer votre activité de formateur : planning, disponibilités et demandes d'animation.",
+      suggestions: [
+        { label: "Mon planning", prompt: "Montre-moi mon planning des prochaines sessions." },
+        { label: "Mes demandes", prompt: "Quelles demandes d'animation dois-je traiter en priorité ?" },
+      ],
+    };
+  }
+
+  // Admin plateforme (god-mode, lecture seule)
+  if (seg === "admin") {
+    return {
+      intro: "Vue plateforme : je consolide l'activité des centres, formateurs, bénéficiaires et les flux financiers.",
+      suggestions: [
+        { label: "Vue d'ensemble réseau", prompt: "Donne-moi une vue d'ensemble de la plateforme : centres, formateurs, bénéficiaires." },
+        { label: "Flux financiers", prompt: "Résume les flux financiers et les commissions de la plateforme." },
+      ],
+    };
+  }
+
+  // Cockpit centre de formation
+  const center: Record<string, Suggestion[]> = {
     dashboard: [
       { label: "Résumer ma semaine", prompt: "Donne-moi un résumé de l'activité et mes priorités de la semaine." },
       { label: "Sessions à risque", prompt: "Quelles sessions sont à risque et que faire ?" },
@@ -36,13 +79,25 @@ function contextualSuggestions(pathname: string): { label: string; prompt: strin
     ],
     planning: [{ label: "Meilleurs créneaux", prompt: "Trouve les meilleurs créneaux pour programmer une session." }],
   };
-  return map[seg] ?? [
-    { label: "Résumer ma semaine", prompt: "Résume mon activité et mes priorités." },
-    { label: "Aide sur cette page", prompt: "Que puis-je faire sur cette page ?" },
-  ];
+  if (center[seg]) {
+    return { intro: "Je peux analyser votre centre, retrouver des informations, proposer des créneaux et préparer des actions — en toute sécurité.", suggestions: center[seg] };
+  }
+  const cockpitSegs = ["beneficiaires", "apprenants", "formateurs", "documents", "qualite", "assistant"];
+  if (cockpitSegs.includes(seg)) {
+    return { intro: "Je peux analyser votre centre, retrouver des informations et préparer des actions — en toute sécurité.", suggestions: center.dashboard };
+  }
+
+  // Site public (visiteur) : pages vitrine + accueil
+  return {
+    intro: "Je réponds à vos questions sur le bilan de compétences, le financement CPF et les formations disponibles.",
+    suggestions: [
+      { label: "Le bilan de compétences", prompt: "Comment se déroule un bilan de compétences et suis-je éligible au CPF ?" },
+      { label: "Trouver une formation", prompt: "Quelles formations sont disponibles dans le catalogue ?" },
+    ],
+  };
 }
 
-export function AgentDock() {
+export function AgentDock({ bottomOffset = 24 }: { bottomOffset?: number } = {}) {
   const a = useAgentConversation();
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
@@ -85,7 +140,7 @@ export function AgentDock() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Ouvrir l'assistant"
-          style={{ position: "fixed", right: 24, bottom: 24, zIndex: 80, width: 56, height: 56, borderRadius: 18, border: "none", cursor: "pointer", background: "linear-gradient(140deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px rgba(88,80,236,.45)" }}
+          style={{ position: "fixed", right: 24, bottom: bottomOffset, zIndex: 80, width: 56, height: 56, borderRadius: 18, border: "none", cursor: "pointer", background: "linear-gradient(140deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px rgba(88,80,236,.45)" }}
         >
           <Icon name="sparkles" size={24} />
         </button>
@@ -208,13 +263,13 @@ export function AgentDock() {
 }
 
 function Landing({ pathname, onPick }: { pathname: string; onPick: (prompt: string) => void }) {
-  const suggestions = contextualSuggestions(pathname);
+  const { intro, suggestions } = agentContext(pathname);
   return (
     <div className="fade-up" style={{ textAlign: "center", padding: "28px 12px" }}>
       <div style={{ display: "inline-flex", marginBottom: 14 }}><AssistantAvatar size={48} /></div>
       <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Comment puis-je vous aider ?</h3>
       <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5, maxWidth: 320, margin: "0 auto 20px" }}>
-        Je peux analyser votre centre, retrouver des informations, proposer des créneaux et préparer des actions — en toute sécurité.
+        {intro}
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left" }}>
         {suggestions.map((s, i) => (

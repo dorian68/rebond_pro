@@ -12,9 +12,11 @@ type Badges = { prospects?: number; documents?: number };
 export function Sidebar({
   user,
   badges = {},
+  platformAdmin = false,
 }: {
   user: { name: string; initials: string; orgName: string };
   badges?: Badges;
+  platformAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -92,6 +94,15 @@ export function Sidebar({
       </nav>
 
       <div style={{ padding: 12, borderTop: "1px solid var(--border-2)" }}>
+        {platformAdmin && (
+          <Link
+            href="/admin"
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 10, marginBottom: 6,
+              color: "#fff", background: "linear-gradient(135deg,#2a2550,#5850ec)", fontWeight: 700, fontSize: 13.5 }}
+          >
+            <Icon name="shield" size={18} /> Administration plateforme
+          </Link>
+        )}
         <Link
           href="/parametres"
           style={{

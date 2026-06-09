@@ -4,6 +4,7 @@ import { Logo } from "@/components/app/Logo";
 import { Icon } from "@/components/ui/Icon";
 import { requireTenant } from "@/lib/tenant";
 import { logoutAction } from "@/server/auth-actions";
+import { AgentDock } from "@/components/agent/AgentDock";
 import { TrainerNav } from "./trainer-nav";
 
 export default async function TrainerLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +47,7 @@ export default async function TrainerLayout({ children }: { children: React.Reac
       <footer style={{ borderTop: "1px solid var(--border)", padding: "16px 20px", textAlign: "center" }}>
         <span style={{ fontSize: 12, color: "var(--ink-4)" }}>RebondPro Formation · Portail formateur</span>
       </footer>
+      <AgentDock />
     </div>
   );
 }

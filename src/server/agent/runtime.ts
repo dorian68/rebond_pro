@@ -7,9 +7,10 @@ import type { AGUIEvent, RunAgentInput, UIBlock } from "@/lib/ag-ui/types";
 import { agUIConfig } from "@/lib/ag-ui/config";
 import { sanitizeForAgent } from "@/lib/ag-ui/sanitize";
 import { isAiEnabled, logAi } from "@/lib/ai";
-import { AGENT_TOOLS, getTool, isSensitive, type ToolResult } from "@/server/agent/tools";
+import { AGENT_TOOLS, getTool, isSensitive, type ToolResult, type AgentTool } from "@/server/agent/tools";
 import { getDashboardMetrics } from "@/server/metrics";
 import { formatMoney } from "@/lib/utils";
+import { type Persona, PERSONA_PROMPT, isToolAllowed } from "@/lib/ag-ui/persona";
 
 type Emit = (e: AGUIEvent) => void;
 
@@ -77,16 +78,22 @@ function emitApproval(emit: Emit, msgId: string, toolName: string, args: Record<
   emit({ type: "Custom", name: "app.approval.required", value: { approvalId, tool: toolName, args }, timestamp: now() });
 }
 
-export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: Emit): Promise<void> {
+export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: Emit, persona: Persona = "center"): Promise<void> {
   const threadId = input.threadId;
   const runId = input.runId ?? randomUUID();
   emit({ type: "RunStarted", threadId, runId, timestamp: now() });
-  emit({ type: "StateSnapshot", snapshot: sanitizeForAgent({ pathname: input.state?.pathname, title: input.state?.title, user: { name: ctx.name, role: ctx.role, org: ctx.organizationName }, provider: agUIConfig.provider }), timestamp: now() });
+  emit({ type: "StateSnapshot", snapshot: sanitizeForAgent({ pathname: input.state?.pathname, title: input.state?.title, persona, user: { name: ctx.name, role: ctx.role, org: ctx.organizationName }, provider: agUIConfig.provider }), timestamp: now() });
 
   try {
     // Human-in-the-loop : exécution après validation
     const approved = input.forwardedProps?.approvedAction;
     if (approved) {
+      // Sécurité : l'action approuvée doit appartenir au périmètre du persona.
+      if (!isToolAllowed(persona, approved.tool)) {
+        emit({ type: "RunError", message: "Action non autorisée pour ce contexte.", code: "PERSONA_FORBIDDEN", timestamp: now() });
+        emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
+        return;
+      }
       const msgId = randomUUID();
       const toolCallId = randomUUID();
       emit({ type: "TextMessageStart", messageId: msgId, role: "assistant", timestamp: now() });
@@ -105,10 +112,12 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
       return;
     }
 
-    // Quota IA : bloque le lancement d'un nouveau run au-delà de la limite du plan.
+    // Quota IA : bloque le lancement d'un nouveau run au-delà de la limite du plan (sauf visiteur public).
     try {
-      const { enforceQuota } = await import("@/server/quota");
-      await enforceQuota(ctx, "ai");
+      if (persona !== "visitor") {
+        const { enforceQuota } = await import("@/server/quota");
+        await enforceQuota(ctx, "ai");
+      }
     } catch (e) {
       const msgId = randomUUID();
       emit({ type: "TextMessageStart", messageId: msgId, role: "assistant", timestamp: now() });
@@ -119,16 +128,19 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
     }
 
     if (!isAiEnabled()) {
-      await mockRun(ctx, emit);
+      await mockRun(ctx, emit, persona);
       emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
       return;
     }
 
-    const ctxLine = input.state?.pathname ? `\n\nContexte courant : l'utilisateur est sur la page "${input.state.title ?? input.state.pathname}" (${input.state.pathname}).` : "";
-    const system = SYSTEM_PROMPT + ctxLine;
+    // Outils filtrés selon le persona (sécurité : périmètre serveur).
+    const personaTools = AGENT_TOOLS.filter((t) => isToolAllowed(persona, t.name));
+    const ctxLine = input.state?.pathname ? `\n\nContexte courant : page "${input.state.title ?? input.state.pathname}" (${input.state.pathname}).` : "";
+    const base = persona === "center" ? SYSTEM_PROMPT : PERSONA_PROMPT[persona];
+    const system = base + ctxLine;
     const pending = agUIConfig.provider === "openai"
-      ? await loopOpenAI(ctx, input, system, emit)
-      : await loopAnthropic(ctx, input, system, emit);
+      ? await loopOpenAI(ctx, input, system, emit, personaTools)
+      : await loopAnthropic(ctx, input, system, emit, personaTools);
 
     emit({ type: "RunFinished", threadId, runId, outcome: { type: pending ? "requires_action" : "success" }, timestamp: now() });
   } catch (e) {
@@ -138,8 +150,8 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
 }
 
 // ---------------- Boucle OpenAI (function calling, streaming) ----------------
-async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit): Promise<boolean> {
-  const tools = AGENT_TOOLS.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[]): Promise<boolean> {
+  const tools = personaTools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: system },
     ...input.messages.filter((m) => (m.role === "user" || m.role === "assistant") && m.content).map((m) => ({ role: m.role as "user" | "assistant", content: String(m.content) })),
@@ -201,8 +213,8 @@ async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: stri
 }
 
 // ---------------- Boucle Anthropic (tool use, streaming) ----------------
-async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit): Promise<boolean> {
-  const tools = AGENT_TOOLS.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
+async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[]): Promise<boolean> {
+  const tools = personaTools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: Anthropic.MessageParam[] = input.messages
     .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
     .map((m) => ({ role: m.role as "user" | "assistant", content: String(m.content) }));
@@ -245,7 +257,16 @@ async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: s
 }
 
 /** Fallback uniquement si le provider courant n'a pas de clé. */
-async function mockRun(ctx: TenantContext, emit: Emit): Promise<void> {
+async function mockRun(ctx: TenantContext, emit: Emit, persona: Persona = "center"): Promise<void> {
+  // Personas sans tableau de bord centre : message générique (pas d'accès aux métriques org).
+  if (persona !== "center" || !ctx.organizationId) {
+    const msgId = randomUUID();
+    emit({ type: "TextMessageStart", messageId: msgId, role: "assistant", timestamp: now() });
+    const txt = "Mode démonstration (aucune clé LLM configurée). Posez votre question, je vous orienterai.";
+    for (const part of txt.split(/(?<=[.\n])/)) emit({ type: "TextMessageContent", messageId: msgId, delta: part });
+    emit({ type: "TextMessageEnd", messageId: msgId });
+    return;
+  }
   const m = await getDashboardMetrics(ctx);
   const msgId = randomUUID();
   emit({ type: "TextMessageStart", messageId: msgId, role: "assistant", timestamp: now() });

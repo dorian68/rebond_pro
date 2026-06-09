@@ -1,6 +1,6 @@
 # Production Readiness
 
-_Dernière mise à jour : 7 juin 2026 (passe Technical RL). Base : Supabase PostgreSQL (pooler). Build et lint verts._
+_Dernière mise à jour : 9 juin 2026 (passe Technical RL — écosystème multi-faces). Base : Supabase PostgreSQL (pooler). tsc/lint/build verts. **Blocage live au moment de la passe : DB injoignable (`P1001`, VPN/ pause Supabase) → smoke DB non rejoués ; migration `Transaction` non appliquée.**_
 
 | Area | Verdict | Evidence / blocker |
 |---|---|---|
@@ -15,24 +15,37 @@ _Dernière mise à jour : 7 juin 2026 (passe Technical RL). Base : Supabase Post
 | Error handling | PARTIAL | Erreurs structurées (server actions, outils agent renvoient des messages ciblés). Audit global restant. |
 | API response consistency | PARTIAL→YES | Helper `src/lib/api.ts` (`apiOk`/`apiError`) ; erreurs homogènes. Shapes de succès volontairement couplées aux clients existants. |
 | Logging | YES (base) | **Logger structuré** JSON `src/lib/logger.ts` (secrets masqués) + **endpoint `/api/health`** (liveness + readiness DB) + smoke JSON. APM/alerting externe restant. |
-| Billing / monétisation | PARTIAL (code YES) | **Stripe livré** : plans FREE/PRO/PREMIUM, Checkout, portail, webhook (upgrade/downgrade) synchronisant le plan ; fallback sans clé ; testé `smoke:billing`. Reste : configurer les clés Stripe de prod + price IDs, et appliquer les quotas. |
-| CLI smoke tests | YES | 13 smoke tests verts sur Supabase : health, lot5, auth, registration, crud, agent, marketplace, tenant, password-reset, dedup, **billing**, business, business-marketplace. `smoke:all` les enchaîne. |
-| Build | YES | `npm run build` exit 0 (7 juin 2026), `npm run lint` exit 0 (0 erreur), `tsc` 0. |
+| Billing / abonnements | PARTIAL (code YES, compte non activé) | **Stripe livré** : plans FREE/PRO/PREMIUM, Checkout (`payment_method_types: ["card"]`), portail, webhook ; **quotas** (`smoke:quota`) ; `smoke:billing`. **Setup live fait** : clé restreinte live branchée (`STRIPE_SECRET_KEY=rk_live`), **produits + prix PRO (49€)/PREMIUM (99€) créés en live**, price IDs câblés ; création de session Checkout live **prouvée**. **🔴 BLOQUEUR : compte Stripe `charges_enabled=false`** (activation/vérification Stripe en attente) → aucun paiement réel possible avant. **+ `STRIPE_WEBHOOK_SECRET` à créer au déploiement** (endpoint a besoin d'une URL publique). |
+| Flux financiers (ledger) | YES (live) | **Ledger `Transaction`** migré et testé live (`smoke:finance`). `recordTransaction` idempotent (renvoie l'id), `getFinanceSummary` (brut/commission/**net à reverser** + `pendingPayout`). **Suivi du reversement** : `payoutStatus` (pending/settled/not_applicable) + `settledAt`, action `markTransactionSettled` (god-mode) + bouton « Marquer reversé » sur `/admin/finances`. Reversement manuel (pas de Stripe Connect, acté). |
+| Paiements one-time | YES (code) | Checkout formation connecté + **public** (`publicFormationCheckout`, checkout invité, `smoke:public-purchase`) + bilan, webhook FORMATION_PURCHASE/BILAN. **Inscription auto** (`enrollBeneficiaryInFormation`, idempotent) + email de confirmation à l'acheteur. **Hors scope (futur)** : portail de connexion apprenant. |
+| Espaces dédiés | YES (code) | **Espace bénéficiaire** (`/espace`, modèle `Beneficiary`, `smoke:beneficiary`), **portail formateur** (`/trainer`, `smoke:trainer-portal`), **site vitrine B2C** (`/(site)`, contact réel). À rejouer en live. |
+| Plateforme god-mode | YES (code) | `/admin` cross-tenant lecture seule derrière `requirePlatformAdmin()` (`User.platformAdmin`, `PLATFORM_ADMIN_EMAILS`) ; agrégats batchés (fix EMAXCONNSESSION) ; `smoke:platform`. |
+| Sécurité copilote (personas) | YES (code) | Personas AG-UI (visitor/beneficiary/trainer/center/platform_admin) : **allowlist d'outils côté serveur + double garde sur action approuvée** ; visiteur sans accès tenant ; admin lecture seule. `smoke:persona` (logique pure) vert. |
+| Email transactionnel | PARTIAL | **Resend câblé via SMTP** (`smtp.resend.com:465`), envoi de bout en bout **vérifié** (vérif email, reset, confirmations d'achat). **Bloqueur prod** : domaine non vérifié → Resend n'envoie qu'à l'adresse du compte (`dorian.labry@gmail.com`) avec `onboarding@resend.dev`. Action : vérifier un domaine sur resend.com/domains puis passer `EMAIL_FROM` à ce domaine. |
+| CLI smoke tests | YES | **20 suites vertes sur Supabase, `smoke:all` exit 0** : health, lot5, auth, registration, crud, agent, marketplace, tenant, password-reset, dedup, billing, quota, trainer-portal, beneficiary, platform, persona, finance, public-purchase, business, business-marketplace. |
+| Build | YES | `npm run build` exit 0, `npm run lint` exit 0 (0 erreur), `tsc` 0 (9 juin 2026). |
 | Deployment | NO | Pipeline CI/CD et environnement hébergé non définis. Voir `DEPLOYMENT.md`. Bucket Supabase Storage public `public-assets` à créer pour l'upload d'images. |
 | Documentation | YES (socle) | Docs socle à jour (philosophie, spec, contrat CLI, readiness) + **`DEPLOYMENT.md`** (runbook). Rapports dans `reports/`. |
 
 ## Overall verdict
 
-**PARTIAL** (proche de demo-ready / pré-production).
+**PARTIAL** (cockpit B2B demo-ready ; couche financière + B2C bilan à finaliser et reprouver en live).
 
 ### Bloqueurs P0 restants
 - Déploiement (CI/CD + hébergement + bucket Storage public) — voir `DEPLOYMENT.md`.
-- APM / alerting production externe (le logging structuré + /api/health sont en place).
+- APM / alerting production externe (logging structuré + `/api/health` en place).
 
-### P1
-- Contrainte unique anti-doublon prospect public.
+### Résolu (passe 9 juin — Phase 0/1 financière, live)
+- Migration `Transaction` (+ colonnes payout) appliquée ; **`smoke:all` exit 0 (19 suites), `build` exit 0** sur Supabase.
+- **Inscription auto à l'achat** (Learner + Enrollment sur session OUVERTE, idempotent).
+- **Suivi du reversement** (`payoutStatus`/`settledAt` + action god-mode + UI `/admin/finances`).
+
+### P1 — actions credentials/compte (le code est prêt et prouvé)
+- **Activer le compte Stripe** : `charges_enabled` est `false` → terminer l'activation sur le dashboard Stripe (vérification identité/société/IBAN) pour pouvoir encaisser réellement.
+- **`STRIPE_WEBHOOK_SECRET`** : créer l'endpoint `/api/stripe/webhook` au déploiement (URL publique requise) → `whsec_`.
+- **Vérifier un domaine sur Resend** (resend.com/domains) puis `EMAIL_FROM=no-reply@tondomaine` — sinon les emails ne partent qu'à `dorian.labry@gmail.com` (le code email est branché et prouvé).
+- Portail de connexion apprenant (un acheteur public est inscrit comme `Learner` mais sans espace personnel propre).
 - Audit erreurs global + contrat API automatisé.
-- Validation Zod exhaustive des variables d'env.
 
 ### Résolu (passes du 7 juin)
 - CLI-testabilité des features critiques (CRUD, agent, marketplace, multi-tenant) — 12 smoke tests.
@@ -43,3 +56,10 @@ _Dernière mise à jour : 7 juin 2026 (passe Technical RL). Base : Supabase Post
 - **Validation Zod des env** + garde `DEV_AUTOLOGIN`.
 - **Effet réseau marketplace** : seed multi-centres (`seed:marketplace-demo`).
 - Retron DB sur coupures transitoires. Build + lint + tsc verts.
+
+### Résolu (passes du 9 juin — écosystème multi-faces)
+- **Personas AG-UI** sécurisés (allowlist serveur + double garde) sur les 4 surfaces — `smoke:persona` vert.
+- **Espace bénéficiaire**, **portail formateur**, **admin god-mode** livrés (code) — `smoke:beneficiary/trainer-portal/platform`.
+- **Ledger financier** (`Transaction`) + paiements Stripe formation/bilan + `/admin/finances` (net à reverser) — `smoke:finance` (post-migration).
+- **Quotas de plan** appliqués — `smoke:quota`.
+- **Chasse cohérence produit** : formulaire contact réel (était un mock), éligibilité CPF fonctionnelle, suggestions AG-UI par persona, prix bilan aligné (1 200 €), géographie cohérente (Guadeloupe). tsc/lint 0.

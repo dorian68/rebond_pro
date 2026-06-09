@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import FloatingCTA from "@/components/site/FloatingCTA";
+import { AgentDock } from "@/components/agent/AgentDock";
 
 /** Layout du site vitrine public (bilan de compétences, B2C).
  *  La classe `.vitrine` active le thème turquoise/or scopé (cf. globals.css)
@@ -13,6 +14,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
       <Footer />
       <FloatingCTA />
+      <AgentDock bottomOffset={92} />
     </div>
   );
 }

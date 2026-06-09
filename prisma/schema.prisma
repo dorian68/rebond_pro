@@ -222,6 +222,8 @@ model Organization {
   testimonials      Testimonial[]
   faqs              Faq[]
   changeRequests    ChangeRequest[]
+  beneficiaries     Beneficiary[]
+  transactions      Transaction[]
 }
 
 model User {
@@ -234,6 +236,7 @@ model User {
   lastLoginAt   DateTime?
   failedLoginCount Int      @default(0)
   lockedUntil      DateTime?
+  platformAdmin    Boolean  @default(false) // super-admin plateforme (vue cross-tenant)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -246,6 +249,7 @@ model User {
   notifications Notification[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  beneficiary             Beneficiary?
 }
 
 model Membership {
@@ -329,6 +333,7 @@ model Formation {
   testimonials     Testimonial[]
   faqs             Faq[]
   prospects        Prospect[]
+  interests        FormationInterest[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -415,6 +420,94 @@ model ChangeRequest {
 
   @@index([organizationId])
   @@index([trainerId])
+}
+
+// --------------------------- BÉNÉFICIAIRES (B2C bilan de compétences) ---------------------------
+
+// Personne accompagnée en bilan de compétences par un centre/opérateur.
+model Beneficiary {
+  id             String   @id @default(cuid())
+  organizationId String   // centre/opérateur accompagnateur
+  userId         String?  @unique
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  objective      String?  // projet professionnel visé
+  situation      String?  // situation actuelle
+  status         String   @default("active") // active | completed | archived
+  startedAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  steps        BilanStep[]
+  interests    FormationInterest[]
+
+  @@index([organizationId])
+}
+
+// Étape du parcours de bilan (3 phases légales : préliminaire, investigation, conclusion).
+model BilanStep {
+  id            String    @id @default(cuid())
+  beneficiaryId String
+  phase         String    // preliminaire | investigation | conclusion
+  title         String
+  description   String?
+  order         Int       @default(0)
+  status        String    @default("todo") // todo | in_progress | done
+  notes         String?
+  completedAt   DateTime?
+
+  beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+
+  @@index([beneficiaryId])
+}
+
+// Transaction financière de la plateforme (source de vérité du CA et des commissions).
+model Transaction {
+  id             String   @id @default(cuid())
+  organizationId String   // centre concerné (vendeur de formation OU abonné)
+  type           String   // FORMATION_PURCHASE | SUBSCRIPTION | BILAN
+  amount         Int      // montant total payé (centimes)
+  commission     Int      @default(0) // part plateforme (centimes)
+  currency       String   @default("EUR")
+  status         String   @default("paid") // paid | pending | refunded | failed
+  stripeRef      String?  @unique // id session/invoice/payment_intent (idempotence)
+  payerEmail     String?
+  payerName      String?
+  formationId    String?
+  beneficiaryId  String?
+  enrollmentId   String?  // inscription créée par l'achat (FORMATION_PURCHASE → Enrollment)
+  description    String?
+  // Reversement au centre vendeur (modèle « tout encaisser + reverser ») :
+  // pending = net dû au centre ; settled = reversé ; not_applicable = revenu propre plateforme (abo/bilan).
+  payoutStatus   String   @default("pending")
+  settledAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([payoutStatus])
+}
+
+// Formation du catalogue marketplace sauvegardée ou demandée par un bénéficiaire.
+model FormationInterest {
+  id            String   @id @default(cuid())
+  beneficiaryId String
+  formationId   String
+  status        String   @default("saved") // saved | requested
+  createdAt     DateTime @default(now())
+
+  beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  formation   Formation   @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  @@unique([beneficiaryId, formationId])
+  @@index([beneficiaryId])
 }
 
 model Room {

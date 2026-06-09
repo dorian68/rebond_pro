@@ -19,8 +19,16 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:password-reset` | Vérifie le reset mot de passe (jeton haché, invalide/court refusés, changement effectif, jeton non réutilisable, expiration) et l'anti-bruteforce (verrouillage après seuil, réinitialisation au succès). Nettoyage. |
 | `npm run smoke:dedup` | Vérifie l'index unique anti-doublon prospect public (doublon actif rejeté, GAGNE autorisé). Nettoyage. |
 | `npm run smoke:billing` | Vérifie le catalogue de plans, le mapping priceId→plan, l'état de facturation, le handler webhook Stripe (upgrade/downgrade) et le fallback sans clé. Nettoyage. |
+| `npm run smoke:quota` | Vérifie l'application des quotas de plan (limites FREE/PRO/PREMIUM bloquantes au-delà du seuil). Nettoyage. |
+| `npm run smoke:trainer-portal` | Vérifie le portail formateur : disponibilités, planning scopé au formateur, demandes d'animation. Nettoyage. |
+| `npm run smoke:beneficiary` | Vérifie l'espace bénéficiaire : `Beneficiary` lié au compte, parcours/phases, accès scopé. Nettoyage. |
+| `npm run smoke:platform` | Vérifie l'admin god-mode : agrégats cross-tenant en lecture seule derrière `requirePlatformAdmin()`, batché (évite EMAXCONNSESSION). Nettoyage. |
+| `npm run smoke:persona` | **Logique pure (sans DB)** : `resolvePersona` (visitor/beneficiary/trainer/center/platform_admin) et l'allowlist d'outils (visiteur sans accès tenant, bénéficiaire sans suppression, admin sans écriture). |
+| `npm run smoke:finance` | Vérifie le ledger : `recordTransaction` (commission auto + `payoutStatus`), idempotence par `stripeRef`, **inscription auto à l'achat** (Learner+Enrollment sur session OUVERTE, idempotente), **reversement** (`settleTransaction`), `getFinanceSummary` (brut/commission/net/pending). Nettoyage. |
+| `npm run smoke:public-purchase` | Vérifie l'achat public (sans compte) : appelable sans session, gating public/publié/prix>0, dégradation propre si Stripe non configuré. Nettoyage. |
 | `npm run smoke:business` | Vérifie les éléments de compréhension/activation/conversion (promesse landing, marketplace, onboarding, CTA public, dashboard honnête). |
-| `npm run smoke:all` | Enchaîne tous les smoke tests headless ci-dessus (sans serveur). |
+| `npm run smoke:business-marketplace` | Vérifie la valeur perçue de la marketplace (catalogue cross-centres, fiches, visibilité formateurs). |
+| `npm run smoke:all` | Enchaîne les 20 smoke tests headless (sans serveur) : health, lot5, auth, registration, crud, agent, marketplace, tenant, password-reset, dedup, billing, quota, trainer-portal, beneficiary, platform, persona, finance, public-purchase, business, business-marketplace. |
 | `npm run smoke:ui` | Intégration HTTP (serveur requis) : login/reset, effet réseau marketplace, fiches centre/formateur, onglet abonnement, santé. `SMOKE_BASE_URL` si port ≠ 3000. |
 | `npm run smoke:agui-e2e` | AG-UI end-to-end (serveur + clé LLM) : l'agent appelle un outil, exécution réelle (création + suppression) via `/api/ag-ui/run`, vérifiée en base. |
 | `npm run smoke:e2e` | `smoke:ui` + `smoke:agui-e2e`. |
@@ -38,7 +46,7 @@ Les scripts CLI chargent automatiquement `.env.local` puis `.env` via `scripts/_
 
 ## Preconditions
 
-`DATABASE_URL` accessible (PostgreSQL local ou **Supabase pooler**). Les smoke tests `crud/agent/marketplace/tenant` créent leur propre tenant jetable et n'exigent aucun seed. `smoke:lot5` requiert au moins une formation publique (exécuter le chargement de données démo si nécessaire).
+`DATABASE_URL` accessible (PostgreSQL local ou **Supabase pooler**). Les smoke tests `crud/agent/marketplace/tenant/trainer-portal/beneficiary/finance` créent leur propre tenant jetable et n'exigent aucun seed. `smoke:lot5` requiert au moins une formation publique (exécuter le chargement de données démo si nécessaire). `smoke:persona` ne touche pas la base. `smoke:finance` exige la table `Transaction` (migration via `GET /api/migrate-finance` une fois, tant que Prisma CLI ne peut pas joindre Supabase depuis Windows).
 
 > ⚠️ Connectivité Supabase : couper tout VPN (ProtonVPN bloque le handshake PostgreSQL → `P1001`). Le client Prisma applique un retron automatique sur les coupures transitoires.
 

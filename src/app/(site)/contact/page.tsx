@@ -6,6 +6,7 @@ import { Badge } from "@/components/site/ui/badge";
 import { Card, CardContent } from "@/components/site/ui/card";
 import { motion } from "framer-motion";
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle2 } from "lucide-react";
+import { submitContactRequest } from "./actions";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -21,11 +22,31 @@ const fieldClass =
 export default function Contact() {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Éligibilité CPF (verdict instantané, côté client)
+  const [elig, setElig] = useState({ statut: "", experience: "", objectif: "" });
+  const [eligResult, setEligResult] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const res = await submitContactRequest(formData);
+    setSubmitting(false);
+    if (!res.ok) { setError(res.error ?? "Une erreur est survenue. Réessayez."); return; }
     setSent(true);
     setFormData({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
+  };
+
+  const checkEligibility = () => {
+    if (!elig.statut) { setEligResult("Sélectionnez au moins votre statut pour estimer votre éligibilité."); return; }
+    if (elig.statut === "demandeur") {
+      setEligResult("En tant que demandeur d'emploi, votre bilan peut être financé via votre CPF et, selon votre situation, complété par France Travail (AIF). Confirmons ensemble lors d'un premier rendez-vous gratuit.");
+    } else {
+      setEligResult("Bonne nouvelle : avec votre statut, votre bilan de compétences est en principe finançable par votre CPF, sans avance de frais ni information de votre employeur. Vérifions le montant exact ensemble lors d'un rendez-vous gratuit.");
+    }
   };
 
   return (
@@ -56,7 +77,7 @@ export default function Contact() {
               <div className="grid sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Votre statut</label>
-                  <select className={fieldClass} defaultValue="">
+                  <select className={fieldClass} value={elig.statut} onChange={(e) => setElig({ ...elig, statut: e.target.value })}>
                     <option value="" disabled>Choisir...</option>
                     <option value="salarie">Salarié(e)</option>
                     <option value="demandeur">Demandeur d'emploi</option>
@@ -66,7 +87,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Années d'expérience</label>
-                  <select className={fieldClass} defaultValue="">
+                  <select className={fieldClass} value={elig.experience} onChange={(e) => setElig({ ...elig, experience: e.target.value })}>
                     <option value="" disabled>Choisir...</option>
                     <option value="0-2">0 à 2 ans</option>
                     <option value="3-5">3 à 5 ans</option>
@@ -76,7 +97,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Votre objectif</label>
-                  <select className={fieldClass} defaultValue="">
+                  <select className={fieldClass} value={elig.objectif} onChange={(e) => setElig({ ...elig, objectif: e.target.value })}>
                     <option value="" disabled>Choisir...</option>
                     <option value="reconversion">Reconversion</option>
                     <option value="evolution">Évolution</option>
@@ -85,9 +106,19 @@ export default function Contact() {
                   </select>
                 </div>
               </div>
-              <Button className="w-full mt-6 bg-primary text-primary-foreground shadow-turquoise" size="lg">
+              <Button type="button" onClick={checkEligibility} className="w-full mt-6 bg-primary text-primary-foreground shadow-turquoise" size="lg">
                 <CheckCircle2 className="mr-2 w-5 h-5" /> Vérifier mon éligibilité
               </Button>
+              {eligResult && (
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
+                  {eligResult}
+                  <div className="mt-3">
+                    <a href="#contact-form" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                      Réserver mon rendez-vous gratuit <Send className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -96,7 +127,7 @@ export default function Contact() {
       <section className="container mx-auto px-4 py-12 lg:py-20">
         <div className="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto">
           {/* Form */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+          <motion.div id="contact-form" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="scroll-mt-24">
             <h2 className="font-display text-2xl font-bold mb-6">Envoyez-nous un message</h2>
             {sent ? (
               <Card className="border-primary/30 shadow-soft">
@@ -131,8 +162,9 @@ export default function Contact() {
                   <input type="checkbox" checked={formData.cpfCheck} onChange={(e) => setFormData({ ...formData, cpfCheck: e.target.checked })} className="rounded border-input" />
                   Je souhaite vérifier mon éligibilité CPF
                 </label>
-                <Button type="submit" size="lg" className="w-full btn-cta">
-                  <Send className="mr-2 w-5 h-5" /> Envoyer ma demande
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <Button type="submit" size="lg" className="w-full btn-cta" disabled={submitting}>
+                  <Send className="mr-2 w-5 h-5" /> {submitting ? "Envoi…" : "Envoyer ma demande"}
                 </Button>
               </form>
             )}

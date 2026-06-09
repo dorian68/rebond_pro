@@ -5,11 +5,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Avatar } from "@/components/public/Avatar";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicLeadForm } from "@/components/public/PublicLeadForm";
+import { BuyFormationButton } from "@/components/public/BuyFormationButton";
 import { getPublicFormation } from "@/server/public-conversion";
 import { formatDateRange, formatMoney } from "@/lib/utils";
 import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
 
 type Params = Promise<{ orgSlug: string; publicSlug: string }>;
+type Search = Promise<{ achat?: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { orgSlug, publicSlug } = await params;
@@ -33,8 +35,9 @@ function TextBlock({ title, value }: { title: string; value: string | null }) {
   );
 }
 
-export default async function PublicFormationPage({ params }: { params: Params }) {
+export default async function PublicFormationPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { orgSlug, publicSlug } = await params;
+  const { achat } = await searchParams;
   const formation = await getPublicFormation(orgSlug, publicSlug);
   if (!formation) notFound();
 
@@ -48,6 +51,24 @@ export default async function PublicFormationPage({ params }: { params: Params }
     <main className="public-page">
       <PublicHeader right={<Link href={`/${formation.organization.slug}`} className="btn btn-secondary btn-sm">Voir le centre</Link>} />
 
+      {achat === "success" && (
+        <div className="marketing-container" style={{ paddingTop: 16 }}>
+          <div className="card" style={{ padding: "14px 18px", border: "1px solid var(--positive)", background: "var(--positive-bg, #ecfdf5)", display: "flex", gap: 12, alignItems: "center" }}>
+            <Icon name="check" size={20} />
+            <div style={{ fontSize: 13.5 }}>
+              <strong>Paiement confirmé.</strong> Votre inscription est enregistrée auprès du centre. Vous recevrez un email de confirmation ; le centre vous contactera pour les modalités.
+            </div>
+          </div>
+        </div>
+      )}
+      {achat === "cancel" && (
+        <div className="marketing-container" style={{ paddingTop: 16 }}>
+          <div className="card" style={{ padding: "14px 18px", border: "1px solid var(--border)", fontSize: 13.5 }}>
+            Paiement annulé. Vous pouvez réessayer ou envoyer une demande d&apos;inscription ci-dessous.
+          </div>
+        </div>
+      )}
+
       <section className="public-hero">
         <div className="marketing-container public-hero-grid">
           <div>
@@ -60,7 +81,10 @@ export default async function PublicFormationPage({ params }: { params: Params }
               <span><Icon name="layers" size={17} /> {LEVEL_LABELS[formation.level]}</span>
               <span><Icon name="euro" size={17} /> {formatMoney(formation.price)}</span>
             </div>
-            <a href="#demande" className="btn btn-primary btn-lg">Demander une inscription <Icon name="arrow-right" size={17} /></a>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              {formation.price > 0 && <BuyFormationButton formationId={formation.id} price={formation.price} />}
+              <a href="#demande" className="btn btn-secondary btn-lg">Demander une inscription <Icon name="arrow-right" size={17} /></a>
+            </div>
           </div>
           <div className="public-hero-card">
             <span className="badge badge-positive">Page officielle du centre</span>

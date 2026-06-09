@@ -6,10 +6,11 @@ let transporter: nodemailer.Transporter | null = null;
 
 function getTransporter(): nodemailer.Transporter {
   if (transporter) return transporter;
+  const port = Number(process.env.EMAIL_SMTP_PORT ?? 1025);
   transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SMTP_HOST ?? "localhost",
-    port: Number(process.env.EMAIL_SMTP_PORT ?? 1025),
-    secure: false,
+    port,
+    secure: port === 465, // 465 = TLS implicite (Resend) ; 587/1025 = STARTTLS/clair
     auth: process.env.EMAIL_SMTP_USER ? { user: process.env.EMAIL_SMTP_USER, pass: process.env.EMAIL_SMTP_PASSWORD } : undefined,
   });
   return transporter;

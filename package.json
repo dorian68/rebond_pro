@@ -25,12 +25,17 @@
     "smoke:billing": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-billing.ts",
     "smoke:quota": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-quota.ts",
     "smoke:trainer-portal": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-trainer-portal.ts",
+    "smoke:beneficiary": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-beneficiary.ts",
+    "smoke:platform": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-platform.ts",
+    "smoke:persona": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-persona.ts",
+    "smoke:finance": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-finance.ts",
+    "smoke:public-purchase": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-public-purchase.ts",
     "smoke:business": "node scripts/smoke-business-lot5.mjs",
     "smoke:business-marketplace": "node scripts/smoke-business-marketplace.mjs",
     "smoke:ui": "node scripts/smoke-ui.mjs",
     "smoke:agui-e2e": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-agui-e2e.ts",
     "smoke:e2e": "npm run smoke:ui && npm run smoke:agui-e2e",
-    "smoke:all": "npm run smoke:health && npm run smoke:lot5 && npm run smoke:auth && npm run smoke:registration && npm run smoke:crud && npm run smoke:agent && npm run smoke:marketplace && npm run smoke:tenant && npm run smoke:password-reset && npm run smoke:dedup && npm run smoke:billing && npm run smoke:quota && npm run smoke:trainer-portal && npm run smoke:business && npm run smoke:business-marketplace",
+    "smoke:all": "npm run smoke:health && npm run smoke:lot5 && npm run smoke:auth && npm run smoke:registration && npm run smoke:crud && npm run smoke:agent && npm run smoke:marketplace && npm run smoke:tenant && npm run smoke:password-reset && npm run smoke:dedup && npm run smoke:billing && npm run smoke:quota && npm run smoke:trainer-portal && npm run smoke:beneficiary && npm run smoke:platform && npm run smoke:persona && npm run smoke:finance && npm run smoke:public-purchase && npm run smoke:business && npm run smoke:business-marketplace",
     "smoke:production": "npm run lint && npm run build"
   },
   "prisma": {
