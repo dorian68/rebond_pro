@@ -21,9 +21,6 @@ const parsed = schema.safeParse({
 if (!parsed.success) {
   const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(" | ");
   const msg = `[env] Configuration invalide → ${issues}`;
-  // Pendant le build (collecte des routes), les variables peuvent être absentes :
-  // on n'échoue qu'au runtime serveur réel, pas pendant `next build`.
-  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
   // Ne jamais throw au chargement du module : sinon `next build` (collecte des routes)
   // échoue sans variables. Les appels runtime (Prisma, Auth) échoueront naturellement si manquant.
   console.warn(`${msg} (avertissement uniquement — validation runtime laissée aux consommateurs)`);
