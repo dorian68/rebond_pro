@@ -24,6 +24,14 @@ if (!parsed.success) {
   // Ne jamais throw au chargement du module : sinon `next build` (collecte des routes)
   // échoue sans variables. Les appels runtime (Prisma, Auth) échoueront naturellement si manquant.
   console.warn(`${msg} (avertissement uniquement — validation runtime laissée aux consommateurs)`);
+  // Fournir des valeurs factices pour permettre l'instanciation de Prisma/Auth au build.
+  // Toute requête réelle échouera avec une erreur explicite à l'exécution.
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = "postgresql://build:build@localhost:5432/build?schema=public";
+  }
+  if (!process.env.AUTH_SECRET) {
+    process.env.AUTH_SECRET = "build-time-placeholder-secret-not-for-runtime-use";
+  }
 }
 
 // Garde-fou de sécurité : le bypass d'auth dev ne doit JAMAIS être effectif en production.
