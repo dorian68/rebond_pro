@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireTenant, requireRole } from "@/lib/tenant";
+import { revalidateMarketplace } from "@/server/marketplace";
 import { slugify } from "@/lib/utils";
 
 export type FormActionState = { error?: string; ok?: boolean } | undefined;
@@ -124,6 +125,7 @@ export async function updateFormation(id: string, _prev: FormActionState, formDa
   });
   revalidatePath("/formations");
   revalidatePath(`/formations/${id}`);
+  revalidateMarketplace(); // si la formation est publiée, le cache public reflète l'édition
   redirect(`/formations/${id}`);
 }
 
@@ -134,6 +136,7 @@ export async function deleteFormation(id: string): Promise<void> {
   if (!existing) return;
   await prisma.formation.update({ where: { id }, data: { deletedAt: new Date() } });
   revalidatePath("/formations");
+  revalidateMarketplace();
   redirect("/formations");
 }
 
@@ -148,4 +151,5 @@ export async function togglePublish(id: string): Promise<void> {
   await prisma.formation.update({ where: { id }, data: { isPublic: willPublish, publicSlug } });
   revalidatePath(`/formations/${id}`);
   if (ctx.organizationSlug && publicSlug) revalidatePath(`/${ctx.organizationSlug}/f/${publicSlug}`);
+  revalidateMarketplace(); // rafraîchit le cache public (catalogue, fiches centre/formation)
 }

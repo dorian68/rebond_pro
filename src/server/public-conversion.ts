@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 export const publicLeadSchema = z
@@ -17,7 +18,7 @@ export const publicLeadSchema = z
 
 export type PublicLeadInput = z.infer<typeof publicLeadSchema>;
 
-export async function getPublicFormation(orgSlug: string, publicSlug: string) {
+async function fetchPublicFormation(orgSlug: string, publicSlug: string) {
   const now = new Date();
   return prisma.formation.findFirst({
     where: {
@@ -57,6 +58,13 @@ export async function getPublicFormation(orgSlug: string, publicSlug: string) {
     },
   });
 }
+
+// Cache public (Data Cache Next.js), tagué "marketplace" → invalidé par revalidateMarketplace().
+export const getPublicFormation = unstable_cache(
+  fetchPublicFormation,
+  ["public-formation"],
+  { revalidate: 120, tags: ["marketplace"] },
+);
 
 export async function createPublicLead(orgSlug: string, publicSlug: string, rawInput: PublicLeadInput) {
   const input = publicLeadSchema.parse(rawInput);

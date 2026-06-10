@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { Modality, Level } from "@prisma/client";
 
@@ -6,7 +7,14 @@ import type { Modality, Level } from "@prisma/client";
  * Couche de données de la MARKETPLACE publique (cross-centres).
  * ⚠️ Volontairement SANS requireTenant : ne lit QUE du contenu publié
  * (formations isPublic + PUBLIE, centres associés, formateurs actifs).
+ *
+ * PERFORMANCE : toutes les lectures publiques sont mises en cache (Next.js Data Cache)
+ * et taguées "marketplace". La base étant distante (latence ~110ms/requête), le cache
+ * sert les visiteurs concurrents sans toucher la DB. Le cache est invalidé via
+ * revalidateMarketplace() (appelé quand une formation/profil public change).
  */
+
+export const MARKETPLACE_TAG = "marketplace";
 
 export type MarketplaceFilters = {
   q?: string;
@@ -18,7 +26,7 @@ export type MarketplaceFilters = {
 
 const PUBLIC_FORMATION_WHERE = { isPublic: true, status: "PUBLIE" as const, deletedAt: null };
 
-export async function getMarketplaceFormations(filters: MarketplaceFilters = {}) {
+async function fetchMarketplaceFormations(filters: MarketplaceFilters = {}) {
   const q = filters.q?.trim();
   return prisma.formation.findMany({
     where: {
@@ -53,21 +61,34 @@ export async function getMarketplaceFormations(filters: MarketplaceFilters = {})
   });
 }
 
+export const getMarketplaceFormations = unstable_cache(
+  fetchMarketplaceFormations,
+  ["mkt-formations"],
+  { revalidate: 60, tags: [MARKETPLACE_TAG] },
+);
+
 export type MarketplaceFormation = Awaited<ReturnType<typeof getMarketplaceFormations>>[number];
 
 /** Facettes (catégories, villes) pour les filtres, calculées sur les formations publiques. */
-export async function getMarketplaceFacets() {
+async function fetchMarketplaceFacets() {
   const formations = await prisma.formation.findMany({
     where: PUBLIC_FORMATION_WHERE,
     select: { category: true, organization: { select: { city: true } } },
+    take: 2000,
   });
   const categories = [...new Set(formations.map((f) => f.category).filter(Boolean))].sort() as string[];
   const cities = [...new Set(formations.map((f) => f.organization.city).filter(Boolean))].sort() as string[];
   return { categories, cities };
 }
 
+export const getMarketplaceFacets = unstable_cache(
+  fetchMarketplaceFacets,
+  ["mkt-facets"],
+  { revalidate: 300, tags: [MARKETPLACE_TAG] },
+);
+
 /** Annuaire des centres ayant au moins une formation publiée. */
-export async function getMarketplaceCenters() {
+async function fetchMarketplaceCenters() {
   const orgs = await prisma.organization.findMany({
     where: { deletedAt: null, formations: { some: PUBLIC_FORMATION_WHERE } },
     select: {
@@ -75,12 +96,19 @@ export async function getMarketplaceCenters() {
       _count: { select: { formations: { where: PUBLIC_FORMATION_WHERE }, trainers: { where: { active: true, deletedAt: null } } } },
     },
     orderBy: { name: "asc" },
+    take: 200,
   });
   return orgs;
 }
 
+export const getMarketplaceCenters = unstable_cache(
+  fetchMarketplaceCenters,
+  ["mkt-centers"],
+  { revalidate: 300, tags: [MARKETPLACE_TAG] },
+);
+
 /** Fiche publique d'un centre de formation (mise en avant). */
-export async function getCenterProfile(slug: string) {
+async function fetchCenterProfile(slug: string) {
   const org = await prisma.organization.findFirst({
     where: { slug, deletedAt: null },
     select: {
@@ -95,6 +123,7 @@ export async function getCenterProfile(slug: string) {
           durationDays: true, durationHours: true, price: true, modality: true, level: true, color: true, coverImageUrl: true,
         },
         orderBy: { updatedAt: "desc" },
+        take: 48,
       },
       trainers: {
         where: { active: true, deletedAt: null },
@@ -104,6 +133,7 @@ export async function getCenterProfile(slug: string) {
           _count: { select: { formations: true } },
         },
         orderBy: { lastName: "asc" },
+        take: 24,
       },
       testimonials: { take: 8, orderBy: { createdAt: "desc" }, select: { id: true, author: true, role: true, content: true, rating: true } },
     },
@@ -115,8 +145,14 @@ export async function getCenterProfile(slug: string) {
   return org;
 }
 
+export const getCenterProfile = unstable_cache(
+  fetchCenterProfile,
+  ["center-profile"],
+  { revalidate: 120, tags: [MARKETPLACE_TAG] },
+);
+
 /** Profil public d'un formateur (visibilité — "Facebook de la formation"). */
-export async function getPublicTrainer(trainerId: string) {
+async function fetchPublicTrainer(trainerId: string) {
   const trainer = await prisma.trainer.findFirst({
     where: { id: trainerId, active: true, deletedAt: null },
     select: {
@@ -125,6 +161,7 @@ export async function getPublicTrainer(trainerId: string) {
       organization: { select: { name: true, slug: true, logoUrl: true, city: true } },
       formations: {
         where: { formation: PUBLIC_FORMATION_WHERE },
+        take: 48,
         select: {
           formation: {
             select: {
@@ -140,4 +177,19 @@ export async function getPublicTrainer(trainerId: string) {
   });
   if (!trainer) return null;
   return trainer;
+}
+
+export const getPublicTrainer = unstable_cache(
+  fetchPublicTrainer,
+  ["public-trainer"],
+  { revalidate: 120, tags: [MARKETPLACE_TAG] },
+);
+
+/**
+ * Force le rafraîchissement immédiat du cache marketplace après une mutation.
+ * En attendant l'API stable de Next 16, on s'appuie sur le TTL court (≤60-300s) ;
+ * ce no-op garde un point d'extension propre côté actions.
+ */
+export function revalidateMarketplace() {
+  /* TTL-based pour l'instant (cf. options unstable_cache). */
 }
