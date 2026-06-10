@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { resendVerificationAction, type ActionState } from "@/server/auth-actions";
 
@@ -18,6 +19,16 @@ export function CheckEmailClient({ email, deliveryFailed }: { email: string; del
         <input type="hidden" name="email" value={email} />
         <button className="btn btn-secondary btn-block" disabled={pending}>{pending ? "Envoi..." : "Renvoyer l'email"}</button>
       </form>
+
+      {/* Sorties — le parcours n'est jamais bloqué */}
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 9, textAlign: "center" }}>
+        <Link href="/login" style={{ color: "var(--primary)", fontWeight: 700, fontSize: 13 }}>
+          J&apos;ai déjà confirmé → me connecter
+        </Link>
+        <Link href="/" style={{ color: "var(--ink-3)", fontWeight: 600, fontSize: 12.5 }}>
+          Retour à l&apos;accueil
+        </Link>
+      </div>
     </div>
   );
 }
