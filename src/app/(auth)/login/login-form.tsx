@@ -11,11 +11,11 @@ export function LoginForm() {
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
         <label className="field-label" htmlFor="email">Email</label>
-        <input className="input" id="email" name="email" type="email" placeholder="vous@centre.fr" required defaultValue="demo@rebondpro.local" />
+        <input className="input" id="email" name="email" type="email" placeholder="vous@email.com" required />
       </div>
       <div>
         <label className="field-label" htmlFor="password">Mot de passe</label>
-        <input className="input" id="password" name="password" type="password" placeholder="••••••••" required defaultValue="demo1234" />
+        <input className="input" id="password" name="password" type="password" placeholder="••••••••" required />
       </div>
       {state?.error && (
         <div className="badge badge-danger" style={{ height: "auto", padding: "8px 12px", whiteSpace: "normal" }}>

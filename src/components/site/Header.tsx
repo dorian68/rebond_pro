@@ -58,25 +58,19 @@ const Header = () => {
         </nav>
 
         {/* Desktop CTAs */}
-        <div className="hidden lg:flex items-center gap-3">
-          <Link
-            href="/espace"
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors duration-300"
-          >
-            <UserRound className="w-3.5 h-3.5" />
-            Mon espace
+        <div className="hidden lg:flex items-center gap-2.5">
+          <Link href="/espace">
+            <Button variant="outline" size="sm" className="gap-1.5 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground">
+              <UserRound className="w-3.5 h-3.5" />
+              Espace client
+            </Button>
           </Link>
           <Link
             href="/centres"
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors duration-300"
           >
             <Building2 className="w-3.5 h-3.5" />
-            Espace centres de formation
-          </Link>
-          <Link href="/contact#eligibilite">
-            <Button variant="outline" size="sm" className="border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground">
-              Éligibilité CPF
-            </Button>
+            Centres de formation
           </Link>
           <Link href="/contact">
             <Button size="sm" className="btn-cta font-semibold h-auto py-1.5 px-4 flex flex-col items-center">
@@ -139,13 +133,11 @@ const Header = () => {
                     <span className="text-xs opacity-80 font-normal">Sans engagement</span>
                   </Button>
                 </Link>
-                <Link
-                  href="/espace"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center gap-1.5 mt-1 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors"
-                >
-                  <UserRound className="w-4 h-4" />
-                  Accéder à mon espace
+                <Link href="/espace" onClick={() => setMobileOpen(false)} className="mt-1">
+                  <Button variant="outline" className="w-full gap-1.5 border-primary/40 text-primary">
+                    <UserRound className="w-4 h-4" />
+                    Espace client
+                  </Button>
                 </Link>
                 <Link
                   href="/centres"

@@ -68,6 +68,16 @@ export default function Home() {
                 </Button>
               </Link>
             </motion.div>
+
+            <motion.p
+              initial="hidden" animate="visible" custom={4} variants={fadeUp}
+              className="mt-7 text-sm text-muted-foreground"
+            >
+              Déjà accompagné(e) chez Rebond Pro ?{" "}
+              <Link href="/espace" className="text-primary font-semibold hover:underline">
+                Accéder à mon espace
+              </Link>
+            </motion.p>
           </div>
         </div>
         <div className="absolute -bottom-1 left-0 right-0 h-16 bg-background" style={{ clipPath: "polygon(0 60%, 100% 0%, 100% 100%, 0% 100%)" }} />
