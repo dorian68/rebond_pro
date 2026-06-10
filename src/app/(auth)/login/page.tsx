@@ -23,9 +23,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <p style={{ marginTop: 6, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
         Bénéficiaire d&apos;un bilan ? Votre centre vous a envoyé un accès par email.
       </p>
-      <div style={{ marginTop: 16, padding: "10px 12px", background: "var(--surface-3)", borderRadius: 10, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
-        Démo : <strong>demo@rebondpro.local</strong> / <strong>demo1234</strong>
-      </div>
     </div>
   );
 }
