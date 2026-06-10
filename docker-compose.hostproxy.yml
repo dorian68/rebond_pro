@@ -1,0 +1,12 @@
+# Déploiement VPS derrière un reverse proxy Caddy SYSTÈME déjà présent.
+# L'app est publiée sur 127.0.0.1:3000 (loopback) ; le Caddy de l'hôte route le domaine vers elle.
+# (Utilisé quand le port 80/443 est déjà pris par un Caddy/nginx système.)
+services:
+  app:
+    image: rebondpro-app:latest
+    container_name: rebondpro-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:3000:3000"

@@ -82,6 +82,45 @@ npm run smoke:all     # crée/nettoie des données jetables — à réserver à 
 - Export utilisateur disponible in-app (Paramètres → Avancé → CSV).
 - Voir `/legal/confidentialite` pour la politique.
 
+## 8 bis. Déploiement Docker sur VPS (Hetzner)
+
+Architecture : **app Next.js (image standalone)** derrière **Caddy** (HTTPS auto Let's Encrypt). La base reste **Supabase managé** → aucun conteneur Postgres. Fichiers : `Dockerfile`, `docker-compose.prod.yml`, `Caddyfile`, `.dockerignore`, `.env.production.example`.
+
+**Prérequis serveur (une fois)**
+- VPS avec Docker + plugin Compose : `curl -fsSL https://get.docker.com | sh`.
+- Pare-feu : ouvrir **80** et **443** (Caddy gère le challenge ACME sur 80).
+- DNS : enregistrement **A** `VOTRE-DOMAINE` → IP du VPS (propagé avant le 1er `up`, sinon le certificat échoue).
+
+**Déploiement**
+```bash
+# 1. Récupérer le code (les secrets ne sont PAS dans le repo)
+git clone https://github.com/dorian68/rebond-connect-flow.git rebondpro && cd rebondpro
+
+# 2. Variables de l'app
+cp .env.production.example .env.production    # puis éditer avec les vraies valeurs
+echo 'DOMAIN=VOTRE-DOMAINE' > .env            # lu par Compose pour Caddy
+
+# 3. Build + run
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 4. Santé (la DB Supabase est joignable depuis Hetzner, sans VPN)
+curl -fsS https://VOTRE-DOMAINE/api/health    # attendu : 200 {"ok":true,"db":"up"}
+```
+
+**Base de données** : le schéma Supabase est **déjà provisionné** (l'app tourne déjà contre lui) → **aucune migration n'est requise au premier déploiement**. Pour de futurs changements de schéma : exécuter `npx prisma migrate deploy` depuis une machine disposant du repo + Node et pouvant joindre Supabase en direct (ou appliquer le SQL via le SQL Editor Supabase).
+
+**Webhook Stripe** (après le 1er déploiement, quand l'URL publique existe)
+1. Stripe → Développeurs → Webhooks → ajouter `https://VOTRE-DOMAINE/api/stripe/webhook`.
+2. Événements : `checkout.session.completed`, `invoice.paid`, `customer.subscription.created/updated/deleted`.
+3. Copier le `whsec_…` dans `.env.production` → `docker compose -f docker-compose.prod.yml up -d` (redémarre l'app).
+
+**Mises à jour**
+```bash
+git pull && docker compose -f docker-compose.prod.yml up -d --build
+```
+
+**Sécurité** : ne jamais committer `.env.production` ni `.env` (déjà couverts par `.gitignore`/`.dockerignore`). `DEV_AUTOLOGIN` doit être **absent** des secrets prod. La `SUPABASE_SERVICE_KEY` reste server-side.
+
 ## 8. Checklist Go-Live
 
 - [ ] `DATABASE_URL` pooler + `AUTH_SECRET` (≥16) configurés

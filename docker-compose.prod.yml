@@ -1,0 +1,40 @@
+# Production RebondPro Formation — app Next.js + reverse proxy Caddy (HTTPS auto Let's Encrypt).
+# La base est Supabase (managé) : aucun conteneur Postgres ici.
+# Usage : docker compose -f docker-compose.prod.yml up -d --build
+#
+# Prérequis sur le serveur (mêmes dossier) :
+#   - .env.production : variables de l'app (voir DEPLOYMENT.md)
+#   - .env            : contient DOMAIN=tondomaine.fr (lu par Compose pour Caddy)
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rebondpro-app:latest
+    container_name: rebondpro-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    expose:
+      - "3000"        # interne uniquement ; exposé au public via Caddy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: rebondpro-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:

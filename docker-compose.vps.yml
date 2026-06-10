@@ -1,0 +1,32 @@
+# Déploiement VPS — utilise l'image rebondpro-app:latest pré-construite (transférée via docker load).
+# Aucun build sur le serveur (RAM/disque limités). La base est Supabase (managé).
+# Usage sur le VPS : docker compose -f docker-compose.vps.yml up -d
+services:
+  app:
+    image: rebondpro-app:latest
+    container_name: rebondpro-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: rebondpro-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,20 @@
+node_modules
+.next
+out
+build
+.git
+.gitignore
+# Secrets — ne JAMAIS copier dans l'image
+.env
+.env.*
+!.env.example
+# Dev / artefacts
+storage
+coverage
+*.log
+.vscode
+.idea
+.DS_Store
+reports
+# Compose dev (services locaux, hors image app)
+docker-compose.yml

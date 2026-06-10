@@ -1,0 +1,13 @@
+# Reverse proxy HTTPS automatique (Let's Encrypt) vers l'app Next.js.
+# {$DOMAIN} est injecté par docker-compose.prod.yml (variable DOMAIN du fichier .env).
+{$DOMAIN} {
+	reverse_proxy app:3000
+	encode gzip
+	# En-têtes de sécurité de base
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
