@@ -24,9 +24,12 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
   }
 
+  const email = parsed.data.email.toLowerCase();
+  const adminAllowlist = (process.env.PLATFORM_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
   const account = await prisma.user.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
+    where: { email },
     select: {
+      platformAdmin: true,
       memberships: {
         where: { status: "ACTIVE" },
         take: 1,
@@ -46,11 +49,15 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
       organization.objectifPrincipal == null
     : false;
 
+  // Super-admin plateforme (god-mode) : accès direct au tableau de bord plateforme.
+  const isAdmin = account?.platformAdmin === true || adminAllowlist.includes(email);
+  const destination = isAdmin ? "/admin" : needsOnboarding ? "/onboarding" : "/dashboard";
+
   try {
     await signIn("credentials", {
-      email: parsed.data.email.toLowerCase(),
+      email,
       password: parsed.data.password,
-      redirectTo: needsOnboarding ? "/onboarding" : "/dashboard",
+      redirectTo: destination,
     });
   } catch (e) {
     if (e instanceof AuthError) {
