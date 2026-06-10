@@ -14,7 +14,12 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
       <Footer />
       <FloatingCTA />
-      <AgentDock bottomOffset={92} />
+      {/* Bouton chatbot aux couleurs de la vitrine (turquoise/teal — DA du site) */}
+      <AgentDock
+        bottomOffset={92}
+        accentGradient="linear-gradient(140deg, hsl(170 57% 39%), hsl(183 100% 23%))"
+        accentShadow="hsl(183 100% 23% / 0.45)"
+      />
     </div>
   );
 }

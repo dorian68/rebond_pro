@@ -97,7 +97,11 @@ function agentContext(pathname: string): { intro: string; suggestions: Suggestio
   };
 }
 
-export function AgentDock({ bottomOffset = 24 }: { bottomOffset?: number } = {}) {
+export function AgentDock({
+  bottomOffset = 24,
+  accentGradient = "linear-gradient(140deg,#6a5cf0,#5850ec)",
+  accentShadow = "rgba(88,80,236,.45)",
+}: { bottomOffset?: number; accentGradient?: string; accentShadow?: string } = {}) {
   const a = useAgentConversation();
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
@@ -140,7 +144,7 @@ export function AgentDock({ bottomOffset = 24 }: { bottomOffset?: number } = {})
         <button
           onClick={() => setOpen(true)}
           aria-label="Ouvrir l'assistant"
-          style={{ position: "fixed", right: 24, bottom: bottomOffset, zIndex: 80, width: 56, height: 56, borderRadius: 18, border: "none", cursor: "pointer", background: "linear-gradient(140deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px rgba(88,80,236,.45)" }}
+          style={{ position: "fixed", right: 24, bottom: bottomOffset, zIndex: 80, width: 56, height: 56, borderRadius: 18, border: "none", cursor: "pointer", background: accentGradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 10px 30px ${accentShadow}` }}
         >
           <Icon name="sparkles" size={24} />
         </button>
