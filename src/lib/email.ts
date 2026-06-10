@@ -20,6 +20,25 @@ export type Attachment = { filename: string; content: Buffer };
 
 export async function sendEmail(opts: { to: string; subject: string; html: string; text?: string; attachments?: Attachment[] }): Promise<void> {
   const from = process.env.EMAIL_FROM ?? "RebondPro Formation <no-reply@rebondpro.local>";
+  const apiKey = process.env.RESEND_API_KEY;
+
+  // En prod : API HTTP Resend (port 443). Évite le SMTP (souvent bloqué par les pare-feux cloud)
+  // et garantit un timeout court pour ne jamais bloquer une requête (inscription, reset…).
+  if (apiKey) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from, to: opts.to, subject: opts.subject, html: opts.html, text: opts.text,
+        ...(opts.attachments?.length ? { attachments: opts.attachments.map((a) => ({ filename: a.filename, content: a.content.toString("base64") })) } : {}),
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) throw new Error(`Resend API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return;
+  }
+
+  // Dev (Mailpit) ou SMTP générique
   await getTransporter().sendMail({
     from, to: opts.to, subject: opts.subject, html: opts.html, text: opts.text, attachments: opts.attachments,
   });
