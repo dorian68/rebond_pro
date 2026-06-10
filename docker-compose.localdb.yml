@@ -1,0 +1,34 @@
+# Déploiement VPS avec base Postgres LOCALE (co-localisée avec l'app → latence ~0).
+# La base n'est PAS exposée à l'hôte/internet : accessible uniquement via le réseau docker interne.
+# Sauvegardes : voir le cron pg_dump (scripts/backup) — OBLIGATOIRE car pas de backup managé.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rebondpro-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rebondpro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: rebondpro
+    volumes:
+      - rebondpro_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rebondpro -d rebondpro"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  app:
+    image: rebondpro-app:latest
+    container_name: rebondpro-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  rebondpro_pgdata:
