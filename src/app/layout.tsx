@@ -3,9 +3,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rebond Pro — Bilan de compétences en Guadeloupe",
+  title: "Le Bon Rebond — Orientation, formation et reconversion",
   description:
-    "Le bilan de compétences qui vous mène de la réflexion à l'action : projet clair, plan d'action concret, parcours de formation recommandé. Finançable CPF.",
+    "Trouvez votre prochaine direction professionnelle grâce à un bilan de compétences ou une formation adaptée à votre projet.",
+  icons: {
+    icon: "/brand/logo-mark-le-bon-rebond.png",
+    apple: "/brand/logo-mark-le-bon-rebond.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

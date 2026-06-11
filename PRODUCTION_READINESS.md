@@ -1,6 +1,6 @@
 # Production Readiness
 
-_Dernière mise à jour : 9 juin 2026 (passe Technical RL — écosystème multi-faces). Base : Supabase PostgreSQL (pooler). tsc/lint/build verts. **Blocage live au moment de la passe : DB injoignable (`P1001`, VPN/ pause Supabase) → smoke DB non rejoués ; migration `Transaction` non appliquée.**_
+_Dernière mise à jour : 11 juin 2026 (passe Technical RL — fiabilité DB). Base locale PostgreSQL validée ; Supabase `us-east-1` reste injoignable par Prisma depuis Windows lorsque le trafic passe par ProtonVPN (`P1001`, malgré TCP ouvert). tsc/lint/build et 20 smoke tests verts en local._
 
 | Area | Verdict | Evidence / blocker |
 |---|---|---|
@@ -10,7 +10,7 @@ _Dernière mise à jour : 9 juin 2026 (passe Technical RL — écosystème multi
 | Environment variables | YES | `env.ts` valide via **Zod** `DATABASE_URL` (format postgres) et `AUTH_SECRET` (≥16) au démarrage (throw en prod) + garde `DEV_AUTOLOGIN`. `.env.example` à jour (Supabase). |
 | No localhost hardcoding | PARTIAL | URLs via env. Valeurs dev par défaut encore présentes pour le local. |
 | No silent mock fallback | YES | IA/agent annoncent leur fallback ; données démo explicitement chargées via action dédiée. |
-| Database persistence | YES | Prisma 6 + Supabase. Retron automatique sur coupures transitoires (`P1001/P1017`, 3 essais). |
+| Database persistence | YES (local/code), PARTIAL (accès distant actuel) | Prisma 6. Les écritures ne sont jamais rejouées automatiquement. Une lecture n'est retentée qu'une fois sur coupure d'une connexion déjà établie (`P1008/P1017`) ; `P1001/P1002` échouent rapidement. Migration idempotente `20260611210000_sync_current_schema` ajoutée et validée localement. |
 | Concurrency/races | YES (publique) | Déduplication publique garantie par **index unique partiel** `Prospect_public_dedup_key` (org+formation+email, actifs) — testé `smoke:dedup`. |
 | Error handling | PARTIAL | Erreurs structurées (server actions, outils agent renvoient des messages ciblés). Audit global restant. |
 | API response consistency | PARTIAL→YES | Helper `src/lib/api.ts` (`apiOk`/`apiError`) ; erreurs homogènes. Shapes de succès volontairement couplées aux clients existants. |
@@ -22,7 +22,7 @@ _Dernière mise à jour : 9 juin 2026 (passe Technical RL — écosystème multi
 | Plateforme god-mode | YES (code) | `/admin` cross-tenant lecture seule derrière `requirePlatformAdmin()` (`User.platformAdmin`, `PLATFORM_ADMIN_EMAILS`) ; agrégats batchés (fix EMAXCONNSESSION) ; `smoke:platform`. |
 | Sécurité copilote (personas) | YES (code) | Personas AG-UI (visitor/beneficiary/trainer/center/platform_admin) : **allowlist d'outils côté serveur + double garde sur action approuvée** ; visiteur sans accès tenant ; admin lecture seule. `smoke:persona` (logique pure) vert. |
 | Email transactionnel | PARTIAL | **Resend câblé via SMTP** (`smtp.resend.com:465`), envoi de bout en bout **vérifié** (vérif email, reset, confirmations d'achat). **Bloqueur prod** : domaine non vérifié → Resend n'envoie qu'à l'adresse du compte (`dorian.labry@gmail.com`) avec `onboarding@resend.dev`. Action : vérifier un domaine sur resend.com/domains puis passer `EMAIL_FROM` à ce domaine. |
-| CLI smoke tests | YES | **20 suites vertes sur Supabase, `smoke:all` exit 0** : health, lot5, auth, registration, crud, agent, marketplace, tenant, password-reset, dedup, billing, quota, trainer-portal, beneficiary, platform, persona, finance, public-purchase, business, business-marketplace. |
+| CLI smoke tests | YES | **20 suites vertes sur PostgreSQL local, `smoke:all` exit 0** : health, lot5, auth, registration, crud, agent, marketplace, tenant, password-reset, dedup, billing, quota, trainer-portal, beneficiary, platform, persona, finance, public-purchase, business, business-marketplace. `npm run db:diagnose` distingue TCP et session Prisma. |
 | Build | YES | `npm run build` exit 0, `npm run lint` exit 0 (0 erreur), `tsc` 0 (9 juin 2026). |
 | Deployment | NO | Pipeline CI/CD et environnement hébergé non définis. Voir `DEPLOYMENT.md`. Bucket Supabase Storage public `public-assets` à créer pour l'upload d'images. |
 | Documentation | YES (socle) | Docs socle à jour (philosophie, spec, contrat CLI, readiness) + **`DEPLOYMENT.md`** (runbook). Rapports dans `reports/`. |

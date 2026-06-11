@@ -11,8 +11,8 @@ import type { Modality, Level } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Catalogue des formations — RebondPro",
-  description: "Découvrez les formations professionnelles proposées par les meilleurs centres et formateurs. Comparez, explorez, contactez.",
+  title: "Trouver une formation — Le Bon Rebond",
+  description: "Trouvez la formation adaptée à votre projet et entrez en relation avec un centre partenaire.",
 };
 
 type SP = Promise<{ q?: string; category?: string; modality?: string; level?: string; city?: string }>;
@@ -76,9 +76,9 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
       <section className="mkt-hero">
         <div className="marketing-container">
-          <span className="eyebrow">Le réseau de la formation professionnelle</span>
-          <h1>Trouvez la formation et le formateur qu&apos;il vous faut</h1>
-          <p>Explorez les formations proposées par les centres du réseau RebondPro. Chaque formation met en avant son centre et ses formateurs.</p>
+          <span className="eyebrow">Trouvez la bonne formation, pas n’importe laquelle</span>
+          <h1>Trouvez la formation qui correspond à votre avenir</h1>
+          <p>Explorez les formations proposées par les centres partenaires Le Bon Rebond, comparez les offres et passez à l’action.</p>
 
           <form className="mkt-searchbar" method="get">
             <input type="search" name="q" placeholder="Rechercher une formation, un centre, un thème…" defaultValue={filters.q} />
@@ -151,8 +151,8 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
       <footer className="public-footer">
         <div className="marketing-container">
-          <span>RebondPro Formation</span>
-          <span>Le réseau des centres de formation</span>
+          <span>Le Bon Rebond</span>
+          <span>Orientation, formation et reconversion</span>
         </div>
       </footer>
     </main>

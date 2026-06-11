@@ -4,16 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/site/ui/button";
-import { Menu, X, Phone, Building2, UserRound } from "lucide-react";
+import { Logo } from "@/components/app/Logo";
+import { Menu, X, Building2, UserRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
   { label: "Accueil", to: "/" },
-  { label: "Notre méthode", to: "/methode" },
-  { label: "Déroulement", to: "/deroulement" },
-  { label: "Tarifs", to: "/tarifs" },
-  { label: "Pour qui ?", to: "/pour-qui" },
-  { label: "Témoignages", to: "/temoignages" },
+  { label: "Formations", to: "/formation" },
+  { label: "Bilan de compétences", to: "/bilan-de-competences" },
+  { label: "Bilan d’orientation", to: "/bilan-orientation" },
+  { label: "À propos", to: "/a-propos" },
+  { label: "Blog", to: "/blog" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -25,16 +26,8 @@ const Header = () => {
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border/40">
       <div className="container mx-auto flex items-center justify-between h-18 px-4 lg:px-8 py-3">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-turquoise">
-            <span className="text-primary-foreground font-display font-bold text-xl">R</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-display font-bold text-xl text-foreground leading-tight">
-              Rebond <span className="text-primary">Pro</span>
-            </span>
-            <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Bilan de compétences</span>
-          </div>
+        <Link href="/" className="flex items-center">
+          <Logo size={54} priority />
         </Link>
 
         {/* Desktop Nav */}
@@ -65,20 +58,9 @@ const Header = () => {
               Espace client
             </Button>
           </Link>
-          <Link
-            href="/centres"
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors duration-300"
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            Centres de formation
-          </Link>
-          <Link href="/contact">
-            <Button size="sm" className="btn-cta font-semibold h-auto py-1.5 px-4 flex flex-col items-center">
-              <span className="flex items-center gap-1">
-                <Phone className="w-4 h-4" />
-                RDV gratuit 45 min
-              </span>
-              <span className="text-[10px] opacity-80 font-normal">Sans engagement</span>
+          <Link href="/marketplace">
+            <Button size="sm" className="btn-cta font-semibold px-4">
+              Trouver une formation
             </Button>
           </Link>
         </div>
@@ -119,18 +101,14 @@ const Header = () => {
                 </Link>
               ))}
               <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border/40">
-                <Link href="/contact#eligibilite" onClick={() => setMobileOpen(false)}>
+                <Link href="/marketplace" onClick={() => setMobileOpen(false)}>
                   <Button variant="outline" className="w-full border-primary/40 text-primary">
-                    Vérifier mon éligibilité CPF
+                    Trouver une formation
                   </Button>
                 </Link>
-                <Link href="/contact" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full btn-cta font-semibold h-14 text-base flex flex-col items-center">
-                    <span className="flex items-center gap-1">
-                      <Phone className="w-4 h-4" />
-                      Prendre RDV gratuit 45 min
-                    </span>
-                    <span className="text-xs opacity-80 font-normal">Sans engagement</span>
+                <Link href="/bilan-de-competences" onClick={() => setMobileOpen(false)}>
+                  <Button className="w-full btn-cta font-semibold h-14 text-base">
+                    Faire un bilan de compétences
                   </Button>
                 </Link>
                 <Link href="/espace" onClick={() => setMobileOpen(false)} className="mt-1">
@@ -145,7 +123,7 @@ const Header = () => {
                   className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors"
                 >
                   <Building2 className="w-4 h-4" />
-                  Vous êtes un centre de formation ?
+                  Espace partenaires
                 </Link>
               </div>
             </nav>

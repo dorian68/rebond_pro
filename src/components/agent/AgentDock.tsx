@@ -164,7 +164,7 @@ export function AgentDock({
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: "1px solid var(--border-2)" }}>
               <AssistantAvatar size={30} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 14 }}>Assistant RebondPro</div>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>Assistant Le Bon Rebond</div>
                 <div style={{ fontSize: 11, color: "var(--ink-3)" }}>{a.isRunning ? (a.activity ?? "réfléchit…") : "Copilote intégré"}</div>
               </div>
               <button className="btn btn-ghost btn-icon" title="Historique" aria-label="Historique" onClick={() => setShowHistory((s) => !s)}><Icon name="message" size={18} /></button>

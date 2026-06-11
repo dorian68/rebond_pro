@@ -55,7 +55,7 @@ function Header({ d }: { d: DocData }) {
 }
 
 function Footer({ d }: { d: DocData }) {
-  return <Text style={s.footer} fixed>{d.org.legalName ?? d.org.name}{d.org.nda ? ` — Déclaration d'activité n° ${d.org.nda}` : ""} · Document généré le {d.generatedAt} via RebondPro Formation</Text>;
+  return <Text style={s.footer} fixed>{d.org.legalName ?? d.org.name}{d.org.nda ? ` — Déclaration d'activité n° ${d.org.nda}` : ""} · Document généré le {d.generatedAt} via Le Bon Rebond Partenaires</Text>;
 }
 
 function durationText(f: DocData["formation"]): string {

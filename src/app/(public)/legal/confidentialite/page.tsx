@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { Logo } from "@/components/app/Logo";
 
-export const metadata = { title: "Politique de confidentialité — RebondPro Formation" };
+export const metadata = { title: "Politique de confidentialité — Le Bon Rebond" };
 
 export default function PrivacyPage() {
   return (
     <main className="public-page">
-      <header className="marketing-nav public-nav"><Link href="/"><Logo size={34} /></Link></header>
+      <header className="marketing-nav public-nav"><Link href="/"><Logo size={52} priority /></Link></header>
       <article className="legal-page">
         <span className="eyebrow">Vie privée & RGPD</span>
         <h1>Politique de confidentialité</h1>
         <p style={{ color: "#6b7280", marginBottom: 32 }}>En vigueur au 1er juin 2026 — conforme au RGPD</p>
 
         <h2>1. Responsable du traitement</h2>
-        <p><strong>RebondPro Formation</strong>, SAS dont le siège social est situé en Guadeloupe (97110, Pointe-à-Pitre). Contact DPO : <a href="mailto:dpo@rebondpro.fr">dpo@rebondpro.fr</a>.</p>
+        <p><strong>Le Bon Rebond</strong>, SAS dont le siège social est situé en Guadeloupe (97110, Pointe-à-Pitre). Contact DPO : <a href="mailto:dpo@lebonrebond.fr">dpo@lebonrebond.fr</a>.</p>
 
         <h2>2. Données collectées</h2>
         <ul>
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
 
         <h2>3. Finalités du traitement</h2>
         <ul>
-          <li>Fournir et améliorer le service RebondPro Formation.</li>
+          <li>Fournir et améliorer le service Le Bon Rebond.</li>
           <li>Assurer la sécurité et l&apos;intégrité de la plateforme.</li>
           <li>Gérer la relation contractuelle et la facturation.</li>
           <li>Envoyer des communications relatives au service (mises à jour, alertes).</li>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
         <h2>7. Vos droits</h2>
         <p>Conformément au RGPD, vous disposez des droits d&apos;accès, de rectification, d&apos;effacement, de portabilité, d&apos;opposition et de limitation. L&apos;export CSV de vos données est disponible directement dans Paramètres &gt; Avancé.</p>
-        <p>Pour exercer vos droits : <a href="mailto:dpo@rebondpro.fr">dpo@rebondpro.fr</a>. Vous pouvez également introduire une réclamation auprès de la <strong>CNIL</strong>.</p>
+        <p>Pour exercer vos droits : <a href="mailto:dpo@lebonrebond.fr">dpo@lebonrebond.fr</a>. Vous pouvez également introduire une réclamation auprès de la <strong>CNIL</strong>.</p>
 
         <h2>8. Cookies</h2>
         <p>Nous utilisons uniquement des cookies strictement nécessaires au fonctionnement du service (session d&apos;authentification). Aucun cookie publicitaire ou de tracking tiers n&apos;est utilisé.</p>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
         <p>Toute modification substantielle sera communiquée par email avec un préavis de 30 jours. La version en vigueur est toujours accessible sur cette page.</p>
 
         <p style={{ marginTop: 40, padding: "16px 20px", background: "#f3f4f6", borderRadius: 10, fontSize: 14 }}>
-          Contact DPO : <a href="mailto:dpo@rebondpro.fr">dpo@rebondpro.fr</a> — Délai de réponse : 30 jours.
+          Contact DPO : <a href="mailto:dpo@lebonrebond.fr">dpo@lebonrebond.fr</a> — Délai de réponse : 30 jours.
         </p>
       </article>
     </main>

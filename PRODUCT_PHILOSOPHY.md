@@ -2,80 +2,92 @@
 
 ## Product name
 
-RebondPro Formation.
+Le Bon Rebond (`lebonrebond.fr`).
+
+L’espace B2B destiné aux organismes de formation porte le nom **Le Bon Rebond Partenaires**.
 
 ## Target users
 
-Trois faces complémentaires :
-1. **Centres de formation** (B2B, cœur SaaS) — dirigeants et équipes opérationnelles de petits et moyens centres : le cockpit.
-2. **Bénéficiaires d'un bilan de compétences** (B2C) — particuliers (salariés, demandeurs d'emploi, indépendants), positionnés en **Guadeloupe**, financés via CPF : le site vitrine + l'espace personnel.
-3. **Propriétaire de la plateforme** (toi) — opère son propre bilan ET pilote tout l'écosystème via l'admin god-mode et les flux financiers.
+1. **Personnes en transition professionnelle** — salariés en perte de sens, personnes en reconversion, demandeurs d’emploi, jeunes actifs bloqués et personnes qui hésitent sur leur prochaine étape.
+2. **Élèves et étudiants** — bénéficiaires d’un bilan d’orientation.
+3. **Centres de formation partenaires** — organismes qui publient leurs formations, reçoivent des demandes qualifiées et pilotent leur activité.
+4. **Propriétaire de la plateforme** — opère les bilans, anime le réseau et supervise les flux financiers.
 
-Formateurs (portail dédié) et apprenants inscrits en session complètent le modèle.
+Formateurs et bénéficiaires accompagnés disposent de portails dédiés.
 
 ## Problem solved
 
-Les données utiles au pilotage sont dispersées entre tableurs, emails, calendriers et documents. Les équipes voient trop tard les sessions sous-remplies, les relances oubliées et les pièces manquantes.
+Les personnes en transition ne manquent pas de solutions. Elles manquent de direction.
+
+Les offres de formation sont nombreuses et difficiles à comparer. Les personnes qui doutent de leur avenir professionnel ne savent pas toujours si elles doivent chercher une formation, changer de métier ou commencer par faire le point.
 
 ## Pain point
 
-Le centre passe du temps à rapprocher des informations sans obtenir une prochaine action fiable.
+Le particulier tourne en rond, a peur de se tromper et ne sait pas quelle prochaine action est réellement adaptée à sa situation.
 
 ## Product promise
 
-Réunir le catalogue, le planning, le CRM, les apprenants, les documents et les indicateurs afin de rendre visibles les actions qui améliorent réellement l'activité.
+**Trouvez votre prochaine direction professionnelle, simplement et rapidement.**
+
+Promesse émotionnelle :
+
+> Vous n’êtes pas perdu, vous êtes entre deux étapes.
 
 ## Core value proposition
 
-Un cockpit opérationnel relié à des données réelles, testable et explicite sur ce qui est calculé, simulé ou incomplet.
+Le Bon Rebond transforme une période de doute en décision concrète puis en parcours actionnable, grâce à deux entrées principales :
+
+1. **Je cherche une formation** → catalogue et mise en relation avec des centres partenaires.
+2. **Je suis perdu / je veux faire un bilan** → accompagnement premium avec la méthode Rebond Clarté.
 
 ## Why the product should exist
 
-Les solutions lourdes sont souvent disproportionnées pour les petites structures, tandis que les outils génériques ne relient pas le remplissage, le commercial et l'administratif.
+Les plateformes de formation montrent surtout des catalogues. Les bilans de compétences produisent parfois une réflexion sans suite concrète. Le Bon Rebond relie orientation, décision, formation et passage à l’action.
 
 ## Main value-producing workflow
 
-Publier une formation, recevoir une demande dans le CRM, planifier une session, inscrire les apprenants, produire les documents et suivre les indicateurs.
+Visiteur en transition → choisit formation ou bilan → clarifie son besoin → accède à un centre partenaire ou suit un bilan → obtient une prochaine étape claire → démarre un parcours.
 
-## Marketplace (visibilité)
+## Method: Rebond Clarté
 
-Un catalogue public cross-centres (le « réseau de la formation ») expose les formations publiées, met en avant la **fiche de chaque centre** et donne de la **visibilité aux formateurs** via des profils publics. Objectif : générer de la demande entrante qui retombe dans le CRM du bon centre.
+Le bilan repose sur cinq étapes :
 
-## Copilote agentique
+1. Clarifier la situation et le blocage.
+2. Identifier compétences, forces, valeurs et contraintes.
+3. Explorer métiers et formations possibles.
+4. Décider d’une direction claire et réaliste.
+5. Construire un plan d’action sur trois à six mois.
 
-Un assistant IA intégré peut non seulement lire les données mais **agir réellement** (créer/modifier/supprimer formations, sessions, prospects, apprenants, formateurs) sous **validation humaine** pour toute action sensible. Il accélère l'exécution sans contourner les permissions ni l'isolation tenant.
+Le Bon Rebond n’est pas un test de personnalité. C’est une méthode de décision professionnelle.
+
+## Partner network
+
+Les centres partenaires publient leurs formations, leur fiche et leurs formateurs. Les demandes des particuliers arrivent dans leur CRM. L’espace partenaires leur permet de gérer catalogue, prospects, sessions, formateurs, documents et indicateurs.
 
 ## What must be observable
 
-Chaque CTA métier doit créer ou modifier un état réel visible ailleurs dans le produit. Les métriques doivent provenir de la base du tenant.
+- Les deux choix principaux sont visibles dès le premier écran public.
+- Une demande de formation atteint réellement le bon centre partenaire.
+- Un bénéficiaire voit son parcours, ses étapes et ses recommandations.
+- Chaque paiement et commission est traçable.
+- Chaque CTA métier crée ou modifie un état réel visible ailleurs.
 
 ## What must never be faked
 
-Les prospects, inscriptions, métriques, états de documents, résultats IA et statuts de conformité. Toute donnée de démonstration doit être annoncée comme telle.
+Les centres partenaires, formations, témoignages, disponibilités, demandes, inscriptions, résultats de bilan, recommandations, paiements, métriques et statuts de conformité.
 
-## Espace bénéficiaire (bilan de compétences B2C)
+Toute donnée de démonstration doit être annoncée comme telle.
 
-Un particulier accompagné en bilan dispose d'un **espace personnel** (`/espace`) : suivi de son parcours (3 phases), catalogue de formations recommandées, achat en ligne d'une formation et règlement de son bilan. Il entre par **invitation** après un premier rendez-vous (pas d'auto-inscription publique). Le site vitrine (`/`, Guadeloupe, CPF) génère ces rendez-vous.
+## Business model
 
-## Flux financiers & monétisation
+1. **Bilans de compétences et d’orientation** — produit premium et source de revenu direct.
+2. **Leads et achats de formation** — commission ou apport d’affaires.
+3. **Centres partenaires** — abonnements, visibilité et mises en avant.
 
-La plateforme trace **chaque transaction réelle** (modèle `Transaction`, jamais de CA fictif), de trois natures :
-- **Commissions** sur les achats de formation du réseau (% configurable) ;
-- **Abonnements** des centres (plans FREE/PRO/PREMIUM, Stripe) ;
-- **Paiements de bilan** des bénéficiaires.
-
-Modèle d'encaissement acté : **tout encaisser puis reverser** au centre vendeur le net (montant − commission), sans Stripe Connect dans un premier temps. L'admin god-mode (`/admin/finances`) montre le brut, les revenus plateforme et le **net à reverser** par centre.
-
-## Personas du copilote (AG-UI)
-
-L'assistant est **lié au rôle et à la page** : visiteur (catalogue + bilan, public), bénéficiaire (son bilan), formateur (son planning), centre (cockpit complet), admin plateforme (lecture cross-tenant). Le périmètre d'outils est verrouillé côté serveur (allowlist + `requireRole`) — un visiteur n'atteint aucune donnée tenant, l'admin n'écrit pas via le chat.
-
-## Pilotage plateforme (god-mode)
-
-Le propriétaire monitore tout l'écosystème (`/admin`) : centres, formateurs, bénéficiaires et flux financiers consolidés, en lecture seule cross-tenant, derrière `requirePlatformAdmin()`.
+Chaque transaction réelle est persistée dans le ledger `Transaction`.
 
 ## What makes it worth paying for
 
-Côté centre : moins d'oublis, des sessions mieux remplies, des documents produits plus vite, un pilotage commercial compréhensible sans consolidation manuelle, et de la **demande entrante** via la marketplace.
-Côté bénéficiaire : un accompagnement clair, finançable CPF, avec un espace personnel et des formations actionnables.
-Côté plateforme : une **monétisation traçable** (commissions + abonnements + bilans) sans donnée fictive.
+- **Particulier** : sortir du flou, éviter une mauvaise décision et accéder à une formation adaptée.
+- **Centre partenaire** : recevoir des demandes qualifiées, gagner en visibilité et réduire la charge administrative.
+- **Plateforme** : monétiser les bilans, les mises en relation et les abonnements avec une traçabilité complète.

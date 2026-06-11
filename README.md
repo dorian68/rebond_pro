@@ -1,7 +1,7 @@
-# RebondPro Formation
+# Le Bon Rebond
 
-Le cockpit intelligent des centres de formation. Application SaaS multi-tenant
-(Next.js full-stack), développée en local, architecturée pour la production.
+La plateforme qui transforme les périodes de doute en trajectoires professionnelles claires.
+Elle réunit un parcours public orientation/formation et un espace SaaS multi-tenant pour les centres partenaires.
 
 > Cahier des charges : `../projet_formation/CAHIER_DES_CHARGES.md`
 

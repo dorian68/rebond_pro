@@ -20,7 +20,7 @@ export async function GET() {
   const { upcoming, past } = await getMyPlanning(trainer.id, ctx.organizationId);
   const all = [...past, ...upcoming];
 
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//RebondPro//Planning formateur//FR", "CALSCALE:GREGORIAN"];
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Le Bon Rebond//Planning formateur//FR", "CALSCALE:GREGORIAN"];
   for (const s of all) {
     lines.push("BEGIN:VEVENT");
     lines.push(`UID:${s.id}@rebondpro`);

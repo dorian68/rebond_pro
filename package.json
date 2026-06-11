@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "node scripts/dev-local.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,6 +13,7 @@
     "seed:marketplace-demo": "tsx scripts/seed-marketplace-demo.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
+    "db:diagnose": "tsx scripts/diagnose-db.ts",
     "smoke:lot5": "tsx scripts/smoke-lot5.ts",
     "smoke:auth": "tsx scripts/smoke-auth-verification.ts",
     "smoke:registration": "tsx scripts/smoke-registration.ts",

@@ -103,7 +103,7 @@ export default async function QualitePage() {
       </div>
 
       <p style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 20, padding: "10px 14px", background: "var(--surface-3)", borderRadius: 10 }}>
-        RebondPro aide à centraliser les éléments utiles à votre démarche qualité. Ces outils ne constituent pas une certification Qualiopi ni un audit officiel.
+        Le Bon Rebond Partenaires aide à centraliser les éléments utiles à votre démarche qualité. Ces outils ne constituent pas une certification Qualiopi ni un audit officiel.
       </p>
     </div>
   );

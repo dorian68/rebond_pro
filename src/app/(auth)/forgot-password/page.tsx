@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ForgotPasswordForm } from "./forgot-form";
 
-export const metadata = { title: "Mot de passe oublié — RebondPro" };
+export const metadata = { title: "Mot de passe oublié — Le Bon Rebond" };
 
 export default function ForgotPasswordPage() {
   return (

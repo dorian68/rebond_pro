@@ -73,7 +73,7 @@ async function deliverBeneficiaryInvite(email: string, name: string): Promise<vo
     const url = reset ? `${base}/reset-password?token=${reset.token}` : `${base}/login`;
     await sendEmail({
       to: email,
-      subject: "Votre espace bilan de compétences RebondPro — définissez votre mot de passe",
+      subject: "Votre espace bilan Le Bon Rebond — définissez votre mot de passe",
       text: `Bonjour ${name}, votre espace personnel d'accompagnement est prêt. Définissez votre mot de passe pour y accéder : ${url}`,
       html: brandedEmail("Votre espace personnel", `<p>Bonjour ${name},</p><p>Votre accompagnement en bilan de compétences commence. Cliquez ci-dessous pour <strong>définir votre mot de passe</strong> et accéder à votre espace (suivi de parcours, catalogue de formations).</p><p><a href="${url}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Définir mon mot de passe</a></p>`),
     });

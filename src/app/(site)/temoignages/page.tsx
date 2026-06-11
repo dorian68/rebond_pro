@@ -16,14 +16,14 @@ const fadeUp = {
 };
 
 const testimonials = [
-  { name: "Marie-Line D.", before: "Agent administratif", after: "Formatrice en insertion", quote: "J'avais perdu le sens de mon travail après 15 ans dans la fonction publique. Rebond Pro m'a aidée à me redécouvrir et j'ai pu entamer une reconversion vers la formation.", stars: 5 },
+  { name: "Marie-Line D.", before: "Agent administratif", after: "Formatrice en insertion", quote: "J'avais perdu le sens de mon travail après 15 ans dans la fonction publique. Le Bon Rebond m'a aidée à me redécouvrir et j'ai pu entamer une reconversion vers la formation.", stars: 5 },
   { name: "Kévin M.", before: "Technicien", after: "En formation développeur web", quote: "Après mon licenciement, j'étais complètement perdu. Le bilan m'a redonné confiance et surtout un vrai plan avec des formations concrètes.", stars: 5 },
-  { name: "Nathalie S.", before: "Comptable", after: "Créatrice d'entreprise", quote: "Je rêvais de me lancer à mon compte mais j'avais peur. Rebond Pro m'a sécurisée dans ma démarche avec un accompagnement humain incroyable.", stars: 5 },
-  { name: "Jean-Marc P.", before: "Manager grande distribution", after: "Consultant indépendant", quote: "Le bilan m'a permis de prendre du recul et de réaliser que mes compétences valaient bien plus que ce que je pensais. Merci Rebond Pro !", stars: 5 },
+  { name: "Nathalie S.", before: "Comptable", after: "Créatrice d'entreprise", quote: "Je rêvais de me lancer à mon compte mais j'avais peur. Le Bon Rebond m'a sécurisée dans ma démarche avec un accompagnement humain incroyable.", stars: 5 },
+  { name: "Jean-Marc P.", before: "Manager grande distribution", after: "Consultant indépendant", quote: "Le bilan m'a permis de prendre du recul et de réaliser que mes compétences valaient bien plus que ce que je pensais. Merci Le Bon Rebond !", stars: 5 },
   { name: "Sabrina L.", before: "Assistante de direction", after: "Responsable RH", quote: "Grâce au bilan, j'ai pu négocier une mobilité interne et évoluer vers un poste qui me correspond vraiment. Le CPF a tout financé.", stars: 5 },
   { name: "Thierry B.", before: "Ouvrier BTP", after: "En reconversion – formation sécurité", quote: "Je ne pensais pas que le bilan de compétences était fait pour moi. Mais l'accompagnement local et humain m'a mis en confiance dès le premier RDV.", stars: 5 },
   { name: "Claudine R.", before: "Infirmière", after: "Coach bien-être", quote: "Après 20 ans à l'hôpital, j'avais besoin de changement. Le plan d'action que j'ai reçu était tellement concret que j'ai pu agir tout de suite.", stars: 5 },
-  { name: "Yannick F.", before: "Enseignant", after: "Formateur en entreprise", quote: "Rebond Pro comprend la réalité guadeloupéenne. C'est un accompagnement local, sincère et vraiment orienté vers l'action.", stars: 5 },
+  { name: "Yannick F.", before: "Enseignant", after: "Formateur en entreprise", quote: "Le Bon Rebond comprend la réalité guadeloupéenne. C'est un accompagnement local, sincère et vraiment orienté vers l'action.", stars: 5 },
 ];
 
 export default function Temoignages() {

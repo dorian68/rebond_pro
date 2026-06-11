@@ -1,6 +1,6 @@
 import "./_env";
 import { prisma } from "../src/lib/prisma";
-import { createPublicLead, getPublicFormation } from "../src/server/public-conversion";
+import { createPublicLead, getPublicFormationUncached } from "../src/server/public-conversion";
 
 function step(label: string, details?: unknown) {
   console.log(JSON.stringify({ step: label, status: "pass", details }));
@@ -18,7 +18,7 @@ async function main() {
   assert(formation?.publicSlug, "Aucune formation publique seedée. Exécutez npm run db:seed.");
   step("public_formation_fixture", { orgSlug: formation.organization.slug, publicSlug: formation.publicSlug });
 
-  const publicPage = await getPublicFormation(formation.organization.slug, formation.publicSlug);
+  const publicPage = await getPublicFormationUncached(formation.organization.slug, formation.publicSlug);
   assert(publicPage?.id === formation.id, "La résolution publique ne renvoie pas la formation attendue.");
   step("public_formation_resolution", { title: publicPage.title, sessions: publicPage.sessions.length });
 

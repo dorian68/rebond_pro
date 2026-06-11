@@ -195,7 +195,7 @@ export default async function PublicFormationPage({ params, searchParams }: { pa
       <footer className="public-footer">
         <div className="marketing-container">
           <span>{formation.organization.name}</span>
-          <span>Page propulsée par RebondPro Formation</span>
+          <span>Page propulsée par Le Bon Rebond</span>
         </div>
       </footer>
     </main>

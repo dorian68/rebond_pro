@@ -1,43 +1,77 @@
 import "./env";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { logger } from "@/lib/logger";
 
-// Codes/erreurs de connexion transitoires (réseau, pooler, VPN qui hoquette).
-const TRANSIENT_CODES = new Set(["P1001", "P1002", "P1008", "P1017"]);
-const TRANSIENT_PATTERNS = [
-  "can't reach database server",
+// Seules les lectures peuvent être rejouées sans risque de dupliquer un effet métier.
+const READ_OPERATIONS = new Set([
+  "findFirst",
+  "findFirstOrThrow",
+  "findUnique",
+  "findUniqueOrThrow",
+  "findMany",
+  "aggregate",
+  "count",
+  "groupBy",
+  "$queryRaw",
+  "$queryRawUnsafe",
+  "findRaw",
+  "aggregateRaw",
+]);
+
+// P1001/P1002 signalent une indisponibilité durable : les rejouer dans la même
+// requête HTTP multiplie surtout le temps d'attente. P1008/P1017 peuvent en
+// revanche correspondre à une connexion déjà ouverte qui vient de tomber.
+const RETRYABLE_READ_CODES = new Set(["P1008", "P1017"]);
+const RETRYABLE_READ_PATTERNS = [
   "connection reset",
   "connection closed",
   "econnreset",
-  "etimedout",
-  "timed out",
   "server has closed the connection",
 ];
 
-function isTransient(err: unknown): boolean {
-  if (err instanceof Prisma.PrismaClientInitializationError) return true;
-  if (err instanceof Prisma.PrismaClientKnownRequestError && TRANSIENT_CODES.has(err.code)) return true;
+function errorCode(err: unknown): string | undefined {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) return err.code;
+  if (err instanceof Prisma.PrismaClientInitializationError) return err.errorCode;
+  return undefined;
+}
+
+function isRetryableReadError(err: unknown): boolean {
+  const code = errorCode(err);
+  if (code && RETRYABLE_READ_CODES.has(code)) return true;
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return TRANSIENT_PATTERNS.some((p) => msg.includes(p));
+  return RETRYABLE_READ_PATTERNS.some((p) => msg.includes(p));
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Réessaie automatiquement les requêtes en cas de coupure réseau transitoire.
- * 3 tentatives, backoff 150ms → 450ms → 900ms. Les erreurs métier ne sont jamais retentées.
+ * Réessaie une seule fois les lectures après une coupure de connexion avérée.
+ * Les écritures ne sont jamais rejouées : leur commit peut avoir réussi même si
+ * la réponse réseau a été perdue.
  */
 function withRetry(base: PrismaClient) {
   return base.$extends({
     query: {
-      async $allOperations({ args, query }) {
+      async $allOperations({ model, operation, args, query }) {
+        const maxAttempts = READ_OPERATIONS.has(operation) ? 2 : 1;
         let lastErr: unknown;
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
           try {
             return await query(args);
           } catch (err) {
             lastErr = err;
-            if (!isTransient(err)) throw err;
-            if (attempt < 2) await sleep(150 * Math.pow(3, attempt));
+            const canRetry = attempt + 1 < maxAttempts && isRetryableReadError(err);
+            if (!canRetry) throw err;
+
+            const delayMs = 150;
+            logger.warn("db.read_retry", {
+              model: model ?? "raw",
+              operation,
+              attempt: attempt + 2,
+              delayMs,
+              code: errorCode(err) ?? "unknown",
+            });
+            await sleep(delayMs);
           }
         }
         throw lastErr;

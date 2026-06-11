@@ -26,7 +26,7 @@ export type MarketplaceFilters = {
 
 const PUBLIC_FORMATION_WHERE = { isPublic: true, status: "PUBLIE" as const, deletedAt: null };
 
-async function fetchMarketplaceFormations(filters: MarketplaceFilters = {}) {
+export async function getMarketplaceFormationsUncached(filters: MarketplaceFilters = {}) {
   const q = filters.q?.trim();
   return prisma.formation.findMany({
     where: {
@@ -62,7 +62,7 @@ async function fetchMarketplaceFormations(filters: MarketplaceFilters = {}) {
 }
 
 export const getMarketplaceFormations = unstable_cache(
-  fetchMarketplaceFormations,
+  getMarketplaceFormationsUncached,
   ["mkt-formations"],
   { revalidate: 60, tags: [MARKETPLACE_TAG] },
 );
@@ -70,7 +70,7 @@ export const getMarketplaceFormations = unstable_cache(
 export type MarketplaceFormation = Awaited<ReturnType<typeof getMarketplaceFormations>>[number];
 
 /** Facettes (catégories, villes) pour les filtres, calculées sur les formations publiques. */
-async function fetchMarketplaceFacets() {
+export async function getMarketplaceFacetsUncached() {
   const formations = await prisma.formation.findMany({
     where: PUBLIC_FORMATION_WHERE,
     select: { category: true, organization: { select: { city: true } } },
@@ -82,13 +82,13 @@ async function fetchMarketplaceFacets() {
 }
 
 export const getMarketplaceFacets = unstable_cache(
-  fetchMarketplaceFacets,
+  getMarketplaceFacetsUncached,
   ["mkt-facets"],
   { revalidate: 300, tags: [MARKETPLACE_TAG] },
 );
 
 /** Annuaire des centres ayant au moins une formation publiée. */
-async function fetchMarketplaceCenters() {
+export async function getMarketplaceCentersUncached() {
   const orgs = await prisma.organization.findMany({
     where: { deletedAt: null, formations: { some: PUBLIC_FORMATION_WHERE } },
     select: {
@@ -102,13 +102,13 @@ async function fetchMarketplaceCenters() {
 }
 
 export const getMarketplaceCenters = unstable_cache(
-  fetchMarketplaceCenters,
+  getMarketplaceCentersUncached,
   ["mkt-centers"],
   { revalidate: 300, tags: [MARKETPLACE_TAG] },
 );
 
 /** Fiche publique d'un centre de formation (mise en avant). */
-async function fetchCenterProfile(slug: string) {
+export async function getCenterProfileUncached(slug: string) {
   const org = await prisma.organization.findFirst({
     where: { slug, deletedAt: null },
     select: {
@@ -146,13 +146,13 @@ async function fetchCenterProfile(slug: string) {
 }
 
 export const getCenterProfile = unstable_cache(
-  fetchCenterProfile,
+  getCenterProfileUncached,
   ["center-profile"],
   { revalidate: 120, tags: [MARKETPLACE_TAG] },
 );
 
 /** Profil public d'un formateur (visibilité — "Facebook de la formation"). */
-async function fetchPublicTrainer(trainerId: string) {
+export async function getPublicTrainerUncached(trainerId: string) {
   const trainer = await prisma.trainer.findFirst({
     where: { id: trainerId, active: true, deletedAt: null },
     select: {
@@ -180,7 +180,7 @@ async function fetchPublicTrainer(trainerId: string) {
 }
 
 export const getPublicTrainer = unstable_cache(
-  fetchPublicTrainer,
+  getPublicTrainerUncached,
   ["public-trainer"],
   { revalidate: 120, tags: [MARKETPLACE_TAG] },
 );

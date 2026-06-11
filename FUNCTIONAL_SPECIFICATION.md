@@ -2,11 +2,11 @@
 
 ## 1. Product overview
 
-RebondPro Formation est un SaaS multi-tenant de pilotage des centres de formation.
+Le Bon Rebond est une plateforme d’orientation et de formation destinée aux personnes en transition professionnelle. Elle relie deux parcours publics principaux — trouver une formation ou clarifier sa direction par un bilan — à un réseau de centres partenaires équipé d’un cockpit SaaS multi-tenant.
 
 ## 2. Target users
 
-Dirigeant, administrateur, assistant, commercial, formateur, apprenant — **bénéficiaire d'un bilan de compétences (B2C)** et **propriétaire de la plateforme**.
+Personne en transition professionnelle, élève ou étudiant en orientation, bénéficiaire d’un bilan, dirigeant de centre partenaire, administrateur, assistant, commercial, formateur, apprenant et propriétaire de la plateforme.
 
 ## 3. User roles
 
@@ -16,16 +16,16 @@ Rôles tenant (enum `Role`) : `OWNER`, `ADMIN`, `ASSISTANT`, `COMMERCIAL`, `TRAI
 
 ## 4. Core user journeys
 
-1. **Centre** : visiteur → `/centres` → inscription → onboarding → dashboard activé.
-2. **Centre** : formation → publication → demande publique → prospect CRM.
-3. **Centre** : session → inscription → documents → suivi → indicateurs.
-4. **Bénéficiaire (B2C)** : site vitrine `/` → contact/RDV → (invitation centre) → `/espace` → suivi parcours bilan + catalogue → paiement bilan/formation (Stripe).
+1. **Particulier orienté formation** : `/` → choix « Je cherche une formation » → `/marketplace` → fiche formation/centre → demande ou achat.
+2. **Particulier en doute** : `/` → choix « Je veux faire un bilan » → `/bilan-de-competences` → contact/RDV → invitation → `/espace` → parcours Rebond Clarté.
+3. **Élève ou étudiant** : `/bilan-orientation` → contact → accompagnement d’orientation.
+4. **Centre partenaire** : `/centres` → inscription → onboarding → publication → demandes publiques → CRM → sessions et suivi.
 5. **Formateur** : `/trainer` → disponibilités → planning → demandes d'animation.
 6. **Propriétaire plateforme** : `/admin` → centres/formateurs/bénéficiaires + `/admin/finances` (traçabilité de chaque transaction).
 
 ## 5. Functional modules
 
-Auth et tenant, dashboard, formations, sessions, planning, formateurs, apprenants, CRM, documents, IA, qualité, pages publiques, **marketplace cross-centres**, **copilote agentique (AG-UI) à personas**, **site vitrine B2C bilan**, **espace bénéficiaire**, **portail formateur**, **admin god-mode plateforme**, **flux financiers (ledger + Stripe paiements)** et paramètres.
+Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orientation, marketplace cross-centres, pages centres/formateurs/formations, auth et tenant, espace partenaires, dashboard, formations, sessions, planning, formateurs, apprenants, CRM, documents, IA, qualité, espace bénéficiaire, portail formateur, admin plateforme, flux financiers et paramètres.
 
 ## 6. Detailed feature list
 
@@ -36,7 +36,7 @@ Auth et tenant, dashboard, formations, sessions, planning, formateurs, apprenant
 - Copilote AG-UI : outils de lecture + ~26 outils d'écriture CRUD (`src/server/agent/write-tools.ts`), tous sensibles → validation humaine (human-in-the-loop). Dispatch et exécution dans `src/server/agent/runtime.ts`.
 - Lot 7 : **facturation Stripe** livrée — plans FREE/PRO/PREMIUM, Checkout, portail client, webhook (`/api/stripe/webhook`) qui synchronise plan/billingStatus ; fallback propre si Stripe non configuré ; UI Paramètres → Abonnement ; **quotas de plan appliqués** (`smoke:quota`).
 - Lot 8 (livré, code) : **écosystème multi-faces**.
-  - **Site vitrine B2C** (`src/app/(site)/`) : bilan de compétences (Guadeloupe, CPF), pages méthode/déroulement/tarifs/pour-qui/témoignages/contact/centres. Formulaire de contact réel (server action → email équipe + log) ; verdict d'éligibilité CPF instantané.
+  - **Site public Le Bon Rebond** (`src/app/(site)/`) : accueil à deux entrées, formation, bilan de compétences, bilan d’orientation, méthode Rebond Clarté, à propos, blog, contact et espace partenaires. Formulaire de contact réel (server action → email équipe + log) ; verdict d'éligibilité CPF instantané.
   - **Espace bénéficiaire** (`/espace`) : vue d'ensemble, parcours (3 phases), catalogue, profil ; achat formation + règlement bilan via Stripe (`createFormationCheckout`, `createBilanCheckout`). Modèle `Beneficiary`. Testé `smoke:beneficiary`.
   - **Portail formateur** (`/trainer`) : disponibilités, planning, demandes, profil. Testé `smoke:trainer-portal`.
   - **Admin god-mode** (`/admin`) : vue d'ensemble cross-tenant, centres, formateurs, bénéficiaires, **flux financiers**. `requirePlatformAdmin()`. Testé `smoke:platform`.
@@ -99,7 +99,9 @@ Auth.js credentials, session JWT et membership tenant. Un compte doit confirmer 
 
 ### Lot 5
 
-- `/` explique la cible, la promesse et propose inscription et démo.
+- `/` présente Le Bon Rebond et propose immédiatement les deux choix « Je cherche une formation » et « Je veux faire un bilan ».
+- `/formation`, `/bilan-de-competences`, `/bilan-orientation`, `/a-propos` et `/blog` portent la promesse publique.
+- `/marketplace` permet d’explorer les formations et centres partenaires.
 - L'inscription crée User, Organization, membership et trial, puis redirige vers l'onboarding.
 - L'onboarding persiste les repères et peut créer formation, formateur, session et prospect initiaux.
 - La page `/{orgSlug}/f/{publicSlug}` est SSR et inaccessible si dépubliée.

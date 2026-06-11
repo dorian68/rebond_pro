@@ -1,12 +1,16 @@
 import "./_env";
 import { prisma } from "../src/lib/prisma";
 import { createTestTenant, step, assert, runner } from "./_tenant";
-import { publicFormationCheckout } from "../src/server/public-purchase";
+
+// Ce smoke valide explicitement le fallback sans Stripe et ne doit jamais
+// utiliser une clé réelle héritée de .env.local.
+delete process.env.STRIPE_SECRET_KEY;
 
 // Vérifie l'achat PUBLIC (sans compte) : appelable sans session, gating public/publié/prix,
 // et dégradation propre quand Stripe n'est pas configuré (env de test). La création réelle de
 // l'inscription post-paiement est couverte par smoke:finance (enrollBeneficiaryInFormation).
 runner("public_purchase_smoke", async () => {
+  const { publicFormationCheckout } = await import("../src/server/public-purchase");
   const t = await createTestTenant("pubbuy");
   try {
     const stamp = Date.now();

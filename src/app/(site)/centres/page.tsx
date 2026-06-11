@@ -36,21 +36,21 @@ export default function Centres() {
           <div className="max-w-3xl mx-auto text-center">
             <motion.div initial="hidden" animate="visible" variants={fadeUp}>
               <Badge className="mb-6 bg-secondary/15 text-secondary border-secondary/30 px-4 py-1.5 text-sm font-medium rounded-full">
-                <Building2 className="w-3.5 h-3.5 mr-1.5" /> Pour les centres de formation
+                <Building2 className="w-3.5 h-3.5 mr-1.5" /> Espace partenaires
               </Badge>
             </motion.div>
             <motion.h1
               initial="hidden" animate="visible" custom={1} variants={fadeUp}
               className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6"
             >
-              Le cockpit qui pilote votre <span className="font-script text-secondary">organisme</span>
+              Rejoignez le réseau qui transforme les projets en <span className="font-script text-secondary">formations</span>
             </motion.h1>
             <motion.p
               initial="hidden" animate="visible" custom={2} variants={fadeUp}
               className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
             >
-              Formations, sessions, formateurs, disponibilités, planning, CRM, documents et catalogue public :
-              un espace unique pour <strong className="text-foreground">structurer votre activité</strong> et gagner en visibilité.
+              Gagnez en visibilité auprès de personnes en transition professionnelle et pilotez vos formations,
+              vos demandes, vos sessions et vos documents depuis un espace partenaire unique.
             </motion.p>
             <motion.div
               initial="hidden" animate="visible" custom={3} variants={fadeUp}
@@ -58,7 +58,7 @@ export default function Centres() {
             >
               <Link href="/register">
                 <Button size="lg" className="w-full sm:w-auto text-lg px-8 h-14 hover:scale-[1.02] transition-all duration-300">
-                  Créer mon espace centre <ArrowRight className="w-5 h-5 ml-1" />
+                  Créer mon espace partenaire <ArrowRight className="w-5 h-5 ml-1" />
                 </Button>
               </Link>
               <Link href="/login">
@@ -79,9 +79,7 @@ export default function Centres() {
       <section className="container mx-auto px-4 py-20 lg:py-28">
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-14">
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">Un cockpit centralisé</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Chaque module produit une prochaine action utile, à partir de vos données réelles.
-          </p>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Recevez des demandes qualifiées et gérez leur transformation en parcours réels.</p>
         </motion.div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {features.map((f, i) => (
@@ -105,7 +103,7 @@ export default function Centres() {
         <div className="container mx-auto px-4">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-14">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">Des outils dispersés cachent les <span className="font-script text-accent">décisions</span></h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">RebondPro les remet au centre, sans chiffres décoratifs.</p>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Le Bon Rebond Partenaires les remet au centre, sans chiffres décoratifs.</p>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
@@ -163,7 +161,7 @@ export default function Centres() {
           className="bg-primary rounded-3xl p-8 md:p-14 text-center text-primary-foreground max-w-3xl mx-auto shadow-turquoise"
         >
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-            Prêt à structurer votre centre de formation ?
+            Prêt à rejoindre Le Bon Rebond ?
           </h2>
           <p className="opacity-70 text-lg mb-8 max-w-xl mx-auto">
             Créez votre espace en quelques minutes, ou explorez d'abord le catalogue public du réseau.
@@ -171,7 +169,7 @@ export default function Centres() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
               <Button size="lg" className="w-full sm:w-auto btn-cta text-lg px-8 h-14 hover:scale-[1.02] transition-all duration-300">
-                Créer mon espace centre <ArrowRight className="w-5 h-5 ml-1" />
+                Créer mon espace partenaire <ArrowRight className="w-5 h-5 ml-1" />
               </Button>
             </Link>
             <Link href="/marketplace">
@@ -181,7 +179,7 @@ export default function Centres() {
             </Link>
           </div>
           <p className="opacity-60 text-sm mt-6">
-            Vous êtes un particulier ? <Link href="/" className="underline underline-offset-4">Découvrir le bilan de compétences</Link>
+            Vous êtes un particulier ? <Link href="/" className="underline underline-offset-4">Trouver votre prochaine direction</Link>
           </p>
         </motion.div>
       </section>

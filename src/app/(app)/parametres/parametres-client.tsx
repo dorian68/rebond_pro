@@ -420,7 +420,7 @@ function AvanceTab({ role, orgName }: { role: string; orgName: string }) {
         <h3 style={{ fontWeight: 700, marginBottom: 8, fontSize: 15 }}>Informations techniques</h3>
         <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.8 }}>
           Si vous rencontrez des problèmes d&apos;affichage ou de cache, vous pouvez vider le cache applicatif en rechargeant la page (Ctrl+Maj+R).<br />
-          Pour toute assistance technique : <a href="mailto:support@rebondpro.fr" style={{ color: "var(--primary)" }}>support@rebondpro.fr</a>
+          Pour toute assistance technique : <a href="mailto:support@lebonrebond.fr" style={{ color: "var(--primary)" }}>support@lebonrebond.fr</a>
         </p>
       </Card>
     </div>

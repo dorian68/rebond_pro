@@ -1,5 +1,5 @@
 /* ============================================================
-   RebondPro Formation — Design tokens & base styles
+   Le Bon Rebond — Design tokens & base styles
    Premium B2B SaaS cockpit. Light mode first.
    (porté depuis le prototype, compatible Tailwind v4)
    ============================================================ */
@@ -203,6 +203,19 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
 
 /* PUBLIC & MARKETING */
 .marketing-page, .public-page { min-height: 100vh; background: #fff; }
+.public-page {
+  --primary: #1f5f8b;
+  --primary-600: #194e72;
+  --primary-700: #123d5b;
+  --primary-50: #eaf3f8;
+  --primary-100: #d6e8f1;
+  --primary-200: #afd1e1;
+  --primary-tint: #f4f9fb;
+  --positive: #2f9e6f;
+  --positive-600: #237b56;
+  --positive-bg: #e9f7f0;
+  --positive-border: #c9ead9;
+}
 .marketing-container { width: min(1160px, calc(100% - 40px)); margin-inline: auto; }
 .marketing-nav { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .marketing-nav-links { display: flex; align-items: center; gap: 22px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
@@ -389,23 +402,23 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
    border-l-primary…) ne sont utilisées que par le site vitrine.
    ============================================================ */
 @theme {
-  --color-background: hsl(33 50% 95%);
-  --color-foreground: hsl(195 20% 23%);
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(210 28% 20%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(195 20% 23%);
-  --color-primary: hsl(183 100% 23%);
+  --color-card-foreground: hsl(210 28% 20%);
+  --color-primary: hsl(205 63% 33%);
   --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(170 57% 39%);
+  --color-secondary: hsl(153 54% 40%);
   --color-secondary-foreground: hsl(0 0% 100%);
-  --color-muted: hsl(33 30% 92%);
-  --color-muted-foreground: hsl(195 12% 42%);
-  --color-accent: hsl(36 75% 66%);
+  --color-muted: hsl(210 33% 96%);
+  --color-muted-foreground: hsl(210 14% 43%);
+  --color-accent: hsl(28 85% 57%);
   --color-accent-foreground: hsl(0 0% 100%);
   --color-destructive: hsl(0 84.2% 60.2%);
   --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(33 20% 88%);
-  --color-input: hsl(33 20% 85%);
-  --color-ring: hsl(183 100% 23%);
+  --color-border: hsl(210 25% 89%);
+  --color-input: hsl(210 25% 85%);
+  --color-ring: hsl(205 63% 33%);
 
   --font-display: "Playfair Display", serif;
   --font-script: "Dancing Script", cursive;
@@ -445,31 +458,31 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
 .font-script { font-family: "Dancing Script", cursive; }
 
 .bg-gradient-hero {
-  background: linear-gradient(135deg, hsl(183, 40%, 92%) 0%, hsl(33, 50%, 95%) 50%, hsl(36, 50%, 92%) 100%);
+  background: linear-gradient(135deg, hsl(205, 55%, 94%) 0%, hsl(0, 0%, 100%) 52%, hsl(153, 42%, 94%) 100%);
 }
 .bg-gradient-section {
-  background: linear-gradient(180deg, hsl(33, 30%, 92%) 0%, hsl(33, 50%, 95%) 100%);
+  background: linear-gradient(180deg, hsl(210, 33%, 97%) 0%, hsl(0, 0%, 100%) 100%);
 }
 .text-gradient-primary {
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  background-image: linear-gradient(135deg, hsl(183, 100%, 23%), hsl(170, 57%, 39%));
+  background-image: linear-gradient(135deg, hsl(205, 63%, 33%), hsl(153, 54%, 40%));
 }
-.shadow-turquoise { box-shadow: 0 4px 20px -4px hsl(183 100% 23% / 0.12); }
-.shadow-gold { box-shadow: 0 4px 20px -4px hsl(36 75% 66% / 0.3); }
-.shadow-soft { box-shadow: 0 4px 24px -6px hsl(195 20% 23% / 0.08); }
+.shadow-turquoise { box-shadow: 0 4px 20px -4px hsl(205 63% 33% / 0.16); }
+.shadow-gold { box-shadow: 0 4px 20px -4px hsl(28 85% 57% / 0.28); }
+.shadow-soft { box-shadow: 0 4px 24px -6px hsl(210 28% 20% / 0.08); }
 
 .btn-cta {
-  background: linear-gradient(135deg, hsl(36, 55%, 45%) 0%, hsl(36, 75%, 66%) 50%, hsl(36, 55%, 45%) 100%);
+  background: linear-gradient(135deg, hsl(24, 88%, 48%) 0%, hsl(28, 85%, 57%) 55%, hsl(20, 82%, 45%) 100%);
   color: #ffffff !important;
   font-weight: 700;
-  border: 1px solid hsl(36 50% 35% / 0.3);
-  box-shadow: 0 6px 24px -4px hsl(36 75% 50% / 0.45);
+  border: 1px solid hsl(24 70% 36% / 0.3);
+  box-shadow: 0 6px 24px -4px hsl(28 85% 50% / 0.4);
   transition: all 300ms ease;
 }
 .btn-cta:hover {
-  background: linear-gradient(135deg, hsl(36, 60%, 38%) 0%, hsl(36, 75%, 66%) 50%, hsl(36, 60%, 38%) 100%);
-  box-shadow: 0 8px 30px -4px hsl(36 75% 50% / 0.55);
+  background: linear-gradient(135deg, hsl(24, 88%, 42%) 0%, hsl(28, 85%, 54%) 50%, hsl(20, 82%, 40%) 100%);
+  box-shadow: 0 8px 30px -4px hsl(28 85% 50% / 0.5);
   transform: translateY(-1px);
 }

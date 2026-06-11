@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/primitives";
 import { ParametresClient } from "./parametres-client";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Paramètres — RebondPro Formation" };
+export const metadata = { title: "Paramètres — Le Bon Rebond Partenaires" };
 
 export default async function ParametresPage() {
   const ctx = await requireTenant();

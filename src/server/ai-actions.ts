@@ -115,7 +115,7 @@ export async function generateQuestionnaire(formationTitle: string): Promise<AiT
 export async function assistantChat(history: { role: "user" | "assistant"; content: string }[]): Promise<AiText> {
   const ctx = await requireTenant();
   const m = await getDashboardMetrics(ctx);
-  const system = `${ORG_VOICE}\nTu es l'assistant de pilotage de ${ctx.organizationName ?? "ce centre de formation"} dans l'outil RebondPro.
+  const system = `${ORG_VOICE}\nTu es l'assistant de pilotage de ${ctx.organizationName ?? "ce centre de formation"} dans l'espace partenaires Le Bon Rebond.
 Contexte temps réel : CA prévisionnel ${formatMoney(m.kpis.caForecast)}, ${m.kpis.sessionsAVenir} sessions à venir, remplissage moyen ${m.kpis.avgFill}%, ${m.kpis.prospectsActifs} prospects actifs, ${m.kpis.relances} relances à faire.
 Réponds de façon concise et actionnable. Si on te demande une action (relance, document...), explique brièvement la marche à suivre dans l'outil.`;
   const lastUser = [...history].reverse().find((h) => h.role === "user")?.content ?? "";

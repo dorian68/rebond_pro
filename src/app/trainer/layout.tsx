@@ -17,7 +17,7 @@ export default async function TrainerLayout({ children }: { children: React.Reac
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <header style={{ background: "#fff", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 20px", height: 60, display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/trainer"><Logo size={32} /></Link>
+          <Link href="/trainer"><Logo size={44} priority /></Link>
           <span style={{ fontSize: 13, color: "var(--ink-3)", marginLeft: 4 }}>Portail formateur</span>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(140deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
@@ -45,7 +45,7 @@ export default async function TrainerLayout({ children }: { children: React.Reac
       </main>
 
       <footer style={{ borderTop: "1px solid var(--border)", padding: "16px 20px", textAlign: "center" }}>
-        <span style={{ fontSize: 12, color: "var(--ink-4)" }}>RebondPro Formation · Portail formateur</span>
+        <span style={{ fontSize: 12, color: "var(--ink-4)" }}>Le Bon Rebond · Portail formateur</span>
       </footer>
       <AgentDock />
     </div>

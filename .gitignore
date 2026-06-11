@@ -32,6 +32,8 @@ yarn-error.log*
 dev.log
 dev-server.log
 dev-server-error.log
+dev-server-local.log
+dev-server-local-error.log
 
 # env files (can opt-in for committing if needed)
 .env*

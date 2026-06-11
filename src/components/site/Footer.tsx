@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Phone, Mail, MapPin, ArrowRight, Building2 } from "lucide-react";
+import { Logo } from "@/components/app/Logo";
 
 const Footer = () => {
   return (
@@ -9,13 +10,13 @@ const Footer = () => {
         <div className="container mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-3 text-center">
           <p className="text-primary font-display font-semibold text-lg">
             <Building2 className="w-5 h-5 inline-block mr-2 -mt-1" />
-            Vous êtes un organisme de formation ?
+            Vous êtes un organisme de formation partenaire ?
           </p>
           <Link
             href="/centres"
             className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:gap-3 transition-all duration-300"
           >
-            Découvrir le cockpit RebondPro
+            Découvrir l’espace partenaires
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -25,16 +26,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                <span className="text-primary font-display font-bold text-xl">R</span>
-              </div>
-              <span className="font-display font-bold text-xl">
-                Rebond <span className="text-accent">Pro</span>
-              </span>
+            <div className="mb-4 rounded-xl bg-white p-2 w-fit">
+              <Logo size={72} />
             </div>
             <p className="text-sm opacity-60 leading-relaxed">
-              Le premier bilan de compétences en Guadeloupe qui crée un vrai pont entre réflexion et action.
+              La plateforme qui transforme les périodes de doute en trajectoires professionnelles claires.
             </p>
           </div>
 
@@ -43,23 +39,23 @@ const Footer = () => {
             <h4 className="font-display font-semibold text-lg mb-4">Navigation</h4>
             <ul className="space-y-2.5 text-sm opacity-60">
               <li><Link href="/" className="hover:text-accent transition-colors duration-300">Accueil</Link></li>
-              <li><Link href="/methode" className="hover:text-accent transition-colors duration-300">Notre méthode</Link></li>
-              <li><Link href="/deroulement" className="hover:text-accent transition-colors duration-300">Déroulement</Link></li>
-              <li><Link href="/tarifs" className="hover:text-accent transition-colors duration-300">Tarifs & Financements</Link></li>
-              <li><Link href="/pour-qui" className="hover:text-accent transition-colors duration-300">Pour qui ?</Link></li>
-              <li><Link href="/temoignages" className="hover:text-accent transition-colors duration-300">Témoignages</Link></li>
+              <li><Link href="/formation" className="hover:text-accent transition-colors duration-300">Trouver une formation</Link></li>
+              <li><Link href="/bilan-de-competences" className="hover:text-accent transition-colors duration-300">Bilan de compétences</Link></li>
+              <li><Link href="/bilan-orientation" className="hover:text-accent transition-colors duration-300">Bilan d’orientation</Link></li>
+              <li><Link href="/a-propos" className="hover:text-accent transition-colors duration-300">À propos</Link></li>
+              <li><Link href="/blog" className="hover:text-accent transition-colors duration-300">Blog</Link></li>
               <li><Link href="/contact" className="hover:text-accent transition-colors duration-300">Contact</Link></li>
             </ul>
           </div>
 
           {/* Centres de formation (B2B) */}
           <div>
-            <h4 className="font-display font-semibold text-lg mb-4">Centres de formation</h4>
+            <h4 className="font-display font-semibold text-lg mb-4">Partenaires formation</h4>
             <ul className="space-y-2.5 text-sm opacity-60">
-              <li><Link href="/centres" className="hover:text-accent transition-colors duration-300">Le cockpit RebondPro</Link></li>
               <li><Link href="/marketplace" className="hover:text-accent transition-colors duration-300">Catalogue des formations</Link></li>
-              <li><Link href="/login" className="hover:text-accent transition-colors duration-300">Connexion centre</Link></li>
-              <li><Link href="/register" className="hover:text-accent transition-colors duration-300">Créer mon espace centre</Link></li>
+              <li><Link href="/centres" className="hover:text-accent transition-colors duration-300">Rejoindre le réseau</Link></li>
+              <li><Link href="/login" className="hover:text-accent transition-colors duration-300">Connexion partenaire</Link></li>
+              <li><Link href="/register" className="hover:text-accent transition-colors duration-300">Créer mon espace partenaire</Link></li>
             </ul>
             <div className="mt-4 flex gap-2">
               <span className="text-xs bg-accent/20 text-accent px-3 py-1.5 rounded-full font-medium">Finançable CPF</span>
@@ -81,14 +77,14 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-accent flex-shrink-0" />
-                <span>contact@rebondpro.fr</span>
+                <span>contact@lebonrebond.fr</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-background/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm opacity-50">
-          <span>© {new Date().getFullYear()} Rebond Pro – Organisme de bilan de compétences en Guadeloupe.</span>
+          <span>© {new Date().getFullYear()} Le Bon Rebond – Orientation, formation et reconversion.</span>
           <span className="flex flex-wrap gap-x-4 gap-y-1 justify-center">
             <Link href="/legal/cgu" className="hover:text-accent transition-colors duration-300">CGU</Link>
             <Link href="/legal/confidentialite" className="hover:text-accent transition-colors duration-300">Confidentialité</Link>

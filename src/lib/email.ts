@@ -19,7 +19,7 @@ function getTransporter(): nodemailer.Transporter {
 export type Attachment = { filename: string; content: Buffer };
 
 export async function sendEmail(opts: { to: string; subject: string; html: string; text?: string; attachments?: Attachment[] }): Promise<void> {
-  const from = process.env.EMAIL_FROM ?? "RebondPro Formation <no-reply@rebondpro.local>";
+  const from = process.env.EMAIL_FROM ?? "Le Bon Rebond <no-reply@lebonrebond.local>";
   const apiKey = process.env.RESEND_API_KEY;
 
   // En prod : API HTTP Resend (port 443). Évite le SMTP (souvent bloqué par les pare-feux cloud)
@@ -47,7 +47,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
 export function brandedEmail(title: string, bodyHtml: string): string {
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#15181f">
     <div style="background:linear-gradient(135deg,#6a5cf0,#5850ec);padding:20px 24px;border-radius:12px 12px 0 0">
-      <span style="color:#fff;font-weight:800;font-size:18px">RebondPro Formation</span>
+      <span style="color:#fff;font-weight:800;font-size:18px">Le Bon Rebond</span>
     </div>
     <div style="border:1px solid #e8eaef;border-top:none;border-radius:0 0 12px 12px;padding:24px">
       <h2 style="margin:0 0 12px;font-size:18px">${title}</h2>

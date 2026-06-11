@@ -8,6 +8,8 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 
 | Command | Contract |
 |---|---|
+| `npm run dev:local` | Démarre Next.js sur le port 3100 avec la `DATABASE_URL` locale de `.env`, même si `.env.local` pointe vers Supabase. Refuse une URL non locale. |
+| `npm run db:diagnose` | Diagnostique sans afficher de secret la configuration DB, l'ouverture TCP puis trois vraies requêtes Prisma. Distingue un port ouvert d'un handshake/session PostgreSQL inutilisable. |
 | `npm run smoke:health` | Vérifie la connectivité base (SELECT 1). Miroir CLI de l'endpoint `/api/health` (liveness + readiness DB). |
 | `npm run smoke:lot5` | Résout une page publique, crée un prospect dans le bon tenant, valide la déduplication puis nettoie ses données. |
 | `npm run smoke:auth` | Vérifie un jeton email haché, son expiration logique et sa consommation. |

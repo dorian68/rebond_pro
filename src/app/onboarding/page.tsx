@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
 
   return (
     <main>
-      <div className="onboarding-logo"><Logo size={36} /></div>
+      <div className="onboarding-logo"><Logo size={60} priority /></div>
       <OnboardingClient
         organizationName={organization.name}
         defaults={{

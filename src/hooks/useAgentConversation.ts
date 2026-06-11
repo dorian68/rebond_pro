@@ -59,7 +59,7 @@ export function useAgentConversation() {
 
   const appContext = useCallback(() => {
     const seg = pathname?.split("/").filter(Boolean)[0] ?? "dashboard";
-    return { pathname: pathname ?? "/", title: PAGE_TITLES[seg] ?? "RebondPro" };
+    return { pathname: pathname ?? "/", title: PAGE_TITLES[seg] ?? "Le Bon Rebond" };
   }, [pathname]);
 
   // ---- gestion conversations ----

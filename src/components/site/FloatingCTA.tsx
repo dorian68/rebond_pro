@@ -55,8 +55,8 @@ const FloatingCTA = () => {
             >
               <Phone className="w-5 h-5" />
               <span className="flex flex-col items-start leading-tight">
-                <span>Prendre RDV gratuit 45 min</span>
-                <span className="text-xs opacity-80 font-normal">Sans engagement</span>
+                <span>Parler à un conseiller</span>
+                <span className="text-xs opacity-80 font-normal">Premier échange gratuit</span>
               </span>
             </button>
           </Link>

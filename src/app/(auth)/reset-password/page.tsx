@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ResetPasswordForm } from "./reset-form";
 
-export const metadata = { title: "Réinitialiser le mot de passe — RebondPro" };
+export const metadata = { title: "Réinitialiser le mot de passe — Le Bon Rebond" };
 
 export default async function ResetPasswordPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;

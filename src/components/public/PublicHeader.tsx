@@ -5,11 +5,12 @@ import { Logo } from "@/components/app/Logo";
 export function PublicHeader({ right }: { right?: React.ReactNode }) {
   return (
     <header className="marketing-nav public-nav">
-      <Link href="/"><Logo size={34} /></Link>
+      <Link href="/"><Logo size={52} priority /></Link>
       <nav className="marketing-nav-links">
-        <Link href="/marketplace">Catalogue</Link>
-        <Link href="/marketplace#centres">Centres</Link>
-        {right ?? <Link href="/login" className="btn btn-secondary btn-sm">Espace pro</Link>}
+        <Link href="/formation">Formations</Link>
+        <Link href="/bilan-de-competences">Bilan de compétences</Link>
+        <Link href="/marketplace#centres">Centres partenaires</Link>
+        {right ?? <Link href="/login" className="btn btn-secondary btn-sm">Se connecter</Link>}
       </nav>
     </header>
   );

@@ -177,7 +177,7 @@ export default function Contact() {
               {[
                 { icon: MapPin, title: "Adresse", lines: ["Pointe-à-Pitre", "Guadeloupe (971)"] },
                 { icon: Phone, title: "Téléphone", lines: ["06 90 XX XX XX"] },
-                { icon: Mail, title: "Email", lines: ["contact@rebondpro.fr"] },
+                { icon: Mail, title: "Email", lines: ["contact@lebonrebond.fr"] },
                 { icon: Clock, title: "Horaires", lines: ["Lundi – Vendredi : 8h – 18h", "Samedi : sur rendez-vous"] },
               ].map((item, i) => (
                 <div key={i} className="flex gap-4">

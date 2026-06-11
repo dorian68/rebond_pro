@@ -16,7 +16,7 @@ const TYPE_LABELS: Record<string, string> = { formation: "Formation", session: "
 
 function titleFromPath(pathname: string): string {
   const seg = pathname.split("/").filter(Boolean)[0] ?? "dashboard";
-  return PAGE_TITLES[seg] ?? "RebondPro";
+  return PAGE_TITLES[seg] ?? "Le Bon Rebond";
 }
 
 function SearchModal({ onClose }: { onClose: () => void }) {

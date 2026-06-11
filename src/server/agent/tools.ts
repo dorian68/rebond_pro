@@ -20,7 +20,7 @@ export type AgentTool = {
 };
 
 const APP_MAP = {
-  domain: "Cockpit SaaS pour centres de formation (RebondPro Formation)",
+  domain: "Espace partenaires pour centres de formation (Le Bon Rebond)",
   routes: [
     { path: "/dashboard", desc: "Indicateurs business + alertes + priorités" },
     { path: "/formations", desc: "Catalogue de formations (CRUD, page publique)" },

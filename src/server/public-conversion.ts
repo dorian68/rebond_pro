@@ -18,7 +18,7 @@ export const publicLeadSchema = z
 
 export type PublicLeadInput = z.infer<typeof publicLeadSchema>;
 
-async function fetchPublicFormation(orgSlug: string, publicSlug: string) {
+export async function getPublicFormationUncached(orgSlug: string, publicSlug: string) {
   const now = new Date();
   return prisma.formation.findFirst({
     where: {
@@ -61,7 +61,7 @@ async function fetchPublicFormation(orgSlug: string, publicSlug: string) {
 
 // Cache public (Data Cache Next.js), tagué "marketplace" → invalidé par revalidateMarketplace().
 export const getPublicFormation = unstable_cache(
-  fetchPublicFormation,
+  getPublicFormationUncached,
   ["public-formation"],
   { revalidate: 120, tags: ["marketplace"] },
 );

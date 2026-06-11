@@ -67,7 +67,7 @@ export default function Cibles() {
         <div className="container mx-auto px-4 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 rounded-full">Pour qui ?</Badge>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Rebond Pro s'adresse à <span className="font-script text-accent">vous</span></h1>
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Le Bon Rebond s'adresse à <span className="font-script text-accent">vous</span></h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Que vous soyez salarié, en recherche d'emploi ou entrepreneur, votre parcours commence ici.
             </p>
@@ -104,7 +104,7 @@ export default function Cibles() {
                     </div>
                     <div className="p-8 flex-1">
                       <p className="text-muted-foreground leading-relaxed mb-6">{profile.pain}</p>
-                      <h4 className="font-display font-semibold mb-3">Comment Rebond Pro vous aide :</h4>
+                      <h4 className="font-display font-semibold mb-3">Comment Le Bon Rebond vous aide :</h4>
                       <ul className="space-y-2 mb-6">
                         {profile.solution.map((s, j) => (
                           <li key={j} className="flex items-start gap-3 text-sm">

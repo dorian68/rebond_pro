@@ -86,11 +86,11 @@ async function deliverVerificationEmail(email: string, name: string, token: stri
   const safeName = escapeHtml(name);
   await sendEmail({
     to: email,
-    subject: "Confirmez votre email RebondPro",
+    subject: "Confirmez votre email Le Bon Rebond",
     text: `Bonjour ${name}, confirmez votre email : ${verifyUrl}`,
     html: brandedEmail(
       "Confirmez votre adresse email",
-      `<p>Bonjour ${safeName},</p><p>Validez votre adresse pour activer votre cockpit RebondPro.</p><p><a href="${verifyUrl}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Confirmer mon email</a></p><p>Ce lien expire dans 24 heures.</p>`,
+      `<p>Bonjour ${safeName},</p><p>Validez votre adresse pour activer votre espace partenaire Le Bon Rebond.</p><p><a href="${verifyUrl}" style="display:inline-block;padding:11px 16px;background:#1f5f8b;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Confirmer mon email</a></p><p>Ce lien expire dans 24 heures.</p>`,
     ),
   });
 }
@@ -150,7 +150,7 @@ async function deliverResetEmail(email: string, name: string | null, token: stri
   const safeName = escapeHtml(name ?? "bonjour");
   await sendEmail({
     to: email,
-    subject: "Réinitialisez votre mot de passe RebondPro",
+    subject: "Réinitialisez votre mot de passe Le Bon Rebond",
     text: `Bonjour ${name ?? ""}, réinitialisez votre mot de passe : ${resetUrl}`,
     html: brandedEmail(
       "Réinitialisation du mot de passe",
