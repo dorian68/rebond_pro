@@ -37,7 +37,7 @@ export async function inviteBeneficiary(_prev: FormActionState, formData: FormDa
   const existingBen = await prisma.beneficiary.findUnique({ where: { userId: user.id } });
   if (existingBen) return { error: "Un bénéficiaire existe déjà pour cet email." };
 
-  const beneficiary = await prisma.beneficiary.create({
+  await prisma.beneficiary.create({
     data: {
       organizationId: ctx.organizationId, userId: user.id, firstName: d.firstName, lastName: d.lastName,
       email, phone: d.phone, objective: d.objective, status: "active",
@@ -67,12 +67,15 @@ export async function updateBeneficiaryStatus(id: string, status: "active" | "co
 async function deliverBeneficiaryInvite(email: string, name: string): Promise<void> {
   try {
     const { sendEmail, brandedEmail } = await import("@/lib/email");
-    const url = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "") + "/login";
+    const { createPasswordResetToken } = await import("@/server/password-reset");
+    const base = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const reset = await createPasswordResetToken(email, { allowNoPassword: true });
+    const url = reset ? `${base}/reset-password?token=${reset.token}` : `${base}/login`;
     await sendEmail({
       to: email,
-      subject: "Votre espace bilan de compétences RebondPro",
-      text: `Bonjour ${name}, votre espace personnel d'accompagnement est prêt. Connectez-vous : ${url}`,
-      html: brandedEmail("Votre espace personnel", `<p>Bonjour ${name},</p><p>Votre accompagnement en bilan de compétences commence. Accédez à votre espace pour suivre votre parcours et explorer le catalogue de formations.</p><p><a href="${url}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Accéder à mon espace</a></p>`),
+      subject: "Votre espace bilan de compétences RebondPro — définissez votre mot de passe",
+      text: `Bonjour ${name}, votre espace personnel d'accompagnement est prêt. Définissez votre mot de passe pour y accéder : ${url}`,
+      html: brandedEmail("Votre espace personnel", `<p>Bonjour ${name},</p><p>Votre accompagnement en bilan de compétences commence. Cliquez ci-dessous pour <strong>définir votre mot de passe</strong> et accéder à votre espace (suivi de parcours, catalogue de formations).</p><p><a href="${url}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Définir mon mot de passe</a></p>`),
     });
   } catch { /* email non configuré : l'invitation reste valable */ }
 }

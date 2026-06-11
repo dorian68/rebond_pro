@@ -146,14 +146,18 @@ export async function inviteTrainer(trainerId: string): Promise<FormActionState>
 async function deliverTrainerInvite(email: string, name: string): Promise<void> {
   try {
     const { sendEmail, brandedEmail } = await import("@/lib/email");
-    const url = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "") + "/login";
+    const { createPasswordResetToken } = await import("@/server/password-reset");
+    const base = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    // Lien pour DÉFINIR le mot de passe (active le compte + vérifie l'email + active le membership).
+    const reset = await createPasswordResetToken(email, { allowNoPassword: true });
+    const url = reset ? `${base}/reset-password?token=${reset.token}` : `${base}/login`;
     await sendEmail({
       to: email,
-      subject: "Vous êtes invité comme formateur sur RebondPro",
-      text: `Bonjour ${name}, vous avez été invité à rejoindre un centre sur RebondPro. Connectez-vous : ${url}`,
-      html: brandedEmail("Invitation formateur", `<p>Bonjour ${name},</p><p>Un centre de formation vous a invité à gérer vos disponibilités et votre planning sur RebondPro.</p><p><a href="${url}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Accéder à mon portail formateur</a></p>`),
+      subject: "Votre accès formateur RebondPro — définissez votre mot de passe",
+      text: `Bonjour ${name}, un centre de formation vous a invité comme formateur. Définissez votre mot de passe pour accéder à votre portail : ${url}`,
+      html: brandedEmail("Invitation formateur", `<p>Bonjour ${name},</p><p>Un centre de formation vous a invité à gérer vos disponibilités et votre planning sur RebondPro.</p><p>Cliquez ci-dessous pour <strong>définir votre mot de passe</strong> et accéder à votre portail formateur.</p><p><a href="${url}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Définir mon mot de passe</a></p>`),
     });
   } catch {
-    // Email non configuré (dev) : l'invitation reste valable, le formateur peut se connecter directement.
+    // Email non configuré : l'invitation reste valable (le formateur pourra définir son mot de passe via "mot de passe oublié").
   }
 }

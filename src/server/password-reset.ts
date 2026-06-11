@@ -13,9 +13,12 @@ export function resetTokenHash(token: string): string {
  * Retourne le token en clair (à envoyer par email) ou null. Aucune énumération
  * d'utilisateur n'est exposée à l'appelant côté UI.
  */
-export async function createPasswordResetToken(email: string): Promise<{ token: string; email: string; name: string | null } | null> {
+export async function createPasswordResetToken(email: string, opts?: { allowNoPassword?: boolean }): Promise<{ token: string; email: string; name: string | null } | null> {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-  if (!user || !user.passwordHash) return null;
+  if (!user) return null;
+  // "Mot de passe oublié" classique : on exige un mot de passe existant.
+  // Invitation (formateur/bénéficiaire) : on autorise un compte sans mot de passe (allowNoPassword).
+  if (!user.passwordHash && !opts?.allowNoPassword) return null;
   const token = randomBytes(32).toString("hex");
   await prisma.$transaction([
     prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
@@ -32,7 +35,10 @@ export async function consumePasswordReset(token: string, newPassword: string): 
   if (!record || record.usedAt || record.expiresAt < new Date()) return { ok: false, reason: "Lien expiré ou déjà utilisé." };
   const passwordHash = await hashPassword(newPassword);
   await prisma.$transaction([
-    prisma.user.update({ where: { id: record.userId }, data: { passwordHash, failedLoginCount: 0, lockedUntil: null } }),
+    // Définir le mot de passe vérifie aussi l'email (le clic du lien prouve la possession de l'adresse)
+    // et active toute invitation en attente (formateur / bénéficiaire) → accès immédiat après connexion.
+    prisma.user.update({ where: { id: record.userId }, data: { passwordHash, failedLoginCount: 0, lockedUntil: null, emailVerified: new Date() } }),
+    prisma.membership.updateMany({ where: { userId: record.userId, status: "INVITED" }, data: { status: "ACTIVE", acceptedAt: new Date() } }),
     prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
   ]);
   return { ok: true };
