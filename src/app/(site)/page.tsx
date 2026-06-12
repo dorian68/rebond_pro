@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 const fadeUp = {
@@ -143,7 +144,7 @@ export default function Home() {
 
               {/* Photo hero */}
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 540, borderRadius: 28, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-                <ImgSlot id="hero" alt="Photo — une personne sereine, en pleine lumière, qui regarde devant elle" />
+                <Image src="/photos/hero-woman.jpg" alt="Professionnelle en reconversion regardant avec confiance" fill style={{ objectFit: "cover", objectPosition: "center top" }} priority sizes="(max-width:980px) 100vw, 50vw" />
               </div>
 
               {/* Badge flottant */}
@@ -178,7 +179,7 @@ export default function Home() {
                 <div style={{ position: "absolute", top: 18, right: 18, zIndex: 3, background: "rgba(14,36,56,.78)", color: "#fff", fontSize: ".74rem", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", padding: "8px 14px", borderRadius: 100, backdropFilter: "blur(4px)" }}>
                   Mise en relation
                 </div>
-                <ImgSlot id="path-formation" alt="Photo — quelqu'un en formation, atelier ou cours, ambiance positive" />
+                <Image src="/photos/formation-training.jpg" alt="Groupe en formation professionnelle" fill style={{ objectFit: "cover" }} sizes="(max-width:980px) 100vw, 50vw" />
               </div>
               <div style={{ padding: "34px 34px 38px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
                 <span style={{ fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#23756e" }}>Je cherche une formation</span>
@@ -200,7 +201,7 @@ export default function Home() {
                 <div style={{ position: "absolute", top: 18, right: 18, zIndex: 3, background: "rgba(14,36,56,.78)", color: "#fff", fontSize: ".74rem", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", padding: "8px 14px", borderRadius: 100, backdropFilter: "blur(4px)" }}>
                   Produit premium
                 </div>
-                <ImgSlot id="path-bilan" alt="Photo — un échange chaleureux entre un conseiller et une personne accompagnée" />
+                <Image src="/photos/bilan-consultation.jpg" alt="Entretien de bilan de compétences entre conseiller et bénéficiaire" fill style={{ objectFit: "cover" }} sizes="(max-width:980px) 100vw, 50vw" />
               </div>
               <div style={{ padding: "34px 34px 38px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
                 <span style={{ fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#C5662A" }}>J'ai besoin d'y voir plus clair</span>
