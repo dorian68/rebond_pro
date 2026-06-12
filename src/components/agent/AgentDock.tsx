@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { useAgentConversation } from "@/hooks/useAgentConversation";
@@ -157,7 +157,16 @@ const NUDGE_KEY = "socrate-nudge-v1";
 function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffset: number }) {
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
-  const quote = useRef(NUDGE_QUOTES[Math.floor(Math.random() * NUDGE_QUOTES.length)]);
+  // useState lazy init avoids calling Math.random() on every re-render
+  const [quote] = useState(() => NUDGE_QUOTES[Math.floor(Math.random() * NUDGE_QUOTES.length)]);
+
+  const dismiss = useCallback(() => {
+    setFading(true);
+    setTimeout(() => {
+      setVisible(false);
+      try { sessionStorage.setItem(NUDGE_KEY, "1"); } catch { /* ignore */ }
+    }, 300);
+  }, []);
 
   useEffect(() => {
     try { if (sessionStorage.getItem(NUDGE_KEY)) return; } catch { return; }
@@ -169,16 +178,7 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
     if (!visible) return;
     const t = setTimeout(() => dismiss(), 8000);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
-  const dismiss = () => {
-    setFading(true);
-    setTimeout(() => {
-      setVisible(false);
-      try { sessionStorage.setItem(NUDGE_KEY, "1"); } catch { /* ignore */ }
-    }, 300);
-  };
+  }, [visible, dismiss]);
 
   if (!visible) return null;
 
@@ -210,10 +210,10 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
 
       {/* Quote */}
       <p style={{ fontSize: 12, lineHeight: 1.6, color: "#15314C", fontStyle: "italic", margin: "0 18px 6px 0", fontFamily: "Georgia, serif" }}>
-        {quote.current.q}
+        {quote.q}
       </p>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: "#2C8E86", marginBottom: 12 }}>
-        — {quote.current.a}
+        — {quote.a}
       </div>
 
       {/* CTA */}
