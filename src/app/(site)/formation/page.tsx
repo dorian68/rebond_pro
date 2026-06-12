@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 const fadeUp = {
@@ -80,7 +81,7 @@ export default function FormationPage() {
             <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} style={{ position: "relative" }}>
               <div style={{ position: "absolute", zIndex: 1, width: "115%", height: "115%", left: "-7%", top: "-7%", borderRadius: "50%", background: "conic-gradient(from 200deg, #5FB14E, #2C8E86 40%, transparent 60%)", opacity: .15, filter: "blur(2px)", pointerEvents: "none" }} />
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 480, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-                <ImgSlot id="fo-hero" alt="Photo — une personne en formation, concentrée et motivée" />
+                <Image src="/photos/formation-study.jpg" alt="Étudiant concentré en formation professionnelle" fill style={{ objectFit: "cover", objectPosition: "center" }} priority sizes="(max-width:980px) 100vw, 48vw" />
               </div>
             </motion.div>
           </div>

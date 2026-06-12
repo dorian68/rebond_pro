@@ -46,7 +46,6 @@ const Footer = () => {
                 { label: "Accueil", to: "/" },
                 { label: "Formations", to: "/formation" },
                 { label: "Bilan de compétences", to: "/bilan-de-competences" },
-                { label: "Bilan d'orientation", to: "/bilan-orientation" },
                 { label: "À propos", to: "/a-propos" },
                 { label: "Contact", to: "/contact" },
               ].map((link) => (
@@ -97,10 +96,10 @@ const Footer = () => {
             </h5>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { label: "Adresse", value: "Pointe-à-Pitre, Guadeloupe (971)" },
-                { label: "Téléphone", value: process.env.NEXT_PUBLIC_PHONE ?? "06 90 XX XX XX" },
-                { label: "Email", value: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@lebonrebond.fr" },
-                { label: "Horaires", value: "Lun – Ven · 8h – 18h" },
+                { label: "Adresse", value: "49 route de Perinet, Gosier" },
+                { label: "Téléphone", value: "+33 7 83 96 01 92" },
+                { label: "Email", value: "lebonrebond.contact@optiquant-ia.com" },
+                { label: "Horaires", value: "Lun – Ven · 9h – 18h" },
               ].map((item) => (
                 <div key={item.label}>
                   <strong style={{ display: "block", fontSize: ".8rem", letterSpacing: ".1em", textTransform: "uppercase", color: "#5FB14E", marginBottom: 3, fontWeight: 700 }}>

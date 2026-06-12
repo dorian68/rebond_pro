@@ -18,8 +18,8 @@ function getTransporter(): nodemailer.Transporter {
 
 export type Attachment = { filename: string; content: Buffer };
 
-export async function sendEmail(opts: { to: string; subject: string; html: string; text?: string; attachments?: Attachment[] }): Promise<void> {
-  const from = process.env.EMAIL_FROM ?? "Le Bon Rebond <no-reply@lebonrebond.local>";
+export async function sendEmail(opts: { to: string | string[]; from?: string; subject: string; html: string; text?: string; attachments?: Attachment[] }): Promise<void> {
+  const from = opts.from ?? process.env.EMAIL_FROM ?? "Le Bon Rebond <no-reply@lebonrebond.local>";
   const apiKey = process.env.RESEND_API_KEY;
 
   // En prod : API HTTP Resend (port 443). Évite le SMTP (souvent bloqué par les pare-feux cloud)

@@ -36,22 +36,32 @@ const labelStyle: CSSProperties = {
   marginBottom: 8,
 };
 
-const PHONE = process.env.NEXT_PUBLIC_PHONE ?? "06 00 00 00 00";
-const EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@lebonrebond.fr";
+const PHONE_DISPLAY = "+33 7 83 96 01 92";
+const PHONE_WA = "33783960192";
+const CONTACT_EMAIL = "lebonrebond.contact@optiquant-ia.com";
+const LEAD_EMAILS = "dorian.labry@gmail.com,msuffrin.carra@gmail.com";
+
+const WA_MESSAGE = encodeURIComponent(
+  "Bonjour, je suis intéressé(e) par vos services de reconversion professionnelle (Le Bon Rebond). Pourriez-vous me recontacter pour en discuter ? Merci !"
+);
+const MAIL_SUBJECT = encodeURIComponent("Demande d'information — Le Bon Rebond");
+const MAIL_BODY = encodeURIComponent(
+  "Bonjour,\n\nJe souhaite en savoir plus sur vos services d'accompagnement à la reconversion professionnelle.\n\nMon besoin : \nMon téléphone : \n\nCordialement,"
+);
 
 const channels = [
   {
     k: "Le plus rapide",
     v: "WhatsApp & appel",
-    s: `${PHONE} — du lundi au vendredi, 9h à 18h.`,
+    s: `${PHONE_DISPLAY} — du lundi au vendredi, 9h à 18h.`,
     accent: true,
-    href: `https://wa.me/${PHONE.replace(/\s/g, "")}`,
+    href: `https://wa.me/${PHONE_WA}?text=${WA_MESSAGE}`,
   },
   {
     k: "Par email",
-    v: EMAIL,
+    v: CONTACT_EMAIL,
     s: "Réponse sous 24 à 48h ouvrées.",
-    href: `mailto:${EMAIL}`,
+    href: `mailto:${LEAD_EMAILS}?subject=${MAIL_SUBJECT}&body=${MAIL_BODY}`,
   },
   {
     k: "Centres de formation",
@@ -60,10 +70,10 @@ const channels = [
     href: "/centres",
   },
   {
-    k: "Prendre rendez-vous",
-    v: "Un premier échange",
-    s: "15 minutes, sans engagement, pour comprendre votre situation.",
-    href: "#form",
+    k: "Adresse",
+    v: "49 route de Perinet, Gosier",
+    s: "Guadeloupe (971) — consultations en présentiel ou en visio.",
+    href: `https://maps.google.com/?q=49+route+de+Perinet+Gosier+Guadeloupe`,
   },
 ];
 

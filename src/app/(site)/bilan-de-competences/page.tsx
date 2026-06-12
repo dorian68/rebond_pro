@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { BILAN_COMPETENCES_PRICING } from "@/lib/pricing";
 
@@ -104,7 +105,7 @@ export default function BilanCompetencesPage() {
             <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} style={{ position: "relative" }}>
               <div style={{ position: "absolute", zIndex: 1, width: "115%", height: "115%", left: "-7%", top: "-7%", borderRadius: "50%", background: "conic-gradient(from 200deg, #2C8E86, #5FB14E 40%, transparent 60%)", opacity: .16, filter: "blur(2px)", pointerEvents: "none" }} />
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 480, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-                <ImgSlot id="bc-hero" alt="Photo — un entretien chaleureux entre un conseiller et une personne accompagnée" />
+                <Image src="/photos/bilan-session.jpg" alt="Séance de bilan de compétences entre conseiller et bénéficiaire" fill style={{ objectFit: "cover", objectPosition: "center" }} priority sizes="(max-width:980px) 100vw, 48vw" />
               </div>
             </motion.div>
           </div>

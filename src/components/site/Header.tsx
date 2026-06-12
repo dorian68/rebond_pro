@@ -10,7 +10,6 @@ import { AnimatePresence, motion } from "framer-motion";
 const navLinks = [
   { label: "Formations", to: "/formation" },
   { label: "Bilan de compétences", to: "/bilan-de-competences" },
-  { label: "Bilan d'orientation", to: "/bilan-orientation" },
   { label: "Centres", to: "/centres" },
   { label: "À propos", to: "/a-propos" },
   { label: "Contact", to: "/contact" },
