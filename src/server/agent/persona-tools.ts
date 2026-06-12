@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { getMarketplaceFormations } from "@/server/marketplace";
+import { getMarketplaceFormations, getMarketplaceFormationsUncached } from "@/server/marketplace";
 import { getPlatformAdmin } from "@/lib/platform";
 import { getPlatformOverview } from "@/server/platform";
 import { formatMoney } from "@/lib/utils";
@@ -63,6 +63,89 @@ export const PERSONA_TOOLS: AgentTool[] = [
       if (!f) return { textForLLM: "Formation introuvable ou non publique." };
       await prisma.formationInterest.upsert({ where: { beneficiaryId_formationId: { beneficiaryId: ben.id, formationId: fId } }, create: { beneficiaryId: ben.id, formationId: fId, status: "saved" }, update: {} });
       return { textForLLM: `Formation « ${f.title} » enregistrée dans vos favoris.`, custom: { name: "app.refresh", value: {} } };
+    },
+  },
+  {
+    name: "micro_competency_assessment",
+    description: `Outil de micro-bilan de compétences. Analyse le profil professionnel de l'utilisateur et retourne les formations pertinentes de la marketplace pour permettre des recommandations ciblées. Déclencher dès que l'utilisateur évoque : reconversion, bilan de compétences, chercher une formation, changer de métier, analyse de CV, offre d'emploi, compétences transférables, orientation professionnelle, montée en compétences, ou qu'il a partagé un document (CV, fiche de poste, diplôme).`,
+    input_schema: {
+      type: "object",
+      properties: {
+        profile_summary: { type: "string", description: "Résumé du profil (expériences, compétences, formation initiale, objectifs) extrait de la conversation et/ou des documents analysés." },
+        target_jobs: { type: "array", items: { type: "string" }, description: "Métiers ou secteurs cibles identifiés, si exprimés." },
+        constraints: { type: "string", description: "Contraintes (géo, budget CPF, durée, disponibilités) si exprimées." },
+        search_query: { type: "string", description: "Mots-clés optionnels pour filtrer le catalogue (domaine, compétence, outil)." },
+      },
+      required: ["profile_summary"],
+    },
+    execute: async (_ctx, args) => {
+      const query = String(args.search_query ?? "").trim() || undefined;
+      // Récupère les formations marketplace (bypass cache pour avoir la liste fraîche)
+      const formations = await getMarketplaceFormationsUncached({ q: query });
+      const ids = formations.slice(0, 40).map((f) => f.id);
+      // Enrichit avec les champs pédagogiques non inclus dans la sélection marketplace
+      const details = await prisma.formation.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, objectives: true, prerequisites: true, targetAudience: true },
+      });
+      const detailsMap = new Map(details.map((d) => [d.id, d]));
+
+      const rich = formations.slice(0, 40).map((f) => {
+        const d = detailsMap.get(f.id);
+        return {
+          id: f.id,
+          title: f.title,
+          center: f.organization.name,
+          centerCity: f.organization.city,
+          url: `/${f.organization.slug}/f/${f.publicSlug ?? f.slug}`,
+          category: f.category ?? null,
+          shortDescription: f.shortDescription ?? null,
+          objectives: d?.objectives ?? null,
+          targetAudience: d?.targetAudience ?? null,
+          prerequisites: d?.prerequisites ?? null,
+          durationHours: f.durationHours ?? null,
+          durationDays: f.durationDays ?? null,
+          price: f.price ? `${Math.round(f.price / 100)} €` : "Nous consulter",
+          modality: MODALITY_LABELS[f.modality],
+          level: LEVEL_LABELS[f.level],
+        };
+      });
+
+      const text = `MICRO-BILAN DE COMPÉTENCES — DONNÉES DISPONIBLES
+
+PROFIL ANALYSÉ :
+${args.profile_summary}
+${Array.isArray(args.target_jobs) && (args.target_jobs as string[]).length ? `\nMÉTIERS CIBLES EXPRIMÉS : ${(args.target_jobs as string[]).join(", ")}` : ""}
+${args.constraints ? `\nCONTRAINTES : ${args.constraints}` : ""}
+
+CATALOGUE MARKETPLACE (${rich.length} formations disponibles) :
+${JSON.stringify(rich)}
+
+INSTRUCTIONS POUR LA RÉPONSE :
+Produis un micro-bilan structuré en markdown avec ces sections :
+1. **Situation actuelle** (synthèse du profil)
+2. **Compétences fortes** (identifiées ou déduites)
+3. **Compétences transférables** (applicables au projet)
+4. **Compétences à renforcer** (écarts par rapport à l'objectif)
+5. **Pistes métier cohérentes**
+6. **Formations recommandées** (3 à 5 maximum, UNIQUEMENT parmi les formations listées ci-dessus)
+   - Pour chaque formation : titre, centre, score de pertinence (0-100), justification (+/-), lien CTA
+7. **Prochaine action concrète**
+
+GARDE-FOUS OBLIGATOIRES :
+- N'invente AUCUNE formation absente du catalogue ci-dessus.
+- Ne promets pas d'emploi garanti ("cette piste semble cohérente" et non "vous aurez un emploi").
+- Reste pédagogique, bienveillant et réaliste.
+- Si le catalogue est vide ou peu pertinent, dis-le franchement et oriente vers la page Contact.`;
+
+      const block: UIBlock = {
+        type: "suggestion_chips",
+        chips: [
+          { label: "Voir toutes les formations", prompt: "Montre-moi toutes les formations disponibles dans le catalogue." },
+          { label: "Prendre rendez-vous", prompt: "Comment puis-je prendre rendez-vous pour un bilan de compétences ?" },
+        ],
+      };
+      return { textForLLM: text, uiBlock: block };
     },
   },
   {

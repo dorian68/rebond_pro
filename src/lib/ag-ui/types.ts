@@ -8,6 +8,14 @@ export type AGUIMessage = {
   content?: string;
 };
 
+/** Pièce jointe multimodale (base64, sans préfixe data-URL). Max 5 MB chacune. */
+export type Attachment = {
+  name: string;
+  type: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf";
+  data: string; // base64 raw (sans "data:…;base64,")
+  size: number; // octets
+};
+
 export type RunAgentInput = {
   threadId: string;
   runId?: string;
@@ -17,6 +25,8 @@ export type RunAgentInput = {
   tools?: unknown[];
   context?: { description: string; value: string }[];
   forwardedProps?: ForwardedProps;
+  /** Pièces jointes associées au dernier message utilisateur. */
+  attachments?: Attachment[];
 };
 
 export type ForwardedProps = {

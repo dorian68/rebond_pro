@@ -149,13 +149,35 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
   }
 }
 
+/** Construit les messages OpenAI en injectant les pièces jointes sur le dernier message utilisateur. */
+function buildOpenAIMessages(input: RunAgentInput, system: string): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
+  const filtered = input.messages.filter((m) => (m.role === "user" || m.role === "assistant") && m.content);
+  const atts = input.attachments ?? [];
+  const result: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [{ role: "system", content: system }];
+  filtered.forEach((m, i) => {
+    const isLastUser = m.role === "user" && i === filtered.length - 1 && atts.length > 0;
+    if (isLastUser) {
+      const parts: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [];
+      for (const att of atts) {
+        if (att.type.startsWith("image/")) {
+          parts.push({ type: "image_url", image_url: { url: `data:${att.type};base64,${att.data}` } });
+        }
+      }
+      const pdfNames = atts.filter((a) => a.type === "application/pdf").map((a) => a.name);
+      const text = pdfNames.length ? `[PDF joints : ${pdfNames.join(", ")}]\n\n${m.content ?? ""}` : String(m.content ?? "");
+      parts.push({ type: "text", text });
+      result.push({ role: "user", content: parts });
+    } else {
+      result.push({ role: m.role as "user" | "assistant", content: String(m.content) });
+    }
+  });
+  return result;
+}
+
 // ---------------- Boucle OpenAI (function calling, streaming) ----------------
 async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[]): Promise<boolean> {
   const tools = personaTools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: system },
-    ...input.messages.filter((m) => (m.role === "user" || m.role === "assistant") && m.content).map((m) => ({ role: m.role as "user" | "assistant", content: String(m.content) })),
-  ];
+  const messages = buildOpenAIMessages(input, system);
 
   for (let round = 0; round < agUIConfig.maxToolRounds; round++) {
     const msgId = randomUUID();
@@ -212,12 +234,32 @@ async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: stri
   return false;
 }
 
+/** Construit les messages Anthropic en injectant les pièces jointes sur le dernier message utilisateur. */
+function buildAnthropicMessages(input: RunAgentInput): Anthropic.MessageParam[] {
+  const filtered = input.messages.filter((m) => (m.role === "user" || m.role === "assistant") && m.content);
+  const atts = input.attachments ?? [];
+  return filtered.map((m, i) => {
+    const isLastUser = m.role === "user" && i === filtered.length - 1 && atts.length > 0;
+    if (isLastUser) {
+      const content: Anthropic.ContentBlockParam[] = [];
+      for (const att of atts) {
+        if (att.type.startsWith("image/")) {
+          content.push({ type: "image", source: { type: "base64", media_type: att.type as "image/jpeg" | "image/png" | "image/webp" | "image/gif", data: att.data } });
+        } else if (att.type === "application/pdf") {
+          content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: att.data } } as unknown as Anthropic.ContentBlockParam);
+        }
+      }
+      if (m.content) content.push({ type: "text", text: String(m.content) });
+      return { role: "user", content };
+    }
+    return { role: m.role as "user" | "assistant", content: String(m.content) };
+  });
+}
+
 // ---------------- Boucle Anthropic (tool use, streaming) ----------------
 async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[]): Promise<boolean> {
   const tools = personaTools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
-  const messages: Anthropic.MessageParam[] = input.messages
-    .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
-    .map((m) => ({ role: m.role as "user" | "assistant", content: String(m.content) }));
+  const messages: Anthropic.MessageParam[] = buildAnthropicMessages(input);
 
   for (let round = 0; round < agUIConfig.maxToolRounds; round++) {
     const msgId = randomUUID();

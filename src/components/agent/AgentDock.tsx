@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { useAgentConversation } from "@/hooks/useAgentConversation";
+import { useAgentConversation, type Attachment } from "@/hooks/useAgentConversation";
 import { AgentUIBlockRenderer } from "./AgentUIBlockRenderer";
 
 // ── Inline markdown parser ───────────────────────────────────────────────────
@@ -152,31 +152,50 @@ const NUDGE_QUOTES = [
   { q: "« Chaque expert a d'abord été un débutant. »", a: "Helen Hayes" },
   { q: "« La plus grande gloire n'est pas de ne jamais tomber, mais de se relever à chaque chute. »", a: "Confucius" },
 ];
-const NUDGE_KEY = "socrate-nudge-v1";
+const NUDGE_COUNT_KEY = "socrate-nudge-count";
+const NUDGE_LAST_KEY = "socrate-nudge-last";
+const NUDGE_MAX = 4; // nudges autorisées par session
+const NUDGE_DELAY_FIRST = 12_000; // 12s premier nudge
+const NUDGE_DELAY_REPEAT = 90_000; // 90s entre nudges suivants
 
 function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffset: number }) {
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
-  // useState lazy init avoids calling Math.random() on every re-render
   const [quote] = useState(() => NUDGE_QUOTES[Math.floor(Math.random() * NUDGE_QUOTES.length)]);
 
-  const dismiss = useCallback(() => {
+  const nudgeCount = useRef(0);
+
+  const dismiss = useCallback((opened = false) => {
     setFading(true);
     setTimeout(() => {
       setVisible(false);
-      try { sessionStorage.setItem(NUDGE_KEY, "1"); } catch { /* ignore */ }
-    }, 300);
+      try {
+        const next = nudgeCount.current + 1;
+        sessionStorage.setItem(NUDGE_COUNT_KEY, String(next));
+        sessionStorage.setItem(NUDGE_LAST_KEY, String(Date.now()));
+        if (opened) sessionStorage.setItem(NUDGE_COUNT_KEY, String(NUDGE_MAX)); // user engaged → stop
+      } catch { /* ignore */ }
+    }, 280);
   }, []);
 
   useEffect(() => {
-    try { if (sessionStorage.getItem(NUDGE_KEY)) return; } catch { return; }
-    const t = setTimeout(() => setVisible(true), 12000);
+    let count = 0;
+    let last = 0;
+    try {
+      count = parseInt(sessionStorage.getItem(NUDGE_COUNT_KEY) ?? "0") || 0;
+      last = parseInt(sessionStorage.getItem(NUDGE_LAST_KEY) ?? "0") || 0;
+    } catch { return; }
+    nudgeCount.current = count;
+    if (count >= NUDGE_MAX) return;
+    const elapsed = Date.now() - last;
+    const delay = count === 0 ? NUDGE_DELAY_FIRST : Math.max(0, NUDGE_DELAY_REPEAT - elapsed);
+    const t = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(t);
-  }, []);
+  }, []); // intentional empty deps: read sessionStorage once on mount
 
   useEffect(() => {
     if (!visible) return;
-    const t = setTimeout(() => dismiss(), 8000);
+    const t = setTimeout(() => dismiss(), 9000);
     return () => clearTimeout(t);
   }, [visible, dismiss]);
 
@@ -184,7 +203,7 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
 
   return (
     <div
-      onClick={() => { dismiss(); onOpen(); }}
+      onClick={() => { dismiss(true); onOpen(); }}
       style={{
         position: "fixed", right: 16, bottom: bottomOffset + 56, zIndex: 79,
         width: 268,
@@ -201,7 +220,7 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
     >
       {/* Dismiss × */}
       <button
-        onClick={(e) => { e.stopPropagation(); dismiss(); }}
+        onClick={(e) => { e.stopPropagation(); dismiss(false); }}
         style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 4, display: "flex", color: "rgba(21,49,76,.3)", lineHeight: 1 }}
         aria-label="Fermer"
       >
@@ -359,8 +378,10 @@ export function AgentDock({
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [draft, setDraft] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isLanding = !a.activeId && a.messages.length === 0;
 
@@ -375,9 +396,12 @@ export function AgentDock({
 
   const submit = (text?: string) => {
     const value = (text ?? draft).trim();
-    if (!value) return;
-    a.sendMessage(value);
+    const hasAtts = attachments.length > 0;
+    if (!value && !hasAtts) return;
+    const finalText = value || "Voici les documents joints. Peux-tu les analyser dans le cadre d'un bilan de compétences ?";
+    a.sendMessage(finalText, hasAtts ? attachments : undefined);
     setDraft("");
+    setAttachments([]);
     if (taRef.current) taRef.current.style.height = "auto";
   };
 
@@ -387,6 +411,27 @@ export function AgentDock({
   const onInput = () => {
     const ta = taRef.current;
     if (ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px"; }
+  };
+
+  const onFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // allow re-picking same file
+    const MAX = 5 * 1024 * 1024; // 5 MB
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
+    const valid = files.filter((f) => ALLOWED.includes(f.type) && f.size <= MAX);
+    // Files exceeding 5MB or wrong MIME are silently skipped
+    const read = (f: File): Promise<Attachment> =>
+      new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => {
+          const raw = (r.result as string).split(",")[1] ?? "";
+          res({ name: f.name, type: f.type as Attachment["type"], data: raw, size: f.size });
+        };
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      });
+    const loaded = await Promise.all(valid.map(read));
+    setAttachments((prev) => [...prev, ...loaded].slice(0, 5));
   };
 
   return (
@@ -412,7 +457,7 @@ export function AgentDock({
       {!open && (
         <button
           className="socrate-fab"
-          onClick={() => { setOpen(true); try { sessionStorage.setItem(NUDGE_KEY, "1"); } catch { /* ignore */ } }}
+          onClick={() => { setOpen(true); try { sessionStorage.setItem(NUDGE_COUNT_KEY, String(NUDGE_MAX)); } catch { /* ignore */ } }}
           aria-label="Ouvrir Socrate"
           style={{
             position: "fixed", right: 20, bottom: bottomOffset, zIndex: 80,
@@ -502,7 +547,17 @@ export function AgentDock({
                   {a.messages.map((m) => (
                     <div key={m.id} className="agui-msg" style={{ display: "flex", gap: 9, flexDirection: m.role === "user" ? "row-reverse" : "row", alignItems: "flex-start" }}>
                       {m.role === "assistant" && <SocrateAvatar size={26} />}
-                      <div style={{ maxWidth: m.role === "user" ? "82%" : "88%" }}>
+                      <div style={{ maxWidth: m.role === "user" ? "82%" : "88%", display: "flex", flexDirection: "column", gap: 4, alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+                        {/* Attachment name chips on user messages */}
+                        {m.role === "user" && (m.attachmentNames ?? []).length > 0 && (
+                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                            {(m.attachmentNames ?? []).map((name, i) => (
+                              <span key={i} style={{ fontSize: 10.5, background: "var(--primary-50)", color: "var(--primary)", borderRadius: 6, padding: "2px 7px", fontWeight: 700 }}>
+                                📎 {name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {m.content && (
                           <div style={{
                             padding: "9px 13px", borderRadius: 14, fontSize: 13.5, lineHeight: 1.55,
@@ -546,7 +601,41 @@ export function AgentDock({
 
             {/* ── Composer ── */}
             <div style={{ borderTop: "1px solid var(--border-2)", padding: 12, flexShrink: 0 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "flex-end", background: "var(--surface-3)", borderRadius: 14, padding: 8, border: "1px solid var(--border)" }}>
+              {/* Attachment chips */}
+              {attachments.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                  {attachments.map((att, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px 4px 5px", maxWidth: 180 }}>
+                      {att.type.startsWith("image/") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`data:${att.type};base64,${att.data}`} alt="" style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 24, height: 24, borderRadius: 4, background: "#dc264320", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Icon name="file-pdf" size={13} style={{ color: "#dc2643" }} />
+                        </div>
+                      )}
+                      <span style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100, color: "var(--ink-2)" }}>{att.name}</span>
+                      <button onClick={() => setAttachments((p) => p.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--ink-4)", display: "flex", borderRadius: 3, flexShrink: 0 }}>
+                        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Input row */}
+              <div style={{ display: "flex", gap: 6, alignItems: "flex-end", background: "var(--surface-3)", borderRadius: 14, padding: "6px 8px", border: "1px solid var(--border)" }}>
+                {/* Paperclip */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Joindre un fichier (image ou PDF)"
+                  aria-label="Joindre un fichier"
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 5, color: "var(--ink-3)", display: "flex", borderRadius: 6, flexShrink: 0 }}
+                >
+                  <Icon name="paperclip" size={18} />
+                </button>
+                <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" onChange={onFilePick} style={{ display: "none" }} />
+
                 <textarea
                   ref={taRef}
                   value={draft}
@@ -556,16 +645,16 @@ export function AgentDock({
                   rows={1}
                   placeholder="Demandez à Socrate d'analyser, expliquer ou agir…"
                   aria-label="Message à Socrate"
-                  style={{ flex: 1, resize: "none", border: "none", background: "transparent", outline: "none", fontSize: 13.5, lineHeight: 1.5, maxHeight: 140, color: "var(--ink)", fontFamily: "inherit", padding: "5px 6px" }}
+                  style={{ flex: 1, resize: "none", border: "none", background: "transparent", outline: "none", fontSize: 13.5, lineHeight: 1.5, maxHeight: 140, color: "var(--ink)", fontFamily: "inherit", padding: "4px 4px" }}
                 />
                 {a.isRunning ? (
                   <button className="btn btn-secondary btn-icon" onClick={a.stop} title="Arrêter" aria-label="Arrêter"><Icon name="x" size={16} /></button>
                 ) : (
-                  <button className="btn btn-primary btn-icon" onClick={() => submit()} disabled={!draft.trim()} title="Envoyer" aria-label="Envoyer"><Icon name="send" size={16} /></button>
+                  <button className="btn btn-primary btn-icon" onClick={() => submit()} disabled={!draft.trim() && attachments.length === 0} title="Envoyer" aria-label="Envoyer"><Icon name="send" size={16} /></button>
                 )}
               </div>
-              <div style={{ fontSize: 10.5, color: "var(--ink-4)", textAlign: "center", marginTop: 6 }}>
-                Socrate peut se tromper. Les actions sensibles demandent votre validation.
+              <div style={{ fontSize: 10, color: "var(--ink-4)", textAlign: "center", marginTop: 6 }}>
+                Socrate peut analyser vos CV, offres d'emploi ou documents PDF · Les actions sensibles demandent votre validation.
               </div>
             </div>
           </aside>

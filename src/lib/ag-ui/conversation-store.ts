@@ -11,6 +11,8 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   blocks?: UIBlock[];
+  /** Noms des pièces jointes (affichage uniquement — pas de base64 en localStorage). */
+  attachmentNames?: string[];
 };
 
 export type Conversation = {

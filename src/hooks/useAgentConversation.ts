@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { runAgUI } from "@/lib/ag-ui/client";
 import { dispatchAppAction } from "@/lib/ag-ui/app-actions";
+import type { Attachment } from "@/lib/ag-ui/types";
 import { PAGE_TITLES } from "@/lib/nav";
 import {
   type ChatMessage,
@@ -19,6 +20,7 @@ import {
 import type { AGUIEvent, UIBlock } from "@/lib/ag-ui/types";
 
 export type Toast = { id: string; message: string; type: "info" | "success" | "warn" | "error" };
+export type { Attachment };
 export type PendingApproval = { approvalId: string; tool: string; args: Record<string, unknown> };
 
 export function useAgentConversation() {
@@ -154,7 +156,7 @@ export function useAgentConversation() {
     }
   }, [router, pushToast, persist]);
 
-  const runStream = useCallback(async (convId: string, forwardedProps?: { approvedAction: PendingApproval }) => {
+  const runStream = useCallback(async (convId: string, forwardedProps?: { approvedAction: PendingApproval }, attachments?: Attachment[]) => {
     setIsRunning(true);
     setThinking(true);
     setError(null);
@@ -164,7 +166,7 @@ export function useAgentConversation() {
       .map((m) => ({ id: m.id, role: m.role, content: m.content }));
     try {
       await runAgUI(
-        { threadId: convId, messages: history, state: appContext(), forwardedProps },
+        { threadId: convId, messages: history, state: appContext(), forwardedProps, attachments },
         (e) => handleEvent(e, convId),
         abortRef.current.signal,
       );
@@ -180,7 +182,7 @@ export function useAgentConversation() {
     }
   }, [appContext, handleEvent, persist]);
 
-  const sendMessage = useCallback((content: string) => {
+  const sendMessage = useCallback((content: string, attachments?: Attachment[]) => {
     const text = content.trim();
     if (!text || isRunning) return;
     let convId = activeIdRef.current;
@@ -191,12 +193,17 @@ export function useAgentConversation() {
       title = deriveTitle(text);
       setActiveId(convId);
     }
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text };
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+      ...(attachments?.length ? { attachmentNames: attachments.map((a) => a.name) } : {}),
+    };
     const next = [...messagesRef.current, userMsg];
     setMessages(next);
     messagesRef.current = next;
     persist(convId, next, title);
-    void runStream(convId);
+    void runStream(convId, undefined, attachments);
   }, [isRunning, persist, runStream]);
 
   const approve = useCallback(() => {

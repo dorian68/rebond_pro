@@ -10,10 +10,20 @@ import { isPlatformAdmin } from "@/lib/platform";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"] as const;
+const MAX_ATTACHMENT_BYTES = 7_340_032; // ~5 MB base64 headroom
+
 const messageSchema = z.object({
   id: z.string().optional().default(() => crypto.randomUUID()),
   role: z.enum(["developer", "system", "assistant", "user", "tool", "activity", "reasoning"]),
   content: z.string().optional(),
+});
+
+const attachmentSchema = z.object({
+  name: z.string().max(255),
+  type: z.enum(ALLOWED_MIME),
+  data: z.string().max(MAX_ATTACHMENT_BYTES),
+  size: z.number().int().max(5_242_880),
 });
 
 const inputSchema = z.object({
@@ -29,6 +39,7 @@ const inputSchema = z.object({
     })
     .optional(),
   messages: z.array(messageSchema).default([]),
+  attachments: z.array(attachmentSchema).max(5).optional(),
   forwardedProps: z
     .object({
       approvedAction: z.object({ tool: z.string(), args: z.record(z.string(), z.unknown()), approvalId: z.string() }).optional(),
@@ -70,6 +81,7 @@ export async function POST(req: Request) {
     parentRunId: parsed.data.parentRunId ?? null,
     state: parsed.data.state,
     messages: parsed.data.messages.map((m) => ({ id: m.id, role: m.role, content: m.content })),
+    attachments: parsed.data.attachments,
     forwardedProps: parsed.data.forwardedProps,
   };
 
