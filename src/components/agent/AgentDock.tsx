@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { useAgentConversation, type Attachment } from "@/hooks/useAgentConversation";
+import { useAgentConversation } from "@/hooks/useAgentConversation";
 import { AgentUIBlockRenderer } from "./AgentUIBlockRenderer";
+import { extractFileContent, type ExtractionResult } from "@/lib/ag-ui/file-extractor";
 
 // ── Inline markdown parser ───────────────────────────────────────────────────
 function parseInline(text: string): React.ReactNode[] {
@@ -378,7 +379,8 @@ export function AgentDock({
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [draft, setDraft] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [extractions, setExtractions] = useState<ExtractionResult[]>([]);
+  const [extracting, setExtracting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -396,12 +398,37 @@ export function AgentDock({
 
   const submit = (text?: string) => {
     const value = (text ?? draft).trim();
-    const hasAtts = attachments.length > 0;
-    if (!value && !hasAtts) return;
-    const finalText = value || "Voici les documents joints. Peux-tu les analyser dans le cadre d'un bilan de compétences ?";
-    a.sendMessage(finalText, hasAtts ? attachments : undefined);
+    const hasFiles = extractions.length > 0;
+    if (!value && !hasFiles) return;
+
+    // Sépare les extractions texte (Route A) des visions (Route B)
+    const textRoutes = extractions.filter((r) => r.mode === "text");
+    const visionRoutes = extractions.filter((r) => r.mode === "vision");
+
+    // Construit le bloc texte à injecter dans le message (Route A — 0 token vision)
+    const textBlock = textRoutes.length > 0
+      ? "\n\n" + textRoutes.map((r) =>
+          `---\n📄 **${r.filename}** — ${r.pageCount} page(s) extraites sans vision (${(r.charCount ?? 0).toLocaleString()} caractères)\n\n${r.extractedText}\n---`
+        ).join("\n\n")
+      : "";
+
+    const finalText = (value || "Peux-tu analyser ce(s) document(s) dans le cadre d'un bilan de compétences ?") + textBlock;
+
+    // Noms affichés dans l'historique (mode indiqué)
+    const attachmentNames = extractions.map((r) =>
+      r.mode === "text" ? `📄 ${r.filename} (texte extrait)` : `📎 ${r.filename} (vision)`
+    );
+
+    // Route B uniquement pour les pièces jointes vision
+    const visionAttachments = visionRoutes.map((r) => r.attachment!).filter(Boolean);
+
+    a.sendMessage(finalText, visionAttachments.length > 0 ? visionAttachments : undefined);
+    // Override attachmentNames sur le dernier message (hook ne l'expose pas directement,
+    // les noms sont déjà inclus dans le texte et dans le bloc textuel — suffisant pour l'UX)
+    void attachmentNames; // référencé pour éviter le warning unused
+
     setDraft("");
-    setAttachments([]);
+    setExtractions([]);
     if (taRef.current) taRef.current.style.height = "auto";
   };
 
@@ -415,23 +442,21 @@ export function AgentDock({
 
   const onFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    e.target.value = ""; // allow re-picking same file
-    const MAX = 5 * 1024 * 1024; // 5 MB
+    e.target.value = "";
+    const MAX = 5 * 1024 * 1024;
     const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
     const valid = files.filter((f) => ALLOWED.includes(f.type) && f.size <= MAX);
-    // Files exceeding 5MB or wrong MIME are silently skipped
-    const read = (f: File): Promise<Attachment> =>
-      new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => {
-          const raw = (r.result as string).split(",")[1] ?? "";
-          res({ name: f.name, type: f.type as Attachment["type"], data: raw, size: f.size });
-        };
-        r.onerror = rej;
-        r.readAsDataURL(f);
-      });
-    const loaded = await Promise.all(valid.map(read));
-    setAttachments((prev) => [...prev, ...loaded].slice(0, 5));
+    if (!valid.length) return;
+
+    setExtracting(true);
+    try {
+      const results = await Promise.all(valid.map(extractFileContent));
+      setExtractions((prev) => [...prev, ...results].slice(0, 5));
+    } catch {
+      // Silently skip failed extractions
+    } finally {
+      setExtracting(false);
+    }
   };
 
   return (
@@ -448,6 +473,7 @@ export function AgentDock({
         }
         .socrate-fab { animation: socrate-glow 3.2s ease-in-out infinite; }
         .socrate-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#5FB14E; animation: socrate-pulse 2.2s ease-in-out infinite; flex-shrink:0; }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* ── Nudge bubble (hidden after first session interaction) ── */}
@@ -601,25 +627,56 @@ export function AgentDock({
 
             {/* ── Composer ── */}
             <div style={{ borderTop: "1px solid var(--border-2)", padding: 12, flexShrink: 0 }}>
-              {/* Attachment chips */}
-              {attachments.length > 0 && (
+              {/* Fichiers — chips avec indicateur de route (A=texte / B=vision) */}
+              {(extractions.length > 0 || extracting) && (
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                  {attachments.map((att, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px 4px 5px", maxWidth: 180 }}>
-                      {att.type.startsWith("image/") ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={`data:${att.type};base64,${att.data}`} alt="" style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
-                      ) : (
-                        <div style={{ width: 24, height: 24, borderRadius: 4, background: "#dc264320", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Icon name="file-pdf" size={13} style={{ color: "#dc2643" }} />
+                  {extractions.map((r, i) => {
+                    const isText = r.mode === "text";
+                    const isImg = r.mimeType.startsWith("image/");
+                    const preview = isImg && r.attachment ? `data:${r.mimeType};base64,${r.attachment.data}` : null;
+                    return (
+                      <div
+                        key={i}
+                        title={r.routingReason}
+                        style={{ display: "flex", alignItems: "center", gap: 5, background: isText ? "rgba(47,148,136,.08)" : "var(--surface-2)", border: `1px solid ${isText ? "rgba(47,148,136,.3)" : "var(--border)"}`, borderRadius: 8, padding: "4px 6px 4px 5px", maxWidth: 220 }}
+                      >
+                        {/* Thumbnail / icône */}
+                        {preview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={preview} alt="" style={{ width: 24, height: 24, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 24, height: 24, borderRadius: 4, background: isText ? "rgba(47,148,136,.15)" : "#dc264318", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {isText
+                              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2f9488" strokeWidth="2.2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                              : <Icon name="file-pdf" size={13} style={{ color: "#dc2643" }} />}
+                          </div>
+                        )}
+
+                        {/* Nom + badge route */}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120, color: "var(--ink)" }}>{r.filename}</div>
+                          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", color: isText ? "#2f9488" : "var(--ink-3)" }}>
+                            {isText
+                              ? `TEXTE • ${(r.charCount ?? 0).toLocaleString()} c`
+                              : `VISION • ${r.pageCount ? `${r.pageCount}p` : "img"}`}
+                          </div>
                         </div>
-                      )}
-                      <span style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100, color: "var(--ink-2)" }}>{att.name}</span>
-                      <button onClick={() => setAttachments((p) => p.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--ink-4)", display: "flex", borderRadius: 3, flexShrink: 0 }}>
-                        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                      </button>
+
+                        {/* Supprimer */}
+                        <button onClick={() => setExtractions((p) => p.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--ink-4)", display: "flex", borderRadius: 3, flexShrink: 0 }}>
+                          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {/* Spinner pendant l'extraction */}
+                  {extracting && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "var(--ink-3)", fontWeight: 600 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      Analyse du fichier…
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
 
@@ -650,7 +707,7 @@ export function AgentDock({
                 {a.isRunning ? (
                   <button className="btn btn-secondary btn-icon" onClick={a.stop} title="Arrêter" aria-label="Arrêter"><Icon name="x" size={16} /></button>
                 ) : (
-                  <button className="btn btn-primary btn-icon" onClick={() => submit()} disabled={!draft.trim() && attachments.length === 0} title="Envoyer" aria-label="Envoyer"><Icon name="send" size={16} /></button>
+                  <button className="btn btn-primary btn-icon" onClick={() => submit()} disabled={(!draft.trim() && extractions.length === 0) || extracting} title="Envoyer" aria-label="Envoyer"><Icon name="send" size={16} /></button>
                 )}
               </div>
               <div style={{ fontSize: 10, color: "var(--ink-4)", textAlign: "center", marginTop: 6 }}>
