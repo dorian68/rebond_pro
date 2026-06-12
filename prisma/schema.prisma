@@ -858,6 +858,53 @@ model Faq {
   @@index([organizationId])
 }
 
+// --------------------------- SOCRATE CHATBOT ---------------------------
+
+/**
+ * Lead capturé via Socrate (chatbot IA public).
+ * Source : "socrate_chatbot". Jamais lié à un tenant (visiteur non connecté).
+ */
+model SocrateLeadCapture {
+  id                  String    @id @default(cuid())
+  createdAt           DateTime  @default(now())
+  firstName           String?
+  lastName            String?
+  email               String
+  phone               String?
+  /// particulier | centre | formateur | entreprise | autre
+  profileType         String?
+  /// contact_request | more_info_request | training_recommendation_request | training_center_request | human_advisor_request | skill_assessment_request | unknown
+  intent              String?
+  message             String?
+  conversationSummary String?
+  source              String    @default("socrate_chatbot")
+  /// new | contacted | closed
+  status              String    @default("new")
+  internalEmailSentAt DateTime?
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([status])
+}
+
+/**
+ * Bilan de compétences généré par Socrate et envoyé par email.
+ */
+model SocrateAssessmentLog {
+  id                   String    @id @default(cuid())
+  createdAt            DateTime  @default(now())
+  userEmail            String
+  userName             String?
+  uploadedFileName     String?
+  assessmentSummary    String?
+  fullAssessment       String?
+  recommendedTrainings Json?
+  emailSentAt          DateTime?
+
+  @@index([userEmail])
+  @@index([createdAt])
+}
+
 // --------------------------- JOBS ASYNCHRONES ---------------------------
 
 enum JobStatus {

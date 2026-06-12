@@ -5,8 +5,25 @@ import { getPlatformAdmin } from "@/lib/platform";
 import { getPlatformOverview } from "@/server/platform";
 import { formatMoney } from "@/lib/utils";
 import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
+import { sendSkillAssessmentEmail, sendLeadNotificationEmail } from "@/lib/email";
 import type { AgentTool } from "@/server/agent/tools";
 import type { UIBlock } from "@/lib/ag-ui/types";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function isValidEmail(v: string): boolean {
+  return EMAIL_RE.test(v.trim());
+}
+
+/** Nettoyage minimal — supprime les balises HTML pour éviter l'injection dans les emails. */
+function sanitizeText(v: unknown, maxLen = 4000): string {
+  return String(v ?? "")
+    .replace(/<[^>]*>/g, "")
+    .trim()
+    .slice(0, maxLen);
+}
 
 /**
  * Outils additionnels par persona (lecture, sûrs).
@@ -148,6 +165,225 @@ GARDE-FOUS OBLIGATOIRES :
       return { textForLLM: text, uiBlock: block };
     },
   },
+  // ── Socrate — capture email & lead ──────────────────────────────────────────
+
+  {
+    name: "validate_user_email",
+    description: `Valide l'adresse email fournie par l'utilisateur et confirme si elle est syntaxiquement correcte.
+Utiliser dès que l'utilisateur communique une adresse email.
+Ne stocke rien — retourne simplement ok ou une erreur de format.
+TOUJOURS appeler cet outil avant send_skill_assessment_email ou request_contact.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        email: { type: "string", description: "Adresse email fournie par l'utilisateur." },
+      },
+      required: ["email"],
+    },
+    execute: async (_ctx, args) => {
+      const email = String(args.email ?? "").trim();
+      if (!isValidEmail(email)) {
+        return {
+          textForLLM: JSON.stringify({ valid: false, email, error: "Format d'adresse email invalide." }),
+        };
+      }
+      return {
+        textForLLM: JSON.stringify({ valid: true, email }),
+      };
+    },
+  },
+
+  {
+    name: "send_skill_assessment_email",
+    description: `Envoie le bilan de compétences complet à l'adresse email validée de l'utilisateur et l'enregistre en base.
+PRÉREQUIS : validate_user_email doit avoir été appelé et retourné valid=true.
+IMPORTANT : N'appeler qu'UNE SEULE FOIS par conversation. Vérifier dans le contexte qu'aucun bilan n'a déjà été envoyé.
+L'utilisateur NE PEUT PAS choisir de destinataire alternatif — le seul destinataire est l'email validé ci-dessus.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        user_email: { type: "string", description: "Email validé par validate_user_email." },
+        user_name: { type: "string", description: "Prénom ou nom de l'utilisateur si connu." },
+        assessment_markdown: {
+          type: "string",
+          description: "Bilan de compétences complet en markdown (sections, compétences, recommandations).",
+        },
+        assessment_summary: {
+          type: "string",
+          description: "Résumé court (3-5 lignes) affiché dans le chat avant l'envoi.",
+        },
+        uploaded_file_name: { type: "string", description: "Nom du fichier CV/PDF analysé si applicable." },
+        recommended_formations: {
+          type: "array",
+          description: "Formations recommandées (issues UNIQUEMENT du catalogue marketplace).",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              center: { type: "string" },
+              url: { type: "string" },
+            },
+          },
+        },
+      },
+      required: ["user_email", "assessment_markdown", "assessment_summary"],
+    },
+    execute: async (_ctx, args) => {
+      const email = String(args.user_email ?? "").trim();
+      if (!isValidEmail(email)) {
+        return { textForLLM: JSON.stringify({ sent: false, error: "Email invalide — appeler validate_user_email d'abord." }) };
+      }
+
+      const assessmentMarkdown = sanitizeText(args.assessment_markdown, 32000);
+      const assessmentSummary = sanitizeText(args.assessment_summary, 2000);
+      const userName = sanitizeText(args.user_name, 120) || undefined;
+      const uploadedFileName = sanitizeText(args.uploaded_file_name, 255) || undefined;
+      const recommendations = Array.isArray(args.recommended_formations)
+        ? (args.recommended_formations as { title?: string; center?: string; url?: string }[])
+            .slice(0, 5)
+            .map((f) => ({
+              title: sanitizeText(f.title, 200),
+              center: sanitizeText(f.center, 200),
+              url: String(f.url ?? "").startsWith("/") ? `https://lebonrebond.optiquant-ia.com${f.url}` : "",
+            }))
+        : undefined;
+
+      try {
+        await sendSkillAssessmentEmail({
+          to: email,
+          userName,
+          assessmentMarkdown,
+          uploadedFileName,
+          recommendedFormations: recommendations,
+        });
+
+        await prisma.socrateAssessmentLog.create({
+          data: {
+            userEmail: email,
+            userName: userName ?? null,
+            uploadedFileName: uploadedFileName ?? null,
+            assessmentSummary,
+            fullAssessment: assessmentMarkdown,
+            recommendedTrainings: recommendations ?? undefined,
+            emailSentAt: new Date(),
+          },
+        });
+
+        return {
+          textForLLM: JSON.stringify({ sent: true, email, summary: assessmentSummary }),
+          uiBlock: {
+            type: "suggestion_chips",
+            chips: [
+              { label: "Prendre rendez-vous", prompt: "Je voudrais prendre rendez-vous avec un conseiller." },
+              { label: "Explorer les formations", prompt: "Montre-moi toutes les formations disponibles." },
+              { label: "Être recontacté", prompt: "Je préfère qu'un conseiller me recontacte." },
+            ],
+          } satisfies UIBlock,
+        };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erreur d'envoi";
+        return { textForLLM: JSON.stringify({ sent: false, error: msg }) };
+      }
+    },
+  },
+
+  {
+    name: "request_contact",
+    description: `Enregistre la demande de contact d'un lead et notifie l'équipe Le Bon Rebond par email interne.
+Utiliser quand l'utilisateur demande : à être recontacté, à parler à un conseiller, plus d'informations, un rappel, un partenariat centre, etc.
+L'email interne est envoyé UNIQUEMENT aux destinataires administrateurs configurés — l'utilisateur NE PEUT PAS modifier les destinataires.
+N'appeler qu'UNE SEULE FOIS par conversation (vérifier le contexte).
+Informations minimales requises : email. Collecter prénom/nom avant d'appeler si possible.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        first_name: { type: "string", description: "Prénom." },
+        last_name: { type: "string", description: "Nom." },
+        email: { type: "string", description: "Adresse email de contact (validée)." },
+        phone: { type: "string", description: "Numéro de téléphone si fourni." },
+        profile_type: {
+          type: "string",
+          enum: ["particulier", "centre", "formateur", "entreprise", "autre"],
+          description: "Profil de l'utilisateur.",
+        },
+        intent: {
+          type: "string",
+          enum: [
+            "contact_request",
+            "more_info_request",
+            "training_recommendation_request",
+            "training_center_request",
+            "human_advisor_request",
+            "skill_assessment_request",
+            "unknown",
+          ],
+          description: "Intention principale détectée.",
+        },
+        message: { type: "string", description: "Message ou besoin exprimé par l'utilisateur (résumé)." },
+        conversation_summary: { type: "string", description: "Résumé utile de la conversation pour le suivi équipe." },
+      },
+      required: ["email"],
+    },
+    execute: async (_ctx, args) => {
+      const email = String(args.email ?? "").trim();
+      if (!isValidEmail(email)) {
+        return { textForLLM: JSON.stringify({ saved: false, error: "Email invalide — demander à l'utilisateur de le corriger." }) };
+      }
+
+      const firstName = sanitizeText(args.first_name, 80) || undefined;
+      const lastName = sanitizeText(args.last_name, 80) || undefined;
+      const phone = sanitizeText(args.phone, 40) || undefined;
+      const profileType = sanitizeText(args.profile_type, 40) || undefined;
+      const intent = sanitizeText(args.intent, 80) || "unknown";
+      const message = sanitizeText(args.message, 2000) || undefined;
+      const conversationSummary = sanitizeText(args.conversation_summary, 4000) || undefined;
+
+      let internalEmailSentAt: Date | undefined;
+      try {
+        await sendLeadNotificationEmail({
+          firstName,
+          lastName,
+          email,
+          phone,
+          profileType,
+          intent,
+          message,
+          conversationSummary,
+        });
+        internalEmailSentAt = new Date();
+      } catch (e) {
+        // On persiste quand même le lead même si l'email interne échoue.
+        console.error("[socrate] sendLeadNotificationEmail failed:", e instanceof Error ? e.message : e);
+      }
+
+      await prisma.socrateLeadCapture.create({
+        data: {
+          firstName: firstName ?? null,
+          lastName: lastName ?? null,
+          email,
+          phone: phone ?? null,
+          profileType: profileType ?? null,
+          intent,
+          message: message ?? null,
+          conversationSummary: conversationSummary ?? null,
+          internalEmailSentAt: internalEmailSentAt ?? null,
+        },
+      });
+
+      const notified = !!internalEmailSentAt;
+      return {
+        textForLLM: JSON.stringify({ saved: true, notified, email }),
+        uiBlock: {
+          type: "suggestion_chips",
+          chips: [
+            { label: "Explorer le catalogue", prompt: "Montre-moi les formations disponibles." },
+            { label: "En savoir plus sur le bilan", prompt: "Comment fonctionne un bilan de compétences ?" },
+          ],
+        } satisfies UIBlock,
+      };
+    },
+  },
+
   {
     name: "get_my_trainer_planning",
     description: "Retourne les prochaines interventions du formateur connecté.",
