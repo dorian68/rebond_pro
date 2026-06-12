@@ -41,6 +41,8 @@ const CFG = {
   image: process.env.DEPLOY_IMAGE ?? "rebondpro-app",
   composeNet: process.env.DEPLOY_COMPOSE_NET ?? "rebondpro_default",
   dbService: process.env.DEPLOY_DB_SERVICE ?? "rebondpro-db",
+  // Épinglé sur la version du projet : `npx prisma` sinon tire Prisma 7 (datasource `url` non supporté).
+  prismaVersion: process.env.DEPLOY_PRISMA_VERSION ?? "6.19.3",
   branch: process.env.DEPLOY_BRANCH ?? "main",
   remote: process.env.DEPLOY_GIT_REMOTE ?? "origin",
   keepReleases: Number(process.env.DEPLOY_KEEP_RELEASES ?? 5),
@@ -203,7 +205,7 @@ if (opts.rollback) {
       `docker run --rm --network ${CFG.composeNet} ` +
       `-e DATABASE_URL="postgresql://rebondpro:$PW@${CFG.dbService}:5432/rebondpro?schema=public" ` +
       `-v ${CFG.remoteDir}/releases/${commit}/prisma:/prisma ` +
-      `node:22-alpine sh -c "npx --yes prisma migrate deploy --schema=/prisma/schema.prisma"`;
+      `node:22-alpine sh -c "npx --yes prisma@${CFG.prismaVersion} migrate deploy --schema=/prisma/schema.prisma"`;
     remote(migrateCmd);
     ok("Migrations appliquées");
   } else {
