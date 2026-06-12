@@ -72,18 +72,20 @@ const ok = (m) => console.log(`${C.grn}✓${C.reset} ${m}`);
 const warn = (m) => console.log(`${C.ylw}⚠ ${m}${C.reset}`);
 const die = (m) => { console.error(`${C.red}✗ ${m}${C.reset}`); process.exit(1); };
 
+// Sur Windows, npm/npx sont des scripts .cmd : Node refuse de les lancer sans shell:true
+// (sécurité CVE-2024-27980). git/ssh/scp/node sont des .exe, lancés directement.
+const isWin = process.platform === "win32";
+const winShellCmd = (cmd) => isWin && (cmd === "npm" || cmd === "npx");
+
 /** Exécute une commande locale. En dry-run, log seulement. */
 function local(cmd, cmdArgs, { capture = false, allowFail = false } = {}) {
   const printable = `${cmd} ${cmdArgs.join(" ")}`;
   if (opts.dryRun) { log(`${C.dim}[local] ${printable}${C.reset}`); return ""; }
-  if (capture) {
-    const r = spawnSync(cmd, cmdArgs, { encoding: "utf8" });
-    if (r.status !== 0 && !allowFail) die(`Échec : ${printable}\n${r.stderr || r.stdout}`);
-    return (r.stdout || "").trim();
-  }
-  const r = spawnSync(cmd, cmdArgs, { stdio: "inherit" });
-  if (r.status !== 0 && !allowFail) die(`Échec : ${printable}`);
-  return "";
+  const useShell = winShellCmd(cmd);
+  const opt = { shell: useShell, stdio: capture ? undefined : "inherit", encoding: capture ? "utf8" : undefined };
+  const r = spawnSync(useShell ? `${cmd}.cmd` : cmd, cmdArgs, opt);
+  if (r.status !== 0 && !allowFail) die(`Échec : ${printable}${capture ? "\n" + (r.stderr || r.stdout || "") : ""}`);
+  return capture ? (r.stdout || "").trim() : "";
 }
 
 /** Construit les args ssh/scp avec la clé dédiée. */
