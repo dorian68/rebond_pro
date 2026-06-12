@@ -77,7 +77,7 @@ export default function AProposPage() {
           <motion.article initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
             className="ap-founder">
             <div className="ap-founder-portrait">
-              <Image src="/photos/mathurin-suffrin.jpg" alt="Mathurin Suffrin, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center 20%" }} sizes="(max-width:880px) 100vw, 400px" />
+              <Image src="/photos/mathurin-suffrin-v2.jpg" alt="Mathurin Suffrin, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center 20%" }} sizes="(max-width:880px) 100vw, 400px" />
             </div>
             <div>
               <div style={{ fontSize: ".78rem", fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase" as const, color: "#23756e" }}>Cofondateur · Ancrage terrain &amp; entrepreneuriat</div>
