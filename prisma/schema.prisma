@@ -54,6 +54,13 @@ enum FormationStatus {
   ARCHIVE
 }
 
+// Statut de modération d'un centre sur la marketplace publique.
+enum MarketplaceStatus {
+  PENDING   // en attente de validation par l'admin plateforme
+  APPROVED  // validé : centre + formations publiées visibles publiquement
+  REJECTED  // refusé : reste masqué
+}
+
 enum SessionStatus {
   BROUILLON
   OUVERTE
@@ -168,6 +175,11 @@ model Organization {
   coverImageUrl String? // bannière de la fiche centre
   city          String? // ville (filtre marketplace)
   publicProfileEnabled Boolean @default(true)
+  // Modération marketplace (validation par l'admin plateforme avant affichage public)
+  marketplaceStatus          MarketplaceStatus @default(PENDING)
+  marketplaceReviewedAt      DateTime?
+  marketplaceReviewedBy      String?  // userId de l'admin ayant validé/refusé
+  marketplaceRejectionReason String?
   publicEmail   String?
   publicPhone   String?
   socialLinks   Json?    // { linkedin, facebook, instagram, ... }

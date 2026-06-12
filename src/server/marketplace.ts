@@ -24,7 +24,14 @@ export type MarketplaceFilters = {
   city?: string;
 };
 
-const PUBLIC_FORMATION_WHERE = { isPublic: true, status: "PUBLIE" as const, deletedAt: null };
+const PUBLIC_FORMATION_WHERE = {
+  isPublic: true,
+  status: "PUBLIE" as const,
+  deletedAt: null,
+};
+
+// Gate de modération : seuls les centres validés par l'admin plateforme sont publics.
+const APPROVED_ORG = { marketplaceStatus: "APPROVED" as const };
 
 export async function getMarketplaceFormationsUncached(filters: MarketplaceFilters = {}) {
   const q = filters.q?.trim();
@@ -34,7 +41,8 @@ export async function getMarketplaceFormationsUncached(filters: MarketplaceFilte
       ...(filters.category ? { category: filters.category } : {}),
       ...(filters.modality ? { modality: filters.modality } : {}),
       ...(filters.level ? { level: filters.level } : {}),
-      ...(filters.city ? { organization: { city: filters.city } } : {}),
+      // Centre validé (+ filtre ville optionnel) — fusionnés dans une seule clé `organization`.
+      organization: { ...APPROVED_ORG, ...(filters.city ? { city: filters.city } : {}) },
       ...(q
         ? {
             OR: [
@@ -72,7 +80,7 @@ export type MarketplaceFormation = Awaited<ReturnType<typeof getMarketplaceForma
 /** Facettes (catégories, villes) pour les filtres, calculées sur les formations publiques. */
 export async function getMarketplaceFacetsUncached() {
   const formations = await prisma.formation.findMany({
-    where: PUBLIC_FORMATION_WHERE,
+    where: { ...PUBLIC_FORMATION_WHERE, organization: APPROVED_ORG },
     select: { category: true, organization: { select: { city: true } } },
     take: 2000,
   });
@@ -84,13 +92,13 @@ export async function getMarketplaceFacetsUncached() {
 export const getMarketplaceFacets = unstable_cache(
   getMarketplaceFacetsUncached,
   ["mkt-facets"],
-  { revalidate: 300, tags: [MARKETPLACE_TAG] },
+  { revalidate: 60, tags: [MARKETPLACE_TAG] },
 );
 
 /** Annuaire des centres ayant au moins une formation publiée. */
 export async function getMarketplaceCentersUncached() {
   const orgs = await prisma.organization.findMany({
-    where: { deletedAt: null, formations: { some: PUBLIC_FORMATION_WHERE } },
+    where: { deletedAt: null, marketplaceStatus: "APPROVED", formations: { some: PUBLIC_FORMATION_WHERE } },
     select: {
       id: true, name: true, slug: true, logoUrl: true, tagline: true, description: true, city: true,
       _count: { select: { formations: { where: PUBLIC_FORMATION_WHERE }, trainers: { where: { active: true, deletedAt: null } } } },
@@ -104,13 +112,13 @@ export async function getMarketplaceCentersUncached() {
 export const getMarketplaceCenters = unstable_cache(
   getMarketplaceCentersUncached,
   ["mkt-centers"],
-  { revalidate: 300, tags: [MARKETPLACE_TAG] },
+  { revalidate: 60, tags: [MARKETPLACE_TAG] },
 );
 
 /** Fiche publique d'un centre de formation (mise en avant). */
 export async function getCenterProfileUncached(slug: string) {
   const org = await prisma.organization.findFirst({
-    where: { slug, deletedAt: null },
+    where: { slug, deletedAt: null, marketplaceStatus: "APPROVED" },
     select: {
       id: true, name: true, slug: true, description: true, tagline: true, website: true,
       logoUrl: true, coverImageUrl: true, city: true, createdAt: true,
@@ -191,5 +199,7 @@ export const getPublicTrainer = unstable_cache(
  * ce no-op garde un point d'extension propre côté actions.
  */
 export function revalidateMarketplace() {
-  /* TTL-based pour l'instant (cf. options unstable_cache). */
+  // Invalidation par TTL court (≤60s, cf. options unstable_cache) — pattern du repo
+  // sous Next 16 (revalidateTag y exige un profil, réservé à `use cache`).
+  // Point d'extension : les mutations appellent aussi revalidatePath sur /marketplace.
 }

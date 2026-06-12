@@ -25,7 +25,40 @@ export async function getPlatformOverview() {
     prisma.session.findMany({ where: { deletedAt: null, status: { not: "ANNULEE" } }, select: { pricePerLearner: true, _count: { select: { enrollments: true } } } }),
   ]);
   const networkRevenue = sessionsAgg.reduce((sum, s) => sum + s.pricePerLearner * s._count.enrollments, 0);
-  return { centers, trainers, beneficiaries, learners, publishedFormations, upcomingSessions, activeProspects, paidOrgs, networkRevenue };
+  // Centres en attente de validation marketplace (ayant déjà du contenu publiable).
+  const pendingMarketplace = await prisma.organization.count({
+    where: {
+      deletedAt: null,
+      marketplaceStatus: { in: ["PENDING", "REJECTED"] },
+      formations: { some: { isPublic: true, status: "PUBLIE", deletedAt: null } },
+    },
+  });
+  return { centers, trainers, beneficiaries, learners, publishedFormations, upcomingSessions, activeProspects, paidOrgs, networkRevenue, pendingMarketplace };
+}
+
+/**
+ * File d'attente de modération marketplace : centres NON validés ayant au moins
+ * une formation prête (isPublic + PUBLIE). À valider par l'admin god-mode.
+ */
+export async function listPendingMarketplaceCenters() {
+  return prisma.organization.findMany({
+    where: {
+      deletedAt: null,
+      marketplaceStatus: { in: ["PENDING", "REJECTED"] },
+      formations: { some: { isPublic: true, status: "PUBLIE", deletedAt: null } },
+    },
+    select: {
+      id: true, name: true, slug: true, city: true, logoUrl: true, createdAt: true,
+      marketplaceStatus: true, publicEmail: true, marketplaceRejectionReason: true,
+      _count: {
+        select: {
+          formations: { where: { isPublic: true, status: "PUBLIE", deletedAt: null } },
+          trainers: { where: { active: true, deletedAt: null } },
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
 }
 
 export async function listAllCenters() {
@@ -33,7 +66,7 @@ export async function listAllCenters() {
   const orgs = await prisma.organization.findMany({
     where: { deletedAt: null },
     select: {
-      id: true, name: true, slug: true, city: true, logoUrl: true, plan: true, billingStatus: true, publicProfileEnabled: true, createdAt: true,
+      id: true, name: true, slug: true, city: true, logoUrl: true, plan: true, billingStatus: true, publicProfileEnabled: true, marketplaceStatus: true, createdAt: true,
       _count: {
         select: {
           trainers: { where: { deletedAt: null, active: true } },
@@ -56,6 +89,7 @@ export async function getCenterDetail(orgId: string) {
     select: {
       id: true, name: true, slug: true, city: true, logoUrl: true, description: true, plan: true, billingStatus: true, trialEndsAt: true,
       publicProfileEnabled: true, createdAt: true, website: true, publicEmail: true, publicPhone: true,
+      marketplaceStatus: true, marketplaceReviewedAt: true, marketplaceRejectionReason: true,
       trainers: { where: { deletedAt: null }, select: { id: true, firstName: true, lastName: true, active: true, specialities: true, userId: true }, orderBy: { lastName: "asc" } },
       formations: { where: { deletedAt: null }, select: { id: true, title: true, status: true, isPublic: true, price: true }, orderBy: { updatedAt: "desc" } },
       beneficiaries: { select: { id: true, firstName: true, lastName: true, status: true }, orderBy: { createdAt: "desc" } },

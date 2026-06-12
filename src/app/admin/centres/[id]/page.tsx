@@ -4,6 +4,7 @@ import { getCenterDetail } from "@/server/platform";
 import { Card, Avatar } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { formatMoney } from "@/lib/utils";
+import { MarketplaceModerationButtons, MarketplaceStatusBadge } from "../../marketplace-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,24 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Avatar size={56} color="#2469a6">{o.name.slice(0, 2).toUpperCase()}</Avatar>
           <div>
-            <h1 style={{ fontSize: 23, fontWeight: 800 }}>{o.name}</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h1 style={{ fontSize: 23, fontWeight: 800 }}>{o.name}</h1>
+              <MarketplaceStatusBadge status={o.marketplaceStatus} />
+            </div>
             <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{o.city ?? "—"} · Plan <strong>{o.plan}</strong> · {o.billingStatus ?? "—"}</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {o.publicProfileEnabled && <Link href={`/${o.slug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="globe" size={15} /> Page publique</Link>}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} />
+          {o.marketplaceStatus === "APPROVED" && <Link href={`/${o.slug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="globe" size={15} /> Page publique</Link>}
         </div>
       </div>
+
+      {o.marketplaceStatus === "REJECTED" && o.marketplaceRejectionReason && (
+        <div className="badge badge-danger" style={{ marginBottom: 16, padding: "8px 12px", display: "block", width: "fit-content" }}>
+          Refusé — motif : {o.marketplaceRejectionReason}
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
         {[

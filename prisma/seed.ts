@@ -23,6 +23,9 @@ async function main() {
     await prisma.organization.delete({ where: { id: existing.id } });
     console.log("  ↺ ancienne org démo supprimée");
   }
+  // Le compte propriétaire démo n'est pas supprimé en cascade par l'org → on le retire
+  // explicitement pour que le seed reste rejouable (sinon conflit email à la recréation).
+  await prisma.user.deleteMany({ where: { email: "demo@rebondpro.local" } });
 
   // --- Organisation (tenant) ---
   const org = await prisma.organization.create({
@@ -39,6 +42,8 @@ async function main() {
       currency: "EUR",
       plan: "PRO",
       billingStatus: "active",
+      marketplaceStatus: "APPROVED",
+      marketplaceReviewedAt: new Date(),
       nbFormationsDeclarees: 4,
       nbFormateursDeclares: 4,
       nbSessionsMois: 6,
@@ -62,7 +67,7 @@ async function main() {
 
   // --- Formateurs ---
   const trainersData = [
-    { key: "claire", firstName: "Claire", lastName: "Martin", initials: "CM", specialities: ["Excel", "Power BI"], color: "#5850ec", email: "claire.martin@horizon-formation.fr", phone: "06 12 34 56 78" },
+    { key: "claire", firstName: "Claire", lastName: "Martin", initials: "CM", specialities: ["Excel", "Power BI"], color: "#2469a6", email: "claire.martin@horizon-formation.fr", phone: "06 12 34 56 78" },
     { key: "julien", firstName: "Julien", lastName: "Moreau", initials: "JM", specialities: ["IA", "Automatisation"], color: "#129a93", email: "julien.moreau@horizon-formation.fr", phone: "06 23 45 67 89" },
     { key: "sarah", firstName: "Sarah", lastName: "Benali", initials: "SB", specialities: ["Finance", "Gestion"], color: "#d9821f", email: "sarah.benali@horizon-formation.fr", phone: "06 34 56 78 90" },
     { key: "thomas", firstName: "Thomas", lastName: "Girard", initials: "TG", specialities: ["Digital", "No-code"], color: "#2f7fc4", email: "thomas.girard@horizon-formation.fr", phone: "06 45 67 89 01" },
@@ -81,7 +86,7 @@ async function main() {
       shortDescription: "Maîtrisez Excel pour gagner du temps et fiabiliser vos analyses en PME.",
       objectives: "Automatiser ses tableaux ; maîtriser les formules avancées ; construire des tableaux croisés dynamiques.",
       program: "Jour 1 : formules avancées, mise en forme conditionnelle. Jour 2 : TCD, graphiques, automatisations." },
-    { key: "powerbi", title: "Power BI — Construire un tableau de bord", slug: "power-bi-tableau-de-bord", category: "Data & BI", durationDays: 3, durationHours: 21, price: EUR(990), modality: Modality.HYBRIDE, level: Level.INTERMEDIAIRE, color: "#5850ec", eligible: ["claire"],
+    { key: "powerbi", title: "Power BI — Construire un tableau de bord", slug: "power-bi-tableau-de-bord", category: "Data & BI", durationDays: 3, durationHours: 21, price: EUR(990), modality: Modality.HYBRIDE, level: Level.INTERMEDIAIRE, color: "#2469a6", eligible: ["claire"],
       shortDescription: "Transformez vos données en tableaux de bord clairs et actionnables avec Power BI.",
       objectives: "Connecter des sources ; modéliser ; créer des visualisations ; publier un rapport.",
       program: "Jour 1 : Power Query. Jour 2 : modèle de données & DAX. Jour 3 : visualisations & publication." },
