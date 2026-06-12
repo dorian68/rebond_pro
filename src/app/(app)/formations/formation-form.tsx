@@ -25,7 +25,7 @@ type FormationDefaults = {
   color?: string | null;
 };
 
-const COLORS = ["#5850ec", "#2f7fc4", "#129a93", "#d9821f", "#18996b", "#dc5147"];
+const COLORS = ["#2469a6", "#2f7fc4", "#129a93", "#d9821f", "#18996b", "#dc5147"];
 
 export function FormationForm({
   action,

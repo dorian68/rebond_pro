@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
-import { Logo } from "@/components/app/Logo";
 import { OnboardingClient } from "./onboarding-client";
 
 export default async function OnboardingPage() {
@@ -12,7 +11,6 @@ export default async function OnboardingPage() {
 
   return (
     <main>
-      <div className="onboarding-logo"><Logo size={60} priority /></div>
       <OnboardingClient
         organizationName={organization.name}
         defaults={{

@@ -89,9 +89,9 @@ function AiSynthesis({ hasFeedbacks }: { hasFeedbacks: boolean }) {
   const run = () => start(async () => { setResult(await synthesizeFeedbacks()); });
 
   return (
-    <div className="card" style={{ background: "linear-gradient(135deg,#f6f5fe,#ffffff)", border: "1px solid var(--primary-100)", padding: 20 }}>
+    <div className="card" style={{ background: "linear-gradient(135deg,#f2f8fc,#ffffff)", border: "1px solid var(--primary-100)", padding: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: "linear-gradient(135deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: "linear-gradient(135deg,#2f9488,#2469a6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
           <Icon name="sparkles" size={18} />
         </div>
         <div>

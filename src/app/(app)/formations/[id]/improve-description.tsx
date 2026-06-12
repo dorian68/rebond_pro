@@ -25,9 +25,9 @@ export function ImproveDescription({ formationId, canEdit }: { formationId: stri
 
   return (
     <>
-      <div className="card card-pad" style={{ background: "linear-gradient(135deg,#f6f5fe,#fff)", border: "1px solid var(--primary-100)" }}>
+      <div className="card card-pad" style={{ background: "linear-gradient(135deg,#f2f8fc,#fff)", border: "1px solid var(--primary-100)" }}>
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}><Icon name="sparkles" size={17} /></div>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#2f9488,#2469a6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}><Icon name="sparkles" size={17} /></div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 3 }}>Améliorer la description (IA)</div>
             <p style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45, marginBottom: 10 }}>Génère une description commerciale optimisée pour la conversion.</p>

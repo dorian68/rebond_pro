@@ -89,7 +89,7 @@ export default async function PublicFormationPage({ params, searchParams }: { pa
           <div className="public-hero-card">
             <span className="badge badge-positive">Page officielle du centre</span>
             <Link href={`/${formation.organization.slug}`} style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 7px", color: "inherit" }}>
-              <Avatar name={formation.organization.name} photoUrl={formation.organization.logoUrl} color="#5850ec" size={48} rounded="lg" />
+              <Avatar name={formation.organization.name} photoUrl={formation.organization.logoUrl} color="#2469a6" size={48} rounded="lg" />
               <h3 style={{ margin: 0 }}>{formation.organization.name}</h3>
             </Link>
             <p>{formation.organization.description || "Centre de formation professionnelle."}</p>

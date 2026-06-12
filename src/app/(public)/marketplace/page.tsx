@@ -22,7 +22,7 @@ function formationHref(f: MarketplaceFormation) {
 }
 
 function FormationCard({ f }: { f: MarketplaceFormation }) {
-  const c = f.color || "#5850ec";
+  const c = f.color || "#2469a6";
   const duration = f.durationDays ? `${f.durationDays} j` : f.durationHours ? `${f.durationHours} h` : null;
   return (
     <Link href={formationHref(f)} className="mkt-card">
@@ -130,7 +130,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           <div className="mkt-grid-2">
             {centers.map((org) => (
               <Link key={org.id} href={`/${org.slug}`} className="mkt-center-card">
-                <Avatar name={org.name} photoUrl={org.logoUrl} color="#5850ec" size={62} rounded="lg" />
+                <Avatar name={org.name} photoUrl={org.logoUrl} color="#2469a6" size={62} rounded="lg" />
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <h3>{org.name}</h3>

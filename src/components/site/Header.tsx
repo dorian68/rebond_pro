@@ -3,127 +3,203 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/site/ui/button";
-import { Logo } from "@/components/app/Logo";
-import { Menu, X, Building2, UserRound } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { Menu, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const navLinks = [
-  { label: "Accueil", to: "/" },
   { label: "Formations", to: "/formation" },
   { label: "Bilan de compétences", to: "/bilan-de-competences" },
-  { label: "Bilan d’orientation", to: "/bilan-orientation" },
+  { label: "Bilan d'orientation", to: "/bilan-orientation" },
+  { label: "Centres", to: "/centres" },
   { label: "À propos", to: "/a-propos" },
-  { label: "Blog", to: "/blog" },
   { label: "Contact", to: "/contact" },
 ];
 
 const Header = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border/40">
-      <div className="container mx-auto flex items-center justify-between h-18 px-4 lg:px-8 py-3">
+    <header
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 60,
+        background: "rgba(250,245,236,.88)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(21,49,76,.10)",
+      }}
+    >
+      <div
+        className="container"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 22,
+          height: 84,
+          flexWrap: "nowrap",
+        }}
+      >
         {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <Logo size={54} priority />
+        <Link href="/" style={{ height: 46, flexShrink: 0 }} aria-label="Le Bon Rebond — accueil">
+          <Image
+            src="/brand/logo-le-bon-rebond.png"
+            alt="Le Bon Rebond"
+            width={160}
+            height={46}
+            priority
+            style={{ height: 46, width: "auto", objectFit: "contain" }}
+          />
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-0.5">
+        {/* Nav desktop — cachée sous 1024px */}
+        <nav
+          className="vitrine-desktop-only"
+          style={{ display: "flex", gap: 16, marginLeft: 6, flexWrap: "nowrap" }}
+        >
           {navLinks.map((link) => (
             <Link
               key={link.to}
               href={link.to}
-              className={`relative px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                pathname === link.to
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              style={{
+                fontSize: ".92rem",
+                fontWeight: 600,
+                color: pathname === link.to ? "#15314C" : "#5d6f7c",
+                padding: "6px 0",
+                position: "relative",
+                whiteSpace: "nowrap",
+                transition: "color .2s",
+                textDecoration: "none",
+              }}
             >
               {link.label}
-              {pathname === link.to && (
-                <motion.div layoutId="nav-underline" className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary rounded-full" />
-              )}
             </Link>
           ))}
         </nav>
 
-        {/* Desktop CTAs */}
-        <div className="hidden lg:flex items-center gap-2.5">
-          <Link href="/espace">
-            <Button variant="outline" size="sm" className="gap-1.5 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground">
-              <UserRound className="w-3.5 h-3.5" />
-              Espace client
-            </Button>
+        {/* CTAs droite */}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+          {/* Connexion unifiée (double espace client/centre sur /login) ; caché sous 1220px */}
+          <Link
+            href="/login"
+            className="vitrine-nav-wide"
+            style={{ fontWeight: 600, color: "#5d6f7c", fontSize: ".93rem", whiteSpace: "nowrap", textDecoration: "none" }}
+          >
+            Connexion
           </Link>
-          <Link href="/marketplace">
-            <Button size="sm" className="btn-cta font-semibold px-4">
-              Trouver une formation
-            </Button>
-          </Link>
-        </div>
 
-        {/* Mobile toggle */}
-        <button
-          className="lg:hidden p-2 rounded-xl hover:bg-muted transition-colors"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Menu"
-        >
-          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+          {/* Bouton RDV — visible desktop uniquement */}
+          <Link href="/contact" className="vitrine-desktop-only" style={{ textDecoration: "none" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: "#15314C",
+                color: "#fff",
+                padding: "12px 24px",
+                borderRadius: 100,
+                fontWeight: 700,
+                fontSize: ".93rem",
+                whiteSpace: "nowrap",
+                transition: "background .2s, transform .2s",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "#0E2438";
+                (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "#15314C";
+                (e.currentTarget as HTMLElement).style.transform = "none";
+              }}
+            >
+              Prendre rendez-vous
+            </span>
+          </Link>
+
+          {/* Hamburger — mobile uniquement */}
+          <button
+            className="vitrine-mobile-only"
+            onClick={() => setOpen(!open)}
+            style={{ padding: 8, background: "none", border: "none", cursor: "pointer", display: "flex" }}
+            aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
+          >
+            {open ? <X size={24} color="#15314C" /> : <Menu size={24} color="#15314C" />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Menu mobile */}
       <AnimatePresence>
-        {mobileOpen && (
+        {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="lg:hidden overflow-hidden border-t border-border/40 bg-background/95 backdrop-blur-lg"
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            style={{
+              overflow: "hidden",
+              borderTop: "1px solid rgba(21,49,76,.10)",
+              background: "rgba(250,245,236,.98)",
+            }}
           >
-            <nav className="flex flex-col p-4 gap-1">
+            <nav style={{ padding: "16px 24px 24px" }}>
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   href={link.to}
-                  onClick={() => setMobileOpen(false)}
-                  className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-                    pathname === link.to
-                      ? "text-primary bg-primary/5"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  }`}
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: "block",
+                    padding: "13px 8px",
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    color: pathname === link.to ? "#15314C" : "#5d6f7c",
+                    borderBottom: "1px solid rgba(21,49,76,.07)",
+                    textDecoration: "none",
+                  }}
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border/40">
-                <Link href="/marketplace" onClick={() => setMobileOpen(false)}>
-                  <Button variant="outline" className="w-full border-primary/40 text-primary">
-                    Trouver une formation
-                  </Button>
-                </Link>
-                <Link href="/bilan-de-competences" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full btn-cta font-semibold h-14 text-base">
-                    Faire un bilan de compétences
-                  </Button>
-                </Link>
-                <Link href="/espace" onClick={() => setMobileOpen(false)} className="mt-1">
-                  <Button variant="outline" className="w-full gap-1.5 border-primary/40 text-primary">
-                    <UserRound className="w-4 h-4" />
-                    Espace client
-                  </Button>
+
+              <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+                <Link
+                  href="/contact"
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    background: "#15314C",
+                    color: "#fff",
+                    padding: "15px 28px",
+                    borderRadius: 100,
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    textDecoration: "none",
+                  }}
+                >
+                  Prendre rendez-vous
                 </Link>
                 <Link
-                  href="/centres"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 transition-colors"
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    border: "1.5px solid rgba(21,49,76,.25)",
+                    color: "#15314C",
+                    padding: "14px 28px",
+                    borderRadius: 100,
+                    fontWeight: 700,
+                    fontSize: ".95rem",
+                    textDecoration: "none",
+                    background: "transparent",
+                  }}
                 >
-                  <Building2 className="w-4 h-4" />
-                  Espace partenaires
+                  Connexion
                 </Link>
               </div>
             </nav>

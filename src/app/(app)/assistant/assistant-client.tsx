@@ -56,7 +56,7 @@ export function AssistantClient({ aiEnabled, firstFormation, userName }: { aiEna
         <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           {messages.map((m, i) => (
             <div key={i} style={{ display: "flex", gap: 10, flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: m.role === "user" ? "var(--surface-3)" : "linear-gradient(135deg,#6a5cf0,#5850ec)", color: m.role === "user" ? "var(--ink-2)" : "#fff" }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: m.role === "user" ? "var(--surface-3)" : "linear-gradient(135deg,#2f9488,#2469a6)", color: m.role === "user" ? "var(--ink-2)" : "#fff" }}>
                 <Icon name={m.role === "user" ? "user" : "sparkles"} size={15} />
               </div>
               <div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: 12, fontSize: 13.5, lineHeight: 1.55, whiteSpace: "pre-wrap", background: m.role === "user" ? "var(--primary)" : "var(--surface-3)", color: m.role === "user" ? "#fff" : "var(--ink)" }}>

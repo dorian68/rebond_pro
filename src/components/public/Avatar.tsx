@@ -17,7 +17,7 @@ function deriveInitials(name: string): string {
 /** Avatar : photo si disponible, sinon initiales sur fond coloré (dégradé). */
 export function Avatar({ name, photoUrl, initials, color, size = 56, rounded = "full" }: AvatarProps) {
   const radius = rounded === "full" ? "50%" : "16px";
-  const c = color || "#5850ec";
+  const c = color || "#2469a6";
 
   if (photoUrl) {
     return (

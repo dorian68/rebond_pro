@@ -46,7 +46,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
 
 export function brandedEmail(title: string, bodyHtml: string): string {
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#15181f">
-    <div style="background:linear-gradient(135deg,#6a5cf0,#5850ec);padding:20px 24px;border-radius:12px 12px 0 0">
+    <div style="background:linear-gradient(135deg,#2f9488,#2469a6);padding:20px 24px;border-radius:12px 12px 0 0">
       <span style="color:#fff;font-weight:800;font-size:18px">Le Bon Rebond</span>
     </div>
     <div style="border:1px solid #e8eaef;border-top:none;border-radius:0 0 12px 12px;padding:24px">

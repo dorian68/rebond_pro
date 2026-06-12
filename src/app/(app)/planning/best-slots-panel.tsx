@@ -26,7 +26,7 @@ export function BestSlotsPanel({ formations }: { formations: { id: string; title
           <div onClick={(e) => e.stopPropagation()} className="fade-up" style={{ width: 600, maxWidth: "100%", maxHeight: "88vh", background: "var(--surface)", borderRadius: 18, boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div className="spread" style={{ padding: "18px 22px", borderBottom: "1px solid var(--border-2)", background: "var(--primary-tint)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="wand" size={16} /></div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg,#2f9488,#2469a6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="wand" size={16} /></div>
                 <h3 style={{ fontSize: 16 }}>Meilleurs créneaux</h3>
               </div>
               <button onClick={() => setOpen(false)} className="btn btn-ghost btn-icon" style={{ color: "var(--ink-3)" }}><Icon name="x" size={18} /></button>

@@ -98,7 +98,7 @@ export function Sidebar({
           <Link
             href="/admin"
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 10, marginBottom: 6,
-              color: "#fff", background: "linear-gradient(135deg,#2a2550,#5850ec)", fontWeight: 700, fontSize: 13.5 }}
+              color: "#fff", background: "linear-gradient(135deg,#2a2550,#2469a6)", fontWeight: 700, fontSize: 13.5 }}
           >
             <Icon name="shield" size={18} /> Administration plateforme
           </Link>
@@ -121,7 +121,7 @@ export function Sidebar({
           <Icon name="settings" size={18} /> Paramètres
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 10px 4px", marginTop: 6 }}>
-          <div className="avatar" style={{ width: 34, height: 34, background: "linear-gradient(140deg,#6a5cf0,#5850ec)" }}>{user.initials}</div>
+          <div className="avatar" style={{ width: 34, height: 34, background: "linear-gradient(140deg,#2f9488,#2469a6)" }}>{user.initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.name}</div>
             <div style={{ fontSize: 11, color: "var(--ink-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.orgName}</div>

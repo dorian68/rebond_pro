@@ -26,7 +26,7 @@ export default async function AdminOverviewPage() {
       <PageHeader title="Pilotage de l'écosystème" subtitle="Vue consolidée de l'ensemble du réseau : centres, formateurs et bénéficiaires." />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Link href="/admin/finances" style={{ background: "linear-gradient(135deg,#5850ec,#6a5cf0)", color: "#fff", borderRadius: 16, padding: "18px 22px" }}>
+        <Link href="/admin/finances" style={{ background: "linear-gradient(135deg,#2469a6,#2f9488)", color: "#fff", borderRadius: 16, padding: "18px 22px" }}>
           <div style={{ fontSize: 12.5, opacity: .85, fontWeight: 600 }}>Commissions plateforme (revenus réels)</div>
           <div style={{ fontSize: 34, fontWeight: 800, marginTop: 4 }}>{formatMoney(finance.totalCommission)}</div>
           <div style={{ fontSize: 12, opacity: .8, marginTop: 4 }}>{finance.count} transaction{finance.count > 1 ? "s" : ""} · tracer le détail →</div>

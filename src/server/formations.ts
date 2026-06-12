@@ -36,7 +36,7 @@ export async function listFormations(ctx: TenantContext) {
       modality: f.modality,
       level: f.level,
       status: f.status,
-      color: f.color ?? "#5850ec",
+      color: f.color ?? "#2469a6",
       isPublic: f.isPublic,
       publicSlug: f.publicSlug,
       upcomingSessions: upcoming.length,

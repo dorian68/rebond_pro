@@ -57,7 +57,7 @@ export function CatalogueClient({ formations, categories, savedIds, filters }: {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {formations.map((f) => {
-            const c = f.color || "#5850ec";
+            const c = f.color || "#2469a6";
             const isSaved = saved.has(f.id);
             const isReq = requested.has(f.id);
             const duration = f.durationDays ? `${f.durationDays} j` : f.durationHours ? `${f.durationHours} h` : null;

@@ -30,7 +30,7 @@ export default async function BeneficiairesPage() {
             return (
               <Link key={b.id} href={`/beneficiaires/${b.id}`} className="card card-pad" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar size={44} color="#6a5cf0">{(b.firstName[0] + b.lastName[0]).toUpperCase()}</Avatar>
+                  <Avatar size={44} color="#2f9488">{(b.firstName[0] + b.lastName[0]).toUpperCase()}</Avatar>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 15 }}>{b.firstName} {b.lastName}</div>
                     <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{b.email ?? "—"}</div>
@@ -39,7 +39,7 @@ export default async function BeneficiairesPage() {
                 </div>
                 <div>
                   <div style={{ height: 7, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${b.progress}%`, background: "linear-gradient(90deg,#6a5cf0,#5850ec)" }} />
+                    <div style={{ height: "100%", width: `${b.progress}%`, background: "linear-gradient(90deg,#2f9488,#2469a6)" }} />
                   </div>
                   <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 5 }}>{b.progress}% · {b.stepsDone}/{b.stepsTotal} étapes · {b._count.interests} formation{b._count.interests > 1 ? "s" : ""} suivie{b._count.interests > 1 ? "s" : ""}</div>
                 </div>

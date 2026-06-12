@@ -12,7 +12,7 @@ import type { ProspectCard } from "@/server/prospects";
 const COLUMNS: { id: string; color: string }[] = [
   { id: "NOUVEAU", color: "#919aa8" },
   { id: "CONTACTE", color: "#2f7fc4" },
-  { id: "DEVIS", color: "#5850ec" },
+  { id: "DEVIS", color: "#2469a6" },
   { id: "RELANCE", color: "#d9821f" },
   { id: "GAGNE", color: "#18996b" },
   { id: "PERDU", color: "#dc5147" },

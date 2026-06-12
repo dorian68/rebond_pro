@@ -71,7 +71,7 @@ export async function getDashboardMetrics(ctx: TenantContext) {
   const byFormation = new Map<string, { title: string; color: string; sum: number; n: number }>();
   for (const s of upcoming) {
     const key = s.formation.id;
-    const cur = byFormation.get(key) ?? { title: s.formation.title, color: s.formation.color ?? "#5850ec", sum: 0, n: 0 };
+    const cur = byFormation.get(key) ?? { title: s.formation.title, color: s.formation.color ?? "#2469a6", sum: 0, n: 0 };
     cur.sum += s.fillRate;
     cur.n += 1;
     byFormation.set(key, cur);

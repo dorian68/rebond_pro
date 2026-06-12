@@ -80,7 +80,7 @@ export async function getWeekPlanning(ctx: TenantContext, weekStartISO?: string)
     return sessions
       .filter((s) => (s.trainerId ?? null) === trainerId && dayKey(s.startDate) <= dk && dk <= dayKey(s.endDate))
       .map((s) => ({
-        id: s.id, title: s.formation.title, color: s.formation.color ?? "#5850ec",
+        id: s.id, title: s.formation.title, color: s.formation.color ?? "#2469a6",
         slots: s.slots, enrolled: s._count.enrollments, capacity: s.capacity,
         room: s.room?.name ?? null, conflict: conflictIds.has(s.id) || roomConflictIds.has(s.id),
         isStart: dayKey(s.startDate) === dk,

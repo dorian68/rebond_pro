@@ -6,7 +6,7 @@ export function Avatar({ children, size = 34, color }: { children: ReactNode; si
   return (
     <div
       className="avatar"
-      style={{ width: size, height: size, fontSize: size * 0.37, background: color ?? "linear-gradient(140deg,#6a5cf0,#5850ec)" }}
+      style={{ width: size, height: size, fontSize: size * 0.37, background: color ?? "linear-gradient(140deg,#2f9488,#2469a6)" }}
     >
       {children}
     </div>

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 function Row({ s }: { s: { id: string; startDate: Date; endDate: Date; status: string; formation: { title: string; color: string | null }; room: { name: string; type: string } | null; _count: { enrollments: number } } }) {
   return (
     <Link href={`/trainer/sessions/${s.id}`} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: "1px solid var(--border-2)", color: "inherit" }}>
-      <span style={{ width: 4, height: 38, borderRadius: 4, background: s.formation.color ?? "#5850ec", flexShrink: 0 }} />
+      <span style={{ width: 4, height: 38, borderRadius: 4, background: s.formation.color ?? "#2469a6", flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>{s.formation.title}</div>
         <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 2 }}>

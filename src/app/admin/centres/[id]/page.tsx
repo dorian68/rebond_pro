@@ -18,7 +18,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
 
       <div className="spread" style={{ marginBottom: 22, gap: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Avatar size={56} color="#5850ec">{o.name.slice(0, 2).toUpperCase()}</Avatar>
+          <Avatar size={56} color="#2469a6">{o.name.slice(0, 2).toUpperCase()}</Avatar>
           <div>
             <h1 style={{ fontSize: 23, fontWeight: 800 }}>{o.name}</h1>
             <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{o.city ?? "—"} · Plan <strong>{o.plan}</strong> · {o.billingStatus ?? "—"}</p>

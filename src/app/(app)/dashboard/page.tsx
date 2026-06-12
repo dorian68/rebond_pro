@@ -71,9 +71,9 @@ export default async function DashboardPage() {
 
       {/* Bloc IA */}
       {m.aiReco && (
-        <div className="card card-pad fade-up" style={{ marginBottom: 18, background: "linear-gradient(135deg, #f6f5fe, #ffffff)", border: "1px solid var(--primary-100)" }}>
+        <div className="card card-pad fade-up" style={{ marginBottom: 18, background: "linear-gradient(135deg, #f2f8fc, #ffffff)", border: "1px solid var(--primary-100)" }}>
           <div style={{ display: "flex", gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#2f9488,#2469a6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
               <Icon name="sparkles" size={20} />
             </div>
             <div style={{ flex: 1 }}>

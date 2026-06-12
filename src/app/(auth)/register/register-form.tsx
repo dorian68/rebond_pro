@@ -1,42 +1,211 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useEffect, useActionState } from "react";
+import Link from "next/link";
 import { registerAction, type ActionState } from "@/server/auth-actions";
-import { Icon } from "@/components/ui/Icon";
+
+const fieldStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  border: "1.5px solid rgba(21,49,76,.18)",
+  borderRadius: 12,
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontSize: "1rem",
+  background: "#fff",
+  color: "#1b2b38",
+  outline: "none",
+  transition: "border-color .2s ease",
+  boxSizing: "border-box",
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: ".88rem",
+  fontWeight: 700,
+  color: "#15314C",
+  display: "block",
+  marginBottom: 8,
+};
+
+const pillBase: React.CSSProperties = {
+  padding: "12px 22px",
+  borderRadius: 100,
+  border: "1.5px solid rgba(21,49,76,.18)",
+  fontWeight: 700,
+  fontSize: ".96rem",
+  cursor: "pointer",
+  background: "transparent",
+  color: "#5d6f7c",
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  transition: "all .2s",
+};
+
+const pillActive: React.CSSProperties = {
+  ...pillBase,
+  background: "#15314C",
+  color: "#fff",
+  borderColor: "#15314C",
+};
 
 export function RegisterForm() {
+  // Défaut « particulier » (maquette) ; /register#centre pré-sélectionne le centre.
+  const [audience, setAudience] = useState<"centre" | "particulier">("particulier");
   const [state, action, pending] = useActionState<ActionState, FormData>(registerAction, undefined);
 
+  useEffect(() => {
+    const sync = () => {
+      if (window.location.hash.replace("#", "") === "centre") setAudience("centre");
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+
   return (
-    <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div>
-        <label className="field-label" htmlFor="centerName">Nom du centre</label>
-        <input className="input" id="centerName" name="centerName" placeholder="Académie Horizon Formation" required />
+    <div>
+      {/* Sélecteur d'audience */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 30 }} role="group" aria-label="Vous êtes">
+        <button type="button" style={audience === "particulier" ? pillActive : pillBase} onClick={() => setAudience("particulier")}>
+          Je suis un particulier
+        </button>
+        <button type="button" style={audience === "centre" ? pillActive : pillBase} onClick={() => setAudience("centre")}>
+          Un centre de formation
+        </button>
       </div>
-      <div>
-        <label className="field-label" htmlFor="name">Votre nom</label>
-        <input className="input" id="name" name="name" placeholder="Camille Rivière" required />
-      </div>
-      <div>
-        <label className="field-label" htmlFor="email">Email professionnel</label>
-        <input className="input" id="email" name="email" type="email" placeholder="vous@centre.fr" required />
-      </div>
-      <div>
-        <label className="field-label" htmlFor="password">Mot de passe</label>
-        <input className="input" id="password" name="password" type="password" placeholder="8 caractères minimum" required minLength={8} />
-      </div>
-      <label style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 11.5, color: "var(--ink-2)", lineHeight: 1.5 }}>
-        <input type="checkbox" name="terms" required style={{ marginTop: 3 }} />
-        <span>J&apos;accepte les <a href="/legal/cgu" target="_blank" style={{ color: "var(--primary)", fontWeight: 700 }}>conditions d&apos;utilisation</a> et la <a href="/legal/confidentialite" target="_blank" style={{ color: "var(--primary)", fontWeight: 700 }}>politique de confidentialité</a>.</span>
-      </label>
-      {state?.error && (
-        <div className="badge badge-danger" style={{ height: "auto", padding: "8px 12px", whiteSpace: "normal" }}>
-          {state.error}
+
+      {/* Cas particulier → redirige vers contact */}
+      {audience === "particulier" ? (
+        <div style={{ background: "#F3E9D7", border: "1px solid rgba(21,49,76,.12)", borderRadius: 16, padding: "28px 28px" }}>
+          <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", marginBottom: 12, lineHeight: 1.35 }}>
+            Vous êtes particulier ?
+          </p>
+          <p style={{ color: "#5d6f7c", fontSize: ".98rem", lineHeight: 1.65, marginBottom: 20 }}>
+            Pas besoin de créer un compte pour commencer. Contactez-nous directement : nous vous accompagnons dès notre premier échange.
+          </p>
+          <Link
+            href="/contact"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "15px 28px",
+              borderRadius: 100,
+              background: "#E07C39",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "1rem",
+              textDecoration: "none",
+            }}
+          >
+            Nous contacter <span>→</span>
+          </Link>
         </div>
+      ) : (
+        /* Formulaire centre de formation */
+        <form action={action} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div>
+            <label htmlFor="centerName" style={labelStyle}>Nom du centre de formation</label>
+            <input
+              id="centerName"
+              name="centerName"
+              type="text"
+              placeholder="Académie Horizon Formation"
+              required
+              style={fieldStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; }}
+            />
+          </div>
+          <div>
+            <label htmlFor="name" style={labelStyle}>Votre nom</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Camille Rivière"
+              required
+              style={fieldStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; }}
+            />
+          </div>
+          <div>
+            <label htmlFor="email" style={labelStyle}>Email professionnel</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="vous@centre.fr"
+              required
+              style={fieldStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; }}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" style={labelStyle}>Mot de passe</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="8 caractères minimum"
+              required
+              minLength={8}
+              style={fieldStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; }}
+            />
+          </div>
+
+          <label style={{ display: "flex", gap: 11, alignItems: "flex-start", fontSize: ".92rem", color: "#5d6f7c", lineHeight: 1.45, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              name="terms"
+              required
+              style={{ width: 18, height: 18, marginTop: 2, accentColor: "#2C8E86", flexShrink: 0 }}
+            />
+            <span>
+              J&apos;accepte les{" "}
+              <Link href="/legal/cgu" target="_blank" style={{ color: "#23756e", fontWeight: 700, textDecoration: "none" }}>
+                conditions d&apos;utilisation
+              </Link>{" "}
+              et la{" "}
+              <Link href="/legal/confidentialite" target="_blank" style={{ color: "#23756e", fontWeight: 700, textDecoration: "none" }}>
+                politique de confidentialité
+              </Link>.
+            </span>
+          </label>
+
+          {state?.error && (
+            <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600 }}>
+              {state.error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={pending}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              padding: "17px 28px",
+              borderRadius: 100,
+              background: pending ? "#5d6f7c" : "#E07C39",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "1.05rem",
+              border: "none",
+              cursor: pending ? "not-allowed" : "pointer",
+              width: "100%",
+              marginTop: 6,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            {pending ? "Création…" : <>Créer mon cockpit gratuit <span>→</span></>}
+          </button>
+        </form>
       )}
-      <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={pending}>
-        {pending ? "Création…" : <>Créer mon cockpit gratuit <Icon name="arrow-right" size={17} /></>}
-      </button>
-    </form>
+    </div>
   );
 }

@@ -23,7 +23,7 @@ export default async function AdminBeneficiairesPage() {
                 <td><span className={"badge " + (STATUS[b.status] ?? "badge-neutral")}>{b.status}</span></td>
                 <td style={{ minWidth: 120 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ flex: 1, height: 6, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden" }}><div style={{ height: "100%", width: `${b.progress}%`, background: "linear-gradient(90deg,#6a5cf0,#5850ec)" }} /></div>
+                    <div style={{ flex: 1, height: 6, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden" }}><div style={{ height: "100%", width: `${b.progress}%`, background: "linear-gradient(90deg,#2f9488,#2469a6)" }} /></div>
                     <span className="tnum" style={{ fontSize: 12 }}>{b.progress}%</span>
                   </div>
                 </td>

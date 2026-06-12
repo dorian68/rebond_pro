@@ -15,8 +15,8 @@ export type DocData = {
 
 const s = StyleSheet.create({
   page: { padding: 48, fontSize: 11, fontFamily: "Helvetica", color: "#15181f", lineHeight: 1.5 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, borderBottom: "1.5pt solid #5850ec", paddingBottom: 14 },
-  brand: { fontSize: 16, fontWeight: 700, color: "#5850ec" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, borderBottom: "1.5pt solid #2469a6", paddingBottom: 14 },
+  brand: { fontSize: 16, fontWeight: 700, color: "#2469a6" },
   brandSub: { fontSize: 8, color: "#919aa8", marginTop: 2, textTransform: "uppercase", letterSpacing: 1 },
   orgInfo: { fontSize: 8.5, color: "#5a6271", textAlign: "right" },
   docType: { fontSize: 9, color: "#919aa8", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 },

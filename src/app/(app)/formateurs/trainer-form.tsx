@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/primitives";
 import { ImageUpload } from "@/components/app/ImageUpload";
 import type { FormActionState } from "@/server/formations-actions";
 
-const COLORS = ["#5850ec", "#2f7fc4", "#129a93", "#d9821f", "#18996b", "#dc5147"];
+const COLORS = ["#2469a6", "#2f7fc4", "#129a93", "#d9821f", "#18996b", "#dc5147"];
 
 type TrainerDefaults = {
   firstName?: string; lastName?: string; email?: string | null; phone?: string | null;

@@ -40,7 +40,7 @@ export function SessionsExplorer({ sessions }: { sessions: SessionListItem[] }) 
     <tr key={s.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/sessions/${s.id}`)}>
       <td>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 4, height: 30, borderRadius: 4, background: s.formation.color ?? "#5850ec", flex: "none" }} />
+          <span style={{ width: 4, height: 30, borderRadius: 4, background: s.formation.color ?? "#2469a6", flex: "none" }} />
           <div>
             <div style={{ fontWeight: 700 }}>{s.formation.title}</div>
             <div style={{ fontSize: 12, color: "var(--ink-3)" }}>{formatDateRange(s.startDate, s.endDate)}</div>

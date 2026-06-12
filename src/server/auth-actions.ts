@@ -154,7 +154,7 @@ async function deliverResetEmail(email: string, name: string | null, token: stri
     text: `Bonjour ${name ?? ""}, réinitialisez votre mot de passe : ${resetUrl}`,
     html: brandedEmail(
       "Réinitialisation du mot de passe",
-      `<p>Bonjour ${safeName},</p><p>Vous avez demandé à réinitialiser votre mot de passe.</p><p><a href="${resetUrl}" style="display:inline-block;padding:11px 16px;background:#5850ec;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Choisir un nouveau mot de passe</a></p><p>Ce lien expire dans 30 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>`,
+      `<p>Bonjour ${safeName},</p><p>Vous avez demandé à réinitialiser votre mot de passe.</p><p><a href="${resetUrl}" style="display:inline-block;padding:11px 16px;background:#2469a6;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Choisir un nouveau mot de passe</a></p><p>Ce lien expire dans 30 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>`,
     ),
   });
 }

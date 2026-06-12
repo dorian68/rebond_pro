@@ -20,7 +20,7 @@ export default async function TrainerLayout({ children }: { children: React.Reac
           <Link href="/trainer"><Logo size={44} priority /></Link>
           <span style={{ fontSize: 13, color: "var(--ink-3)", marginLeft: 4 }}>Portail formateur</span>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(140deg,#6a5cf0,#5850ec)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(140deg,#2f9488,#2469a6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>
               {initial}
             </div>
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}>{ctx.name ?? ctx.email}</span>

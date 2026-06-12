@@ -19,15 +19,15 @@ export function AreaChart({ data, height = 180 }: { data: { m: string; v: number
     <svg viewBox={`0 0 ${w} ${height}`} width="100%" height={height} preserveAspectRatio="none" style={{ display: "block" }}>
       <defs>
         <linearGradient id="caGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#5850ec" stopOpacity="0.20" />
-          <stop offset="100%" stopColor="#5850ec" stopOpacity="0" />
+          <stop offset="0%" stopColor="#2469a6" stopOpacity="0.20" />
+          <stop offset="100%" stopColor="#2469a6" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#caGrad)" />
-      <path d={linePath} fill="none" stroke="#5850ec" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={linePath} fill="none" stroke="#2469a6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {data.map((d, i) => (
         <g key={i}>
-          <circle cx={x(i)} cy={y(d.v)} r={d.proj ? 3 : 3.5} fill={d.proj ? "#fff" : "#5850ec"} stroke="#5850ec" strokeWidth="2" />
+          <circle cx={x(i)} cy={y(d.v)} r={d.proj ? 3 : 3.5} fill={d.proj ? "#fff" : "#2469a6"} stroke="#2469a6" strokeWidth="2" />
           <text x={x(i)} y={height - 4} textAnchor="middle" fontSize="11" fill="#919aa8" fontWeight={600}>
             {d.m}
           </text>

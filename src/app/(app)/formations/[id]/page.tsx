@@ -38,7 +38,7 @@ export default async function FormationDetailPage({ params }: { params: Promise<
     <div className="fade-up">
       <Link href="/formations" className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }}><Icon name="chevron-left" size={15} /> Catalogue</Link>
 
-      <div style={{ height: 5, background: f.color ?? "#5850ec", borderRadius: 99, marginBottom: 16, maxWidth: 80 }} />
+      <div style={{ height: 5, background: f.color ?? "#2469a6", borderRadius: 99, marginBottom: 16, maxWidth: 80 }} />
       <PageHeader title={f.title} subtitle={`${f.category ?? "Sans catégorie"} · ${MODALITY_LABELS[f.modality]} · ${LEVEL_LABELS[f.level]}`}>
         <span className={"badge " + (FORMATION_STATUS_BADGE[f.status] ?? "badge-neutral")}>{FORMATION_STATUS_LABELS[f.status]}</span>
         {canEdit && (

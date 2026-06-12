@@ -82,7 +82,7 @@ export default async function TrainerDetailPage({ params }: { params: Promise<{ 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {t.formations.map((f) => (
                   <Link key={f.formation.id} href={`/formations/${f.formation.id}`} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, fontWeight: 600 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, background: f.formation.color ?? "#5850ec" }} /> {f.formation.title}
+                    <span style={{ width: 8, height: 8, borderRadius: 99, background: f.formation.color ?? "#2469a6" }} /> {f.formation.title}
                   </Link>
                 ))}
               </div>

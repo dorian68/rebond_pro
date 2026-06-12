@@ -8,7 +8,7 @@ import { AgentUIBlockRenderer } from "./AgentUIBlockRenderer";
 
 function AssistantAvatar({ size = 28 }: { size?: number }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 8, flex: "none", background: "linear-gradient(140deg,#6a5cf0,#5850ec)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(88,80,236,.35)" }}>
+    <div style={{ width: size, height: size, borderRadius: 8, flex: "none", background: "linear-gradient(140deg,#2f9488,#2469a6)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(36,105,166,.35)" }}>
       <svg width={size * 0.58} height={size * 0.58} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-5 4 3 7-8" /><path d="M16 4h4v4" /></svg>
     </div>
   );
@@ -99,8 +99,8 @@ function agentContext(pathname: string): { intro: string; suggestions: Suggestio
 
 export function AgentDock({
   bottomOffset = 24,
-  accentGradient = "linear-gradient(140deg,#6a5cf0,#5850ec)",
-  accentShadow = "rgba(88,80,236,.45)",
+  accentGradient = "linear-gradient(140deg,#2f9488,#2469a6)",
+  accentShadow = "rgba(36,105,166,.45)",
 }: { bottomOffset?: number; accentGradient?: string; accentShadow?: string } = {}) {
   const a = useAgentConversation();
   const pathname = usePathname() ?? "/";

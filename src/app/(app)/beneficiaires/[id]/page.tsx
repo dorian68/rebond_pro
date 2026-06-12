@@ -30,7 +30,7 @@ export default async function BeneficiaryDetailPage({ params }: { params: Promis
 
       <div className="spread" style={{ marginBottom: 22, gap: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Avatar size={56} color="#6a5cf0">{(b.firstName[0] + b.lastName[0]).toUpperCase()}</Avatar>
+          <Avatar size={56} color="#2f9488">{(b.firstName[0] + b.lastName[0]).toUpperCase()}</Avatar>
           <div>
             <h1 style={{ fontSize: 23, fontWeight: 800 }}>{b.firstName} {b.lastName}</h1>
             <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{b.email ?? "—"}{b.phone ? ` · ${b.phone}` : ""}</p>
@@ -78,7 +78,7 @@ export default async function BeneficiaryDetailPage({ params }: { params: Promis
               <div style={{ display: "grid", gap: 8 }}>
                 {b.interests.map((i) => (
                   <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, background: i.formation.color ?? "#5850ec" }} />
+                    <span style={{ width: 8, height: 8, borderRadius: 99, background: i.formation.color ?? "#2469a6" }} />
                     <span style={{ flex: 1, fontWeight: 600 }}>{i.formation.title}</span>
                     {i.status === "requested" && <span className="badge badge-sky">Demande</span>}
                   </div>

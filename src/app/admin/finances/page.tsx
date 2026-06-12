@@ -41,7 +41,7 @@ export default async function AdminFinancesPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
         {cards.map((c) => (
-          <div key={c.label} style={{ padding: "16px 18px", border: "1px solid var(--border)", borderRadius: 14, background: c.tone ? "linear-gradient(135deg,#5850ec,#6a5cf0)" : "#fff", color: c.tone ? "#fff" : undefined }}>
+          <div key={c.label} style={{ padding: "16px 18px", border: "1px solid var(--border)", borderRadius: 14, background: c.tone ? "linear-gradient(135deg,#2469a6,#2f9488)" : "#fff", color: c.tone ? "#fff" : undefined }}>
             <div style={{ fontSize: 12, opacity: c.tone ? .85 : 1, color: c.tone ? "#fff" : "var(--ink-3)", fontWeight: 600 }}>{c.label}</div>
             <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6 }}>{c.value}</div>
           </div>

@@ -36,7 +36,7 @@ export default async function EspaceHomePage() {
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{progress.percent}%</span>
         </div>
         <div style={{ height: 10, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress.percent}%`, background: "linear-gradient(90deg,#6a5cf0,#5850ec)", borderRadius: 99 }} />
+          <div style={{ height: "100%", width: `${progress.percent}%`, background: "linear-gradient(90deg,#2f9488,#2469a6)", borderRadius: 99 }} />
         </div>
         <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 8 }}>{progress.done} étape{progress.done > 1 ? "s" : ""} sur {progress.total} complétée{progress.done > 1 ? "s" : ""}.</p>
       </Card>
@@ -72,7 +72,7 @@ export default async function EspaceHomePage() {
           <div style={{ display: "grid", gap: 8 }}>
             {interests.slice(0, 5).map((i) => (
               <Link key={i.id} href={`/${i.formation.organization.slug}/f/${i.formation.publicSlug ?? i.formation.slug}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface-3)", color: "inherit" }}>
-                <span style={{ width: 4, height: 30, borderRadius: 4, background: i.formation.color ?? "#5850ec" }} />
+                <span style={{ width: 4, height: 30, borderRadius: 4, background: i.formation.color ?? "#2469a6" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{i.formation.title}</div>
                   <div style={{ fontSize: 12, color: "var(--ink-3)" }}>{i.formation.organization.name}</div>

@@ -40,7 +40,7 @@ export default async function TrainerProfilePage({ params }: { params: Params })
             <h1>{name}</h1>
             <div className="mkt-card-meta" style={{ marginTop: 8 }}>
               <Link href={`/${t.organization.slug}`} style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "var(--ink-2)" }}>
-                <Avatar name={t.organization.name} photoUrl={t.organization.logoUrl} color="#5850ec" size={22} rounded="lg" />
+                <Avatar name={t.organization.name} photoUrl={t.organization.logoUrl} color="#2469a6" size={22} rounded="lg" />
                 {t.organization.name}
               </Link>
               {t.organization.city && <span><Icon name="map-pin" size={13} /> {t.organization.city}</span>}
@@ -69,7 +69,7 @@ export default async function TrainerProfilePage({ params }: { params: Params })
           ) : (
             <div className="mkt-grid">
               {formations.map((f) => {
-                const c = f.color || "#5850ec";
+                const c = f.color || "#2469a6";
                 return (
                   <Link key={f.id} href={`/${f.organization.slug}/f/${f.publicSlug ?? f.slug}`} className="mkt-card">
                     <div className="mkt-card-cover" style={{ background: f.coverImageUrl ? `url(${f.coverImageUrl}) center/cover` : `linear-gradient(135deg, ${c}, ${c}aa)` }}>

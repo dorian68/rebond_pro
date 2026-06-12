@@ -1,201 +1,281 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
-import { Button } from "@/components/site/ui/button";
-import { Badge } from "@/components/site/ui/badge";
-import { Card, CardContent } from "@/components/site/ui/card";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle2 } from "lucide-react";
 import { submitContactRequest } from "./actions";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24 },
   visible: (i: number = 0) => ({
     opacity: 1, y: 0,
-    transition: { delay: i * 0.1, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const }
+    transition: { delay: i * 0.1, duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 };
 
-const fieldClass =
-  "w-full rounded-xl border border-input bg-card px-4 h-11 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors";
+const fieldStyle: CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  border: "1.5px solid rgba(21,49,76,.18)",
+  borderRadius: 12,
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontSize: "1rem",
+  background: "#FAF5EC",
+  color: "#1b2b38",
+  outline: "none",
+  transition: "border-color .2s ease, background .2s ease",
+  boxSizing: "border-box",
+};
 
-export default function Contact() {
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
+const labelStyle: CSSProperties = {
+  fontSize: ".88rem",
+  fontWeight: 700,
+  color: "#15314C",
+  display: "block",
+  marginBottom: 8,
+};
+
+const PHONE = process.env.NEXT_PUBLIC_PHONE ?? "06 00 00 00 00";
+const EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@lebonrebond.fr";
+
+const channels = [
+  {
+    k: "Le plus rapide",
+    v: "WhatsApp & appel",
+    s: `${PHONE} — du lundi au vendredi, 9h à 18h.`,
+    accent: true,
+    href: `https://wa.me/${PHONE.replace(/\s/g, "")}`,
+  },
+  {
+    k: "Par email",
+    v: EMAIL,
+    s: "Réponse sous 24 à 48h ouvrées.",
+    href: `mailto:${EMAIL}`,
+  },
+  {
+    k: "Centres de formation",
+    v: "Devenir partenaire",
+    s: "Gagnez en visibilité et recevez des demandes qualifiées. Indiquez « centre de formation » dans votre message.",
+    href: "/centres",
+  },
+  {
+    k: "Prendre rendez-vous",
+    v: "Un premier échange",
+    s: "15 minutes, sans engagement, pour comprendre votre situation.",
+    href: "#form",
+  },
+];
+
+export default function ContactPage() {
+  const [audience, setAudience] = useState<"particulier" | "centre">("particulier");
+  const [form, setForm] = useState({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Éligibilité CPF (verdict instantané, côté client)
-  const [elig, setElig] = useState({ statut: "", experience: "", objectif: "" });
-  const [eligResult, setEligResult] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const res = await submitContactRequest(formData);
+    const res = await submitContactRequest({ ...form, situation: audience === "centre" ? "centre-formation" : form.situation });
     setSubmitting(false);
     if (!res.ok) { setError(res.error ?? "Une erreur est survenue. Réessayez."); return; }
     setSent(true);
-    setFormData({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
+    setForm({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
   };
 
-  const checkEligibility = () => {
-    if (!elig.statut) { setEligResult("Sélectionnez au moins votre statut pour estimer votre éligibilité."); return; }
-    if (elig.statut === "demandeur") {
-      setEligResult("En tant que demandeur d'emploi, votre bilan peut être financé via votre CPF et, selon votre situation, complété par France Travail (AIF). Confirmons ensemble lors d'un premier rendez-vous gratuit.");
-    } else {
-      setEligResult("Bonne nouvelle : avec votre statut, votre bilan de compétences est en principe finançable par votre CPF, sans avance de frais ni information de votre employeur. Vérifions le montant exact ensemble lors d'un rendez-vous gratuit.");
-    }
-  };
+  const pillBase: CSSProperties = { padding: "12px 22px", borderRadius: 100, border: "1.5px solid rgba(21,49,76,.18)", fontWeight: 700, fontSize: ".96rem", cursor: "pointer", background: "transparent", color: "#5d6f7c", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all .2s" };
+  const pillActive: CSSProperties = { ...pillBase, background: "#15314C", color: "#fff", borderColor: "#15314C" };
 
   return (
     <>
-      <section className="bg-gradient-hero py-16 lg:py-20">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 rounded-full">Contact</Badge>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Prenons <span className="font-script text-accent">rendez-vous</span></h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-6">
-              Votre premier rendez-vous est gratuit et sans engagement. Parlons de votre projet.
+      {/* ── SUBHERO centré ── */}
+      <section style={{ position: "relative", overflow: "hidden", padding: "72px 0 48px", textAlign: "center" }}>
+        <div style={{ position: "absolute", width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle,rgba(95,177,78,.14),transparent 70%)", top: -120, left: "50%", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 0 }} />
+        <div className="container" style={{ position: "relative", zIndex: 1 }}>
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: 780, margin: "0 auto" }}>
+            <div style={{ fontSize: ".84rem", color: "#5d6f7c", fontWeight: 600, marginBottom: 22, letterSpacing: ".01em" }}>
+              <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>Accueil</Link>
+              {" · "}
+              <b style={{ color: "#23756e", fontWeight: 700 }}>Contact</b>
+            </div>
+            <h1
+              style={{
+                fontFamily: "'Newsreader', Georgia, serif",
+                fontSize: "clamp(2.4rem, 4.8vw, 3.9rem)",
+                fontWeight: 400,
+                letterSpacing: "-.03em",
+                color: "#15314C",
+                margin: "0 0 22px",
+              }}
+            >
+              Parlons de votre{" "}
+              <em style={{ fontStyle: "italic", color: "#2C8E86" }}>projet.</em>
+            </h1>
+            <p style={{ fontSize: "1.18rem", color: "#5d6f7c", lineHeight: 1.65, maxWidth: "62ch", margin: "0 auto" }}>
+              Une question, une envie de reconversion, ou vous représentez un centre de formation ? Écrivez-nous : un échange humain, une réponse claire.
             </p>
-            <Button size="lg" className="btn-cta h-14 text-lg hover:scale-[1.02] transition-all duration-300 flex flex-col items-center mx-auto">
-              <span className="flex items-center gap-2"><Phone className="w-5 h-5" />Prendre RDV gratuit 45 min</span>
-              <span className="text-xs opacity-80 font-normal">En Guadeloupe ou en visio · Sans engagement</span>
-            </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* Eligibilité CPF */}
-      <section id="eligibilite" className="container mx-auto px-4 py-12">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-          <Card className="max-w-3xl mx-auto border-accent/30 shadow-gold">
-            <CardContent className="p-8">
-              <h2 className="font-display text-2xl font-bold mb-2 text-center">Vérifiez votre éligibilité CPF</h2>
-              <p className="text-muted-foreground text-center text-sm mb-6">Répondez à 3 questions pour savoir si vous pouvez financer votre bilan.</p>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Votre statut</label>
-                  <select className={fieldClass} value={elig.statut} onChange={(e) => setElig({ ...elig, statut: e.target.value })}>
-                    <option value="" disabled>Choisir...</option>
-                    <option value="salarie">Salarié(e)</option>
-                    <option value="demandeur">Demandeur d'emploi</option>
-                    <option value="independant">Indépendant(e)</option>
-                    <option value="autre">Autre</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Années d'expérience</label>
-                  <select className={fieldClass} value={elig.experience} onChange={(e) => setElig({ ...elig, experience: e.target.value })}>
-                    <option value="" disabled>Choisir...</option>
-                    <option value="0-2">0 à 2 ans</option>
-                    <option value="3-5">3 à 5 ans</option>
-                    <option value="5-10">5 à 10 ans</option>
-                    <option value="10+">Plus de 10 ans</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Votre objectif</label>
-                  <select className={fieldClass} value={elig.objectif} onChange={(e) => setElig({ ...elig, objectif: e.target.value })}>
-                    <option value="" disabled>Choisir...</option>
-                    <option value="reconversion">Reconversion</option>
-                    <option value="evolution">Évolution</option>
-                    <option value="validation">Valider un projet</option>
-                    <option value="autre">Autre</option>
-                  </select>
-                </div>
+      {/* ── FORMULAIRE + CANAUX ── */}
+      {/* ancre #eligibilite : ciblée depuis /tarifs (questions financement / CPF) */}
+      <span id="eligibilite" style={{ position: "absolute", marginTop: -90 }} aria-hidden="true" />
+      <section style={{ padding: "40px 0 108px" }} id="form">
+        <div className="container">
+          <div style={{ display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: 54, alignItems: "start" }} className="contact-page-grid">
+
+            {/* Formulaire */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+              {/* Toggle audience */}
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 34 }} role="group" aria-label="Vous êtes">
+                <button type="button" style={audience === "particulier" ? pillActive : pillBase} onClick={() => setAudience("particulier")}>
+                  Je suis un particulier
+                </button>
+                <button type="button" style={audience === "centre" ? pillActive : pillBase} onClick={() => setAudience("centre")}>
+                  Je suis un centre de formation
+                </button>
               </div>
-              <Button type="button" onClick={checkEligibility} className="w-full mt-6 bg-primary text-primary-foreground shadow-turquoise" size="lg">
-                <CheckCircle2 className="mr-2 w-5 h-5" /> Vérifier mon éligibilité
-              </Button>
-              {eligResult && (
-                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
-                  {eligResult}
-                  <div className="mt-3">
-                    <a href="#contact-form" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                      Réserver mon rendez-vous gratuit <Send className="w-4 h-4" />
-                    </a>
+
+              {sent ? (
+                <div style={{ background: "#fff", border: "1px solid rgba(21,49,76,.12)", borderRadius: 24, padding: 48, textAlign: "center", boxShadow: "0 18px 50px -28px rgba(14,36,56,.45)" }}>
+                  <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(95,177,78,.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                    <span style={{ fontSize: "1.8rem" }}>✓</span>
                   </div>
+                  <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.6rem", fontWeight: 500, color: "#15314C", margin: "0 0 10px" }}>Message envoyé !</h3>
+                  <p style={{ color: "#5d6f7c", fontSize: "1rem" }}>Nous vous recontactons sous 24 à 48h ouvrées.</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </section>
-
-      <section className="container mx-auto px-4 py-12 lg:py-20">
-        <div className="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto">
-          {/* Form */}
-          <motion.div id="contact-form" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="scroll-mt-24">
-            <h2 className="font-display text-2xl font-bold mb-6">Envoyez-nous un message</h2>
-            {sent ? (
-              <Card className="border-primary/30 shadow-soft">
-                <CardContent className="p-8 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-7 h-7 text-primary" />
+              ) : (
+                <form
+                  onSubmit={handleSubmit}
+                  style={{ background: "#fff", border: "1px solid rgba(21,49,76,.12)", borderRadius: 24, padding: 38, boxShadow: "0 18px 50px -28px rgba(14,36,56,.45)", display: "flex", flexDirection: "column", gap: 20 }}
+                >
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }} className="form-row">
+                    <div>
+                      <label htmlFor="nom" style={labelStyle}>Nom complet</label>
+                      <input id="nom" type="text" placeholder="Votre nom" required style={fieldStyle} value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; e.currentTarget.style.background = "#fff"; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; e.currentTarget.style.background = "#FAF5EC"; }} />
+                    </div>
+                    <div>
+                      <label htmlFor="tel" style={labelStyle}>Téléphone</label>
+                      <input id="tel" type="tel" placeholder="06 00 00 00 00" style={fieldStyle} value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; e.currentTarget.style.background = "#fff"; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; e.currentTarget.style.background = "#FAF5EC"; }} />
+                    </div>
                   </div>
-                  <h3 className="font-display font-bold text-xl mb-2">Message envoyé !</h3>
-                  <p className="text-muted-foreground text-sm">Nous vous recontactons sous 24h.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <input className={fieldClass} placeholder="Votre nom complet" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-                <input className={fieldClass} type="email" placeholder="Votre email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-                <input className={fieldClass} type="tel" placeholder="Votre téléphone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-                <select className={fieldClass} value={formData.situation} onChange={(e) => setFormData({ ...formData, situation: e.target.value })}>
-                  <option value="" disabled>Votre situation actuelle</option>
-                  <option value="salarie">Salarié(e)</option>
-                  <option value="demandeur">Demandeur d'emploi</option>
-                  <option value="entrepreneur">Entrepreneur / Porteur de projet</option>
-                  <option value="autre">Autre</option>
-                </select>
-                <textarea
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
-                  placeholder="Votre message (facultatif)"
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  rows={4}
-                />
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" checked={formData.cpfCheck} onChange={(e) => setFormData({ ...formData, cpfCheck: e.target.checked })} className="rounded border-input" />
-                  Je souhaite vérifier mon éligibilité CPF
-                </label>
-                {error && <p className="text-sm text-red-600">{error}</p>}
-                <Button type="submit" size="lg" className="w-full btn-cta" disabled={submitting}>
-                  <Send className="mr-2 w-5 h-5" /> {submitting ? "Envoi…" : "Envoyer ma demande"}
-                </Button>
-              </form>
-            )}
-          </motion.div>
 
-          {/* Info */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp}>
-            <h2 className="font-display text-2xl font-bold mb-6">Informations pratiques</h2>
-            <div className="space-y-6">
-              {[
-                { icon: MapPin, title: "Adresse", lines: ["Pointe-à-Pitre", "Guadeloupe (971)"] },
-                { icon: Phone, title: "Téléphone", lines: ["06 90 XX XX XX"] },
-                { icon: Mail, title: "Email", lines: ["contact@lebonrebond.fr"] },
-                { icon: Clock, title: "Horaires", lines: ["Lundi – Vendredi : 8h – 18h", "Samedi : sur rendez-vous"] },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="w-5 h-5 text-primary" />
-                  </div>
                   <div>
-                    <h3 className="font-semibold text-sm">{item.title}</h3>
-                    {item.lines.map((line, j) => (
-                      <p key={j} className="text-muted-foreground text-sm">{line}</p>
-                    ))}
+                    <label htmlFor="email" style={labelStyle}>Email</label>
+                    <input id="email" type="email" placeholder="vous@email.fr" required style={fieldStyle} value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; e.currentTarget.style.background = "#fff"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; e.currentTarget.style.background = "#FAF5EC"; }} />
                   </div>
-                </div>
+
+                  <div>
+                    <label htmlFor="sujet" style={labelStyle}>Votre besoin</label>
+                    <select id="sujet" style={fieldStyle} value={form.situation} onChange={(e) => setForm({ ...form, situation: e.target.value })}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; }}>
+                      <option value="">Choisir...</option>
+                      <option value="formation">Trouver une formation</option>
+                      <option value="bilan-competences">Faire un bilan de compétences</option>
+                      <option value="bilan-orientation">Bilan d'orientation (élève / étudiant)</option>
+                      <option value="centre-formation">Devenir centre partenaire</option>
+                      <option value="autre">Autre question</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="msg" style={labelStyle}>Votre message</label>
+                    <textarea id="msg" placeholder="Décrivez votre situation en quelques mots…" rows={5}
+                      style={{ ...fieldStyle, resize: "vertical", minHeight: 120, padding: "14px 16px" } as CSSProperties}
+                      value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "#2C8E86"; e.currentTarget.style.background = "#fff"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(21,49,76,.18)"; e.currentTarget.style.background = "#FAF5EC"; }}
+                    />
+                  </div>
+
+                  {error && (
+                    <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600 }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={submitting} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "17px 28px", borderRadius: 100, background: submitting ? "#5d6f7c" : "#E07C39", color: "#fff", fontWeight: 700, fontSize: "1.05rem", border: "none", cursor: submitting ? "not-allowed" : "pointer", width: "100%", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    {submitting ? "Envoi…" : <>Envoyer ma demande <span>→</span></>}
+                  </button>
+
+                  <p style={{ fontSize: ".82rem", color: "#85939d", lineHeight: 1.5, textAlign: "center" }}>
+                    En envoyant ce formulaire, vous acceptez d'être recontacté par Le Bon Rebond. Vos informations restent confidentielles.
+                  </p>
+                </form>
+              )}
+            </motion.div>
+
+            {/* Canaux */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {channels.map((ch, i) => (
+                <motion.div key={ch.k} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}>
+                  <a
+                    href={ch.href}
+                    style={{
+                      display: "block",
+                      background: ch.accent ? "#15314C" : "#F3E9D7",
+                      borderRadius: 20,
+                      padding: "26px 28px",
+                      textDecoration: "none",
+                      transition: "transform .2s",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "none"; }}
+                  >
+                    <div style={{ fontSize: ".78rem", fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: ch.accent ? "#5FB14E" : "#23756e", marginBottom: 8 }}>
+                      {ch.k}
+                    </div>
+                    <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", color: ch.accent ? "#fff" : "#15314C", fontWeight: 500, lineHeight: 1.2 }}>
+                      {ch.v}
+                    </div>
+                    <div style={{ color: ch.accent ? "rgba(255,255,255,.72)" : "#5d6f7c", fontSize: ".96rem", marginTop: 6, lineHeight: 1.55 }}>
+                      {ch.s}
+                    </div>
+                  </a>
+                </motion.div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BANDEAU NAVY ── */}
+      <section style={{ position: "relative", overflow: "hidden", background: "#15314C", color: "#fff", textAlign: "center", padding: "96px 0" }}>
+        <div style={{ position: "absolute", zIndex: 1, width: 780, height: 780, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,.10)", left: "50%", top: "50%", transform: "translate(-50%,-46%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", zIndex: 1, width: 1100, height: 1100, borderRadius: "50%", border: "1.5px solid rgba(95,177,78,.16)", left: "50%", top: "50%", transform: "translate(-50%,-46%)", pointerEvents: "none" }} />
+        <div className="container" style={{ position: "relative", zIndex: 2 }}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+            <p style={{ color: "#5FB14E", fontWeight: 700, letterSpacing: ".18em", textTransform: "uppercase", fontSize: ".82rem", fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 24 }}>
+              Le bon moment
+            </p>
+            <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", color: "#fff", fontSize: "clamp(2.1rem, 4.6vw, 3.5rem)", fontWeight: 400, fontStyle: "italic", lineHeight: 1.18, maxWidth: "22ch", margin: "0 auto" }}>
+              Votre prochaine étape commence par un simple message.
+            </h2>
           </motion.div>
         </div>
       </section>
+
+      <style>{`
+        @media (max-width: 980px) {
+          .contact-page-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .form-row { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </>
   );
 }

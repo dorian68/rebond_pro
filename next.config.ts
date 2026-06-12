@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@react-pdf/renderer"],
   // Sortie autonome pour une image Docker légère (cf. déploiement VPS/Hetzner).
   output: "standalone",
+  // Alias FR hérités des maquettes vitrine → routes auth réelles.
+  async redirects() {
+    return [
+      { source: "/connexion", destination: "/login", permanent: true },
+      { source: "/inscription", destination: "/register", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

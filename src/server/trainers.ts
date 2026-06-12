@@ -25,7 +25,7 @@ export async function listTrainers(ctx: TenantContext) {
       initials: t.initials ?? (t.firstName[0] + t.lastName[0]).toUpperCase(),
       email: t.email,
       phone: t.phone,
-      color: t.color ?? "#5850ec",
+      color: t.color ?? "#2469a6",
       specialities: t.specialities,
       active: t.active,
       upcomingSessions: upcoming.length,
