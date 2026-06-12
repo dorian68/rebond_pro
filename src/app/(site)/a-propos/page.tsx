@@ -56,7 +56,9 @@ export default function AProposPage() {
       <section className="container" style={{ paddingBottom: 20 }}>
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
           style={{ height: 440, borderRadius: 28, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-          <ImgSlot id="ap-team" alt="Photo — une scène d'accompagnement humaine et chaleureuse, ou le territoire (Guadeloupe)" />
+          <div style={{ position: "relative", width: "100%", height: "100%" }}>
+            <Image src="/photos/ap-hero.jpg" alt="Le Bon Rebond — accompagnement professionnel" fill style={{ objectFit: "cover", objectPosition: "center 40%" }} sizes="(max-width:1200px) 100vw, 1200px" priority />
+          </div>
         </motion.div>
       </section>
 
@@ -75,28 +77,21 @@ export default function AProposPage() {
           <motion.article initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
             className="ap-founder">
             <div className="ap-founder-portrait">
-              <Image src="/photos/mathurin-suffrin.jpg" alt="Mathurin Suffrin, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center top" }} sizes="(max-width:880px) 100vw, 400px" />
+              <Image src="/photos/mathurin-suffrin.jpg" alt="Mathurin Suffrin, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center 20%" }} sizes="(max-width:880px) 100vw, 400px" />
             </div>
             <div>
               <div style={{ fontSize: ".78rem", fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase" as const, color: "#23756e" }}>Cofondateur · Ancrage terrain &amp; entrepreneuriat</div>
               <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2rem,3.2vw,2.6rem)", fontWeight: 500, color: "#15314C", letterSpacing: "-.02em", margin: "12px 0 6px", lineHeight: 1.05 }}>Mathurin Suffrin</h3>
-              <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.2rem", color: "#2C8E86", marginBottom: 24 }}>Ingénieur génie civil &amp; bâtiment, entrepreneur du développement local.</p>
+              <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.2rem", color: "#2C8E86", marginBottom: 24 }}>Serial entrepreneur, expert en immobilier et transformation digitale.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 18, fontSize: "1.06rem", color: "#5d6f7c", lineHeight: 1.7 }}>
                 <p style={{ margin: 0 }}>
-                  Basé en Guadeloupe, Mathurin développe depuis plusieurs années des projets à la croisée du bâtiment, de l&apos;immobilier, du numérique et de l&apos;accompagnement entrepreneurial. Diplômé de <strong style={{ color: "#15314C", fontWeight: 600 }}>Polytech Annecy-Chambéry</strong> (Génie Civil, Bâtiment, Énergie et Environnement), il possède une solide expérience en maîtrise d&apos;œuvre, assistance à maîtrise d&apos;ouvrage, pilotage de chantiers (OPC), rénovation énergétique et conduite de travaux.
+                  Mathurin Suffrin, ingénieur de formation, est un serial entrepreneur, expert en immobilier et fondateur de plusieurs projets innovants dédiés à l&apos;habitat, aux travaux et à la transformation digitale (<strong style={{ color: "#15314C", fontWeight: 600 }}>Mon Artisan Préféré</strong>, <strong style={{ color: "#15314C", fontWeight: 600 }}>MAPassistance</strong>, <strong style={{ color: "#15314C", fontWeight: 600 }}>Indivision Solutions Guadeloupe</strong>, <strong style={{ color: "#15314C", fontWeight: 600 }}>Carr&apos;A</strong>…).
                 </p>
-                <p style={{ margin: 0 }}>Parallèlement à son activité d&apos;ingénieur chez Carrez &amp; Associés, il a fondé et cofondé plusieurs entreprises à fort impact territorial :</p>
-                <ul className="ap-vlist">
-                  <li><strong>Mon Artisan Préféré</strong> — premier réseau local de mise en relation entre particuliers et artisans qualifiés en Savoie et Haute-Savoie.</li>
-                  <li><strong>MAPassistance</strong> — plateforme d&apos;assistanat administratif dédiée aux professionnels du bâtiment et du BTP.</li>
-                  <li><strong>Altiora Capital Club</strong> — club d&apos;investissement immobilier pour les investisseurs des territoires insulaires francophones.</li>
-                  <li><strong>Indivision Solutions Guadeloupe</strong> — accompagnement des dossiers d&apos;indivision et de succession immobilière.</li>
-                </ul>
                 <p style={{ margin: 0 }}>
-                  Très impliqué dans la vie associative, il préside <strong style={{ color: "#15314C", fontWeight: 600 }}>iinmyart</strong> (promotion de l&apos;art numérique) et a fondé <strong style={{ color: "#15314C", fontWeight: 600 }}>DiTas</strong> (Numérique Tout Âge Savoie), qui accompagne les personnes âgées dans leur usage du numérique.
+                  Passionné par l&apos;innovation et l&apos;impact local, il imagine et développe des solutions digitales qui rapprochent les professionnels de leurs clients et simplifient les parcours utilisateurs. À travers ses différents projets, il œuvre à rendre les services plus accessibles, plus performants et davantage connectés aux besoins du terrain.
                 </p>
                 <p style={{ margin: 0, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.14rem", color: "#15314C", lineHeight: 1.5 }}>
-                  Avec Le Bon Rebond, il apporte sa connaissance du terrain, son expérience de créateur d&apos;entreprise et sa volonté de rapprocher talents, centres de formation et opportunités économiques en Guadeloupe.
+                  Sa vision : mettre la technologie au service de l&apos;humain afin de créer des solutions concrètes, utiles et porteuses de valeur pour les particuliers comme pour les professionnels.
                 </p>
               </div>
             </div>
@@ -106,7 +101,7 @@ export default function AProposPage() {
           <motion.article initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0.5} variants={fadeUp}
             className="ap-founder ap-founder-rev">
             <div className="ap-founder-portrait">
-              <Image src="/photos/dorian-labry.jpg" alt="Dorian Labry, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center top" }} sizes="(max-width:880px) 100vw, 400px" />
+              <Image src="/photos/dorian-labry.png" alt="Dorian Labry, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center 75%" }} sizes="(max-width:880px) 100vw, 400px" />
             </div>
             <div>
               <div style={{ fontSize: ".78rem", fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase" as const, color: "#23756e" }}>Cofondateur · Technologie &amp; produit</div>
