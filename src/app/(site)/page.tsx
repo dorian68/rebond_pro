@@ -144,7 +144,7 @@ export default function Home() {
 
               {/* Photo hero */}
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 540, borderRadius: 28, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-                <Image src="/photos/hero-woman.jpg" alt="Professionnelle en reconversion regardant avec confiance" fill style={{ objectFit: "cover", objectPosition: "center top" }} priority sizes="(max-width:980px) 100vw, 50vw" />
+                <Image src="/photos/hero-woman.jpg" alt="Professionnelle en reconversion regardant avec confiance" fill style={{ objectFit: "cover", objectPosition: "center 35%" }} priority sizes="(max-width:980px) 100vw, 50vw" />
               </div>
 
               {/* Badge flottant */}
