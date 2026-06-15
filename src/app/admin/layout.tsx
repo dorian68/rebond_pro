@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { logoutAction } from "@/server/auth-actions";
@@ -23,10 +22,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <AdminNav />
         <div style={{ marginTop: "auto", padding: 14, borderTop: "1px solid rgba(255,255,255,.1)" }}>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,.6)", marginBottom: 8 }}>{admin.name ?? admin.email}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link href="/dashboard" className="btn btn-secondary btn-sm" style={{ flex: 1 }}><Icon name="dashboard" size={14} /> Mon centre</Link>
-            <form action={logoutAction}><button type="submit" className="btn btn-ghost btn-icon" title="Déconnexion" style={{ color: "#fff" }}><Icon name="logout" size={16} /></button></form>
-          </div>
+          <form action={logoutAction}>
+            <button type="submit" className="btn btn-ghost btn-sm" title="Déconnexion" style={{ color: "#fff", width: "100%", justifyContent: "center" }}>
+              <Icon name="logout" size={16} /> Déconnexion
+            </button>
+          </form>
         </div>
       </aside>
 
