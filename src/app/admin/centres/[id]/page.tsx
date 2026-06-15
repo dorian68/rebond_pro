@@ -30,6 +30,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} />
+          {o.marketplaceStatus === "APPROVED" && <Link href="/marketplace#centres" target="_blank" className="btn btn-secondary btn-sm"><Icon name="layers" size={15} /> Voir dans la marketplace</Link>}
           {o.marketplaceStatus === "APPROVED" && <Link href={`/${o.slug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="globe" size={15} /> Page publique</Link>}
         </div>
       </div>

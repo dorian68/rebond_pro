@@ -155,9 +155,11 @@ const NUDGE_QUOTES = [
 ];
 const NUDGE_COUNT_KEY = "socrate-nudge-count";
 const NUDGE_LAST_KEY = "socrate-nudge-last";
-const NUDGE_MAX = 4; // nudges autorisées par session
-const NUDGE_DELAY_FIRST = 12_000; // 12s premier nudge
-const NUDGE_DELAY_REPEAT = 90_000; // 90s entre nudges suivants
+const NUDGE_MAX = 30; // nudges autorisées par session
+const NUDGE_DELAY_FIRST = 3_000; // 3s premier nudge
+const NUDGE_DELAY_REPEAT = 15_000; // 15s entre nudges suivants
+// NB : les bulles s'arrêtent dès que l'utilisateur ouvre le chat (bulle ou bouton flottant)
+// → cf. dismiss(true) et le onClick du FAB qui écrivent NUDGE_COUNT_KEY = NUDGE_MAX.
 
 function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffset: number }) {
   const [visible, setVisible] = useState(false);

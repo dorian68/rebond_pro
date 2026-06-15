@@ -113,7 +113,7 @@ export default function Home() {
                 initial="hidden" animate="visible" custom={3} variants={fadeUp}
                 style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 38 }}
               >
-                <Link href="/formation" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>
+                <Link href="/marketplace" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>
                   Je cherche une formation <span style={{ display: "inline-block", transition: "transform .2s" }}>→</span>
                 </Link>
                 <Link href="/bilan-de-competences" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "17px 32px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", border: "1.5px solid rgba(21,49,76,.22)", color: "#15314C", textDecoration: "none", transition: "border-color .2s, background .2s", lineHeight: 1, background: "transparent" }}>
