@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email automatique — Le Bon Rebond (gabarit)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#E7E0D2;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#15314C}
+  .page{max-width:880px;margin:0 auto;padding:40px 20px 80px}
+  .lead{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#2C8E86}
+  h1.t{font-family:Georgia,serif;font-weight:500;font-size:30px;margin:0 0 6px}
+  .sub{color:#52606e;font-size:15px;margin:0 0 28px;max-width:620px}
+  .frame{background:#fff;border-radius:14px;padding:18px;box-shadow:0 24px 50px -30px rgba(21,49,76,.45)}
+  .frame .barlbl{font-size:12px;font-weight:700;color:#8a96a3;letter-spacing:.04em;margin:2px 4px 14px;text-transform:uppercase}
+  /* notes */
+  .notes{background:#fff;border-radius:14px;padding:26px 28px;margin-top:30px;border:1px solid rgba(21,49,76,.1)}
+  .notes h2{font-family:Georgia,serif;font-weight:500;font-size:22px;margin:0 0 14px}
+  .notes h3{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2C8E86;margin:22px 0 8px}
+  .notes p,.notes li{font-size:14.5px;line-height:1.55;color:#37454f}
+  .notes ol{padding-left:20px}.notes li{margin-bottom:7px}
+  code{font-family:ui-monospace,Menlo,monospace;background:#F2ECDF;border:1px solid rgba(21,49,76,.1);border-radius:5px;padding:1px 6px;font-size:13px}
+  pre{background:#15314C;color:#FAF5EC;border-radius:10px;padding:16px 18px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.5}
+  .chip{display:inline-block;background:#F2ECDF;border:1px solid rgba(21,49,76,.12);border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:600;margin:0 6px 6px 0}
+  .warn{background:#FBF1E8;border:1px solid rgba(224,124,57,.4);border-radius:10px;padding:14px 16px;font-size:14px;color:#8a4a1c;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="lead">Funnel de conversion · étape 3</p>
+  <h1 class="t">Email de bienvenue</h1>
+  <p class="sub">À envoyer au prospect après qu'il vous a laissé ses coordonnées sur la carte de visite. Aperçu ci‑dessous, puis le code HTML à réutiliser comme modèle dans votre messagerie et les instructions.</p>
+
+  <div class="frame">
+    <div class="barlbl">Aperçu de l'email</div>
+    <!-- ============================================================= -->
+    <!-- DÉBUT DU GABARIT EMAIL — copiez tout le bloc <table> ci-dessous -->
+    <!-- ============================================================= -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#E7E0D2;border-radius:8px">
+      <tr><td align="center" style="padding:28px 16px">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;background:#FAF5EC;border-radius:16px;overflow:hidden;border:1px solid rgba(21,49,76,.08)">
+
+          <!-- Header -->
+          <tr><td style="background:#15314C;padding:26px 32px" align="left">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td style="padding-right:12px" valign="middle">
+                <div style="width:38px;height:38px;border-radius:50%;background:#5FB14E"></div>
+              </td>
+              <td valign="middle" style="font-family:Georgia,serif;color:#FAF5EC;font-size:20px;font-weight:bold;line-height:1.1">Le Bon Rebond</td>
+            </tr></table>
+          </td></tr>
+
+          <!-- Body -->
+          <tr><td style="padding:34px 32px 8px">
+            <p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#2C8E86;font-weight:bold">Ravis de vous avoir rencontré·e</p>
+            <h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:28px;line-height:1.2;color:#15314C;font-weight:normal">Bonjour [PRÉNOM], merci&nbsp;!</h1>
+            <p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#37454f">
+              Suite à notre échange, voici tout ce qu'il faut pour reprendre contact avec nous quand vous le souhaitez. Notre mission : transformer un doute en une <em>direction claire</em>, puis en parcours concret.
+            </p>
+          </td></tr>
+
+          <!-- CTA WhatsApp (bulletproof button) -->
+          <tr><td style="padding:8px 32px 4px">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td align="center" bgcolor="#25D366" style="border-radius:12px">
+                <a href="https://wa.me/33600000000" style="display:inline-block;padding:15px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none">Discuter sur WhatsApp&nbsp;→</a>
+              </td>
+            </tr></table>
+          </td></tr>
+
+          <!-- Coordonnées -->
+          <tr><td style="padding:20px 32px 4px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(21,49,76,.12)">
+              <tr><td style="padding:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:#8a96a3">Nous contacter</td></tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#15314c">
+              <tr><td style="padding:12px 0;border-bottom:1px solid rgba(21,49,76,.08)">📞 Téléphone&nbsp;: <a href="tel:+33600000000" style="color:#2C8E86;text-decoration:none;font-weight:bold">[VOTRE TÉLÉPHONE]</a></td></tr>
+              <tr><td style="padding:12px 0;border-bottom:1px solid rgba(21,49,76,.08)">✉️ Email&nbsp;: <a href="mailto:contact@lebonrebond.optiquant-ia.com" style="color:#2C8E86;text-decoration:none;font-weight:bold">contact@lebonrebond.optiquant-ia.com</a></td></tr>
+              <tr><td style="padding:12px 0;border-bottom:1px solid rgba(21,49,76,.08)">💬 WhatsApp&nbsp;: <a href="https://wa.me/33600000000" style="color:#2C8E86;text-decoration:none;font-weight:bold">+33 6 00 00 00 00</a></td></tr>
+              <tr><td style="padding:12px 0;border-bottom:1px solid rgba(21,49,76,.08)">🌐 Site&nbsp;: <a href="https://lebonrebond.optiquant-ia.com" style="color:#2C8E86;text-decoration:none;font-weight:bold">lebonrebond.optiquant-ia.com</a></td></tr>
+              <tr><td style="padding:12px 0">📅 Rendez‑vous&nbsp;: <a href="[LIEN DE PRISE DE RDV]" style="color:#2C8E86;text-decoration:none;font-weight:bold">Réserver un créneau</a></td></tr>
+            </table>
+          </td></tr>
+
+          <!-- Footer -->
+          <tr><td style="padding:24px 32px 30px">
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#8a96a3">
+              Le Bon Rebond — Orientation · Formation · Reconversion<br>
+              Vous recevez cet email car vous nous avez laissé vos coordonnées. <a href="[LIEN DÉSINSCRIPTION]" style="color:#8a96a3">Se désinscrire</a>.
+            </p>
+          </td></tr>
+
+        </table>
+      </td></tr>
+    </table>
+    <!-- ============================================================= -->
+    <!-- FIN DU GABARIT EMAIL                                           -->
+    <!-- ============================================================= -->
+  </div>
+
+  <div class="notes">
+    <h2>Comment l'activer (≈ 10 min)</h2>
+
+    <h3>1. Champs à remplacer dans le gabarit</h3>
+    <p>Cherchez et remplacez ces marqueurs par vos vraies infos :</p>
+    <p>
+      <span class="chip">[PRÉNOM]</span>
+      <span class="chip">[VOTRE TÉLÉPHONE]</span>
+      <span class="chip">33600000000 → votre numéro WhatsApp</span>
+      <span class="chip">contact@… → votre email</span>
+      <span class="chip">[LIEN DE PRISE DE RDV]</span>
+      <span class="chip">[LIEN DÉSINSCRIPTION]</span>
+    </p>
+    <div class="warn"><b>Important :</b> utilisez le <b>même numéro WhatsApp et le même email</b> que dans l'objet <code>CONTACT</code> de la page « Carte de visite » pour rester cohérent.</div>
+
+    <h3>2. L'envoyer à chaque nouveau lead</h3>
+    <ol>
+      <li>Quand un prospect laisse ses coordonnées sur la « Carte de visite », vous recevez un email avec son nom, son téléphone et son email.</li>
+      <li>Répondez‑lui avec ce gabarit&nbsp;: collez le HTML ci‑dessus dans un nouvel email (ou enregistrez‑le comme <b>modèle / réponse type</b> dans Gmail, Outlook ou votre outil d'emailing), remplacez <code>[PRÉNOM]</code> par son prénom, et envoyez.</li>
+      <li>Pour gagner du temps, créez‑en une <b>signature</b> ou un <b>modèle réutilisable</b> dans votre messagerie&nbsp;: un clic, vous personnalisez le prénom, c'est parti.</li>
+    </ol>
+
+    <h3>3. Version texte (fallback / clients sans HTML)</h3>
+    <pre>Bonjour [PRÉNOM], merci !
+
+Suite à notre échange, voici comment reprendre contact avec Le Bon Rebond :
+
+- Téléphone : [VOTRE TÉLÉPHONE]
+- Email : contact@lebonrebond.optiquant-ia.com
+- WhatsApp : https://wa.me/33600000000
+- Site : https://lebonrebond.optiquant-ia.com
+- Prendre rendez-vous : [LIEN DE PRISE DE RDV]
+
+À très vite,
+L'équipe Le Bon Rebond
+Orientation · Formation · Reconversion</pre>
+
+    <p style="margin-top:18px;color:#8a96a3;font-size:13px">Rappel : quand un prospect remplit le formulaire de la « Carte de visite », un email pré‑rempli avec ses coordonnées s'ouvre vers votre boîte — aucun lead n'est perdu.</p>
+  </div>
+</div>
+</body>
+</html>

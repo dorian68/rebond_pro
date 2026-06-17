@@ -133,14 +133,16 @@ export async function sendSkillAssessmentEmail(opts: {
 export async function sendLeadNotificationEmail(opts: {
   firstName?: string;
   lastName?: string;
-  email: string;
+  email?: string;
   phone?: string;
   profileType?: string;
   intent?: string;
   message?: string;
   conversationSummary?: string;
+  source?: string;
 }): Promise<void> {
-  const displayName = [opts.firstName, opts.lastName].filter(Boolean).join(" ") || opts.email;
+  const displayName = [opts.firstName, opts.lastName].filter(Boolean).join(" ") || opts.email || opts.phone || "Nouveau lead";
+  const source = opts.source ?? "Socrate chatbot";
   const now = new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full", timeStyle: "short" });
 
   const INTENT_LABELS: Record<string, string> = {
@@ -168,30 +170,30 @@ export async function sendLeadNotificationEmail(opts: {
     to: SOCRATE_ADMIN_EMAILS,
     subject: `[Le Bon Rebond] Nouveau lead à recontacter — ${displayName}`,
     html: brandedEmail(
-      "Nouveau lead Socrate",
+      "Nouveau lead",
       `<p style="background:#e8f4fd;border-left:3px solid #2469a6;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:20px;font-weight:600">
-         🤖 Lead capturé via Socrate (chatbot IA) — à recontacter
+         🔔 Nouveau lead à recontacter — source : ${esc(source)}
        </p>
        <table style="width:100%;border-collapse:collapse;font-size:14px">
          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888;width:160px">Nom</td><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;color:#15181f">${esc(displayName)}</td></tr>
-         <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Email</td><td style="padding:8px 0;border-bottom:1px solid #eee"><a href="mailto:${esc(opts.email)}" style="color:#2469a6">${esc(opts.email)}</a></td></tr>
+         ${opts.email ? `<tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Email</td><td style="padding:8px 0;border-bottom:1px solid #eee"><a href="mailto:${esc(opts.email)}" style="color:#2469a6">${esc(opts.email)}</a></td></tr>` : ""}
          ${opts.phone ? `<tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Téléphone</td><td style="padding:8px 0;border-bottom:1px solid #eee"><a href="tel:${esc(opts.phone)}" style="color:#2469a6">${esc(opts.phone)}</a></td></tr>` : ""}
          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Profil</td><td style="padding:8px 0;border-bottom:1px solid #eee">${esc(profileLabel)}</td></tr>
          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Intention</td><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;color:#E07C39">${esc(intentLabel)}</td></tr>
          ${opts.message ? `<tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888;vertical-align:top">Besoin exprimé</td><td style="padding:8px 0;border-bottom:1px solid #eee;line-height:1.6">${esc(opts.message).replace(/\n/g, "<br/>")}</td></tr>` : ""}
          ${opts.conversationSummary ? `<tr><td style="padding:8px 0;color:#888;vertical-align:top;padding-top:12px">Résumé conversation</td><td style="padding:8px 0;padding-top:12px;line-height:1.6;color:#5a6271;font-style:italic">${esc(opts.conversationSummary).replace(/\n/g, "<br/>")}</td></tr>` : ""}
        </table>
-       <p style="margin-top:20px;font-size:12px;color:#aaa">Reçu le ${esc(now)} · Source : Socrate chatbot · Statut : <strong style="color:#E07C39">à recontacter</strong></p>`,
+       <p style="margin-top:20px;font-size:12px;color:#aaa">Reçu le ${esc(now)} · Source : ${esc(source)} · Statut : <strong style="color:#E07C39">à recontacter</strong></p>`,
     ),
     text: [
-      `[Le Bon Rebond] Nouveau lead Socrate — ${displayName}`,
+      `[Le Bon Rebond] Nouveau lead — ${displayName}`,
       `Email    : ${opts.email}`,
       opts.phone ? `Tél      : ${opts.phone}` : "",
       `Profil   : ${profileLabel}`,
       `Intention: ${intentLabel}`,
       opts.message ? `\nBesoin :\n${opts.message}` : "",
       opts.conversationSummary ? `\nRésumé conversation :\n${opts.conversationSummary}` : "",
-      `\nReçu le ${now} · Source : Socrate chatbot`,
+      `\nReçu le ${now} · Source : ${source}`,
     ]
       .filter(Boolean)
       .join("\n"),

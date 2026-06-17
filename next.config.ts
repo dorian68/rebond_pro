@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
       { source: "/inscription", destination: "/register", permanent: true },
     ];
   },
+  // Tunnel de conversion événement (carte de visite 2 portes) servi en statique depuis /public.
+  async rewrites() {
+    return [
+      { source: "/decouvrir", destination: "/decouvrir/index.html" },
+    ];
+  },
 };
 
 export default nextConfig;

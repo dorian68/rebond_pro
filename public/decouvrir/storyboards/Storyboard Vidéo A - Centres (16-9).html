@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storyboard Vidéo A — Centres de formation (16:9)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF5EC;
+    --navy:#15314C;
+    --teal:#2C8E86;
+    --green:#5FB14E;
+    --orange:#E07C39;
+    --paper:#FFFFFF;
+    --workspace:#E7E0D2;
+    --line:rgba(21,49,76,.12);
+    --serif:'Newsreader',Georgia,serif;
+    --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--workspace);
+    color:var(--navy);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  .wrap{max-width:1360px;margin:0 auto;padding:64px 40px 120px}
+
+  /* ---------- Document header ---------- */
+  .doc-head{margin-bottom:56px;border-bottom:1px solid var(--line);padding-bottom:36px}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin:0 0 18px}
+  .doc-head h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,4vw,52px);line-height:1.04;margin:0 0 8px;letter-spacing:-.01em}
+  .doc-head h1 em{font-style:italic;color:var(--teal)}
+  .doc-head p{max-width:640px;font-size:16px;color:#46586b;margin:14px 0 26px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600}
+  .chip b{color:var(--teal)}
+  .dot{width:8px;height:8px;border-radius:50%}
+
+  /* ---------- Scene block ---------- */
+  .scene{display:grid;grid-template-columns:1fr 360px;gap:32px;align-items:start;margin-bottom:60px}
+  @media(max-width:980px){.scene{grid-template-columns:1fr}}
+
+  .frame{
+    position:relative;aspect-ratio:16/9;width:100%;
+    container-type:size;
+    border-radius:6px;overflow:hidden;
+    background:var(--cream);
+    box-shadow:0 1px 0 rgba(21,49,76,.04),0 24px 48px -28px rgba(21,49,76,.45);
+  }
+  .frame .ratio-tag{position:absolute;top:12px;right:14px;z-index:6;font-family:var(--sans);font-size:2.1cqw;font-weight:700;letter-spacing:.12em;color:rgba(21,49,76,.32)}
+
+  /* meta panel */
+  .meta{padding-top:6px}
+  .scene-no{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .scene-no .n{font-family:var(--serif);font-size:40px;font-weight:500;line-height:1;color:var(--navy)}
+  .scene-no .dur{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);padding-bottom:4px}
+  .scene-role{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8a96a3;margin:0 0 18px}
+  .field{margin-bottom:16px}
+  .field .lbl{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9aa6b2;margin:0 0 5px}
+  .field .onscreen{font-family:var(--serif);font-size:20px;font-weight:500;line-height:1.2;margin:0;color:var(--navy)}
+  .field .sub{font-size:13.5px;color:#52606e;margin:0}
+  .vo{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:6px;padding:13px 15px}
+  .vo .lbl{color:var(--teal)}
+  .vo p{font-family:var(--serif);font-style:italic;font-size:15px;line-height:1.45;margin:0;color:var(--navy)}
+  .motion{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:#6b7785;margin-top:14px}
+  .motion .lbl-i{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9aa6b2;margin-top:1px}
+
+  /* ---------- Frame internals ---------- */
+  .pad{position:absolute;inset:0;padding:7cqw}
+  .split{position:absolute;inset:0;display:flex}
+  .split .txt{flex:0 0 40%;padding:6.5cqw;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
+  .split .vis{flex:1;position:relative;overflow:hidden}
+  .split.rev{flex-direction:row-reverse}
+
+  .eyebrow{font-family:var(--sans);font-size:1.7cqw;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin:0 0 2.6cqw;display:flex;align-items:center;gap:1.2cqw}
+  .eyebrow .bar{width:4cqw;height:.32cqw;background:var(--green);border-radius:2px}
+  .head{font-family:var(--serif);font-weight:500;font-size:5.4cqw;line-height:1.04;letter-spacing:-.01em;margin:0;color:var(--navy)}
+  .head.big{font-size:6.6cqw}
+  .head em{font-style:italic;color:var(--teal)}
+  .head .or{color:var(--orange);font-style:normal}
+  .deck{font-family:var(--sans);font-size:2.2cqw;line-height:1.4;color:#46586b;margin:2.8cqw 0 0;max-width:46cqw}
+
+  /* subtitle bar (sous-titres intégrés) */
+  .subbar{position:absolute;left:50%;bottom:5cqw;transform:translateX(-50%);z-index:7;background:rgba(21,49,76,.92);color:#fff;font-family:var(--sans);font-weight:600;font-size:1.95cqw;line-height:1.3;padding:1.1cqw 2cqw;border-radius:4px;max-width:82%;text-align:center;white-space:nowrap}
+  .subbar.wrap2{white-space:normal;text-align:center}
+
+  /* browser mock */
+  .browser{position:absolute;border-radius:1.4cqw 1.4cqw 0 0;overflow:hidden;background:#fff;box-shadow:0 3cqw 6cqw -2cqw rgba(21,49,76,.5);border:1px solid rgba(21,49,76,.08)}
+  .browser .bar{height:3.3cqw;background:#efeadf;display:flex;align-items:center;gap:.8cqw;padding:0 1.6cqw;border-bottom:1px solid rgba(21,49,76,.07)}
+  .browser .bar i{width:1.05cqw;height:1.05cqw;border-radius:50%;background:#d9d2c4;display:block}
+  .browser .url{margin-left:1cqw;height:1.9cqw;flex:1;max-width:60%;background:#fff;border-radius:1cqw;border:1px solid rgba(21,49,76,.08)}
+  .browser img{display:block;width:100%;height:auto}
+
+  /* logo wordmark */
+  .logo{display:inline-flex;align-items:center;gap:1.5cqw;font-family:var(--serif);font-weight:600;color:var(--navy);line-height:1}
+  .logo .mark{width:4.6cqw;height:4.6cqw;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--green));flex:none;position:relative}
+  .logo .mark::after{content:"";position:absolute;inset:23%;border-radius:50%;background:var(--cream)}
+  .logo .wm{font-size:3.4cqw;letter-spacing:-.01em;white-space:nowrap}
+  .logo .wm b{display:block;font-weight:600}
+  .logo.sm .mark{width:3.1cqw;height:3.1cqw}
+  .logo.sm .wm{font-size:2.4cqw}
+
+  /* pain scatter (scene 1) */
+  .scatter{position:absolute;inset:0;overflow:hidden;z-index:0}
+  .note{position:absolute;font-family:var(--sans);font-size:1.55cqw;font-weight:600;color:rgba(21,49,76,.5);background:var(--paper);border:1px solid var(--line);border-radius:1cqw;padding:1cqw 1.4cqw;box-shadow:0 1.5cqw 3cqw -1.5cqw rgba(21,49,76,.35)}
+
+  /* big stat (scene 2) */
+  .stat{font-family:var(--serif);font-weight:500;font-size:13cqw;line-height:.9;color:var(--orange);letter-spacing:-.02em}
+
+  /* confiance labels */
+  .labels{display:flex;flex-direction:column;gap:2.2cqw;margin-top:5cqw}
+  .lab{display:flex;align-items:center;gap:1.8cqw;font-family:var(--sans);font-size:2.6cqw;font-weight:600;color:var(--navy)}
+  .lab .tick{width:3.4cqw;height:3.4cqw;border-radius:50%;background:var(--green);flex:none;position:relative}
+  .lab .tick::after{content:"";position:absolute;left:34%;top:20%;width:24%;height:46%;border:solid #fff;border-width:0 .5cqw .5cqw 0;transform:rotate(42deg)}
+
+  /* CTA button */
+  .cta-btn{display:inline-flex;align-items:center;gap:1.4cqw;background:var(--orange);color:#fff;font-family:var(--sans);font-weight:700;font-size:2.7cqw;padding:1.9cqw 3.4cqw;border-radius:999px;box-shadow:0 2cqw 4cqw -1.5cqw rgba(224,124,57,.8)}
+  .cta-btn .arr{font-size:2.7cqw}
+  .url{font-family:var(--sans);font-weight:600;font-size:1.9cqw;letter-spacing:.02em;color:var(--teal)}
+
+  /* cover frame */
+  .cover{background:var(--navy);color:var(--cream)}
+  .cover .head{color:var(--cream)}
+  .cover .head em{color:var(--green)}
+  .cover .logo{color:var(--cream)}
+  .cover .logo .mark::after{background:var(--navy)}
+
+  .section-tag{display:flex;align-items:center;gap:14px;margin:8px 0 30px}
+  .section-tag .l{flex:1;height:1px;background:var(--line)}
+  .section-tag span{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8a96a3}
+
+  .photo{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,#d8cfbd 0 10px,#d2c8b4 10px 20px);display:flex;align-items:flex-end;justify-content:flex-start}
+  .photo .ph-lbl{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:1.5cqw;color:rgba(21,49,76,.62);background:rgba(250,245,236,.86);padding:.9cqw 1.3cqw;margin:2cqw;border-radius:.6cqw;letter-spacing:.02em}
+  .vis-grad{position:absolute;inset:0;background:linear-gradient(90deg,var(--cream) 0%,rgba(250,245,236,0) 22%);z-index:3;pointer-events:none}
+  .split.rev .vis-grad{background:linear-gradient(270deg,var(--cream) 0%,rgba(250,245,236,0) 22%)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-head">
+    <p class="kicker">Storyboard · Vidéo de démonstration</p>
+    <h1>Vidéo A — Centres de formation<br><em>« Tout votre centre, sur un seul écran »</em></h1>
+    <p>Storyboard designé à la charte Le Bon Rebond — 7 scènes pour convertir un·e dirigeant·e d'organisme débordé·e. Arc narratif : douleur → tension → révélation produit → 2 différenciateurs → preuve → CTA unique.</p>
+    <div class="meta-row">
+      <span class="chip"><b>Format</b> 16:9 — landing &amp; email</span>
+      <span class="chip"><b>Durée</b> ~50 s · 7 scènes</span>
+      <span class="chip"><b>Cible</b> B2B — organismes de formation</span>
+      <span class="chip"><span class="dot" style="background:var(--orange)"></span> Sous-titres intégrés (90 % regardent sans son)</span>
+    </div>
+  </header>
+
+  <!-- ============ COUVERTURE ============ -->
+  <div class="section-tag"><span>Couverture / miniature</span><span class="l"></span></div>
+  <div class="scene">
+    <div class="frame cover">
+      <span class="ratio-tag">16:9</span>
+      <div class="pad" style="display:flex;flex-direction:column;justify-content:space-between">
+        <div class="logo"><span class="mark"></span><span class="wm">Le Bon<b>Rebond</b></span></div>
+        <div>
+          <p class="eyebrow" style="color:var(--green)"><span class="bar"></span>Pour les centres de formation</p>
+          <h2 class="head big">Et si vous arrêtiez de<br>piloter votre centre <em>sur Excel</em> ?</h2>
+        </div>
+        <div class="url" style="color:var(--green)">lebonrebond.optiquant-ia.com</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">00</span><span class="dur">Miniature</span></div>
+      <p class="scene-role">Vignette d'accroche (thumbnail)</p>
+      <div class="field"><p class="lbl">Rôle</p><p class="sub">Image de couverture pour l'email, la landing et le post social. Pose la marque + la promesse en un regard.</p></div>
+      <div class="vo"><p class="lbl">Note</p><p>Pas de voix off — frame fixe. Le logo et l'URL ancrent la marque dès la vignette.</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Statique. Léger zoom lent (Ken Burns) possible si utilisée en intro animée.</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 1 ============ -->
+  <div class="section-tag"><span>Les 7 scènes</span><span class="l"></span></div>
+  <div class="scene">
+    <div class="frame">
+      <span class="ratio-tag">16:9</span>
+      <div class="scatter">
+        <div class="note" style="top:14%;left:60%;transform:rotate(5deg)">Relance oubliée…</div>
+        <div class="note" style="top:58%;left:64%;transform:rotate(-4deg)">Convention.docx</div>
+        <div class="note" style="top:36%;left:78%;transform:rotate(8deg)">Session — 7 %</div>
+        <div class="note" style="top:74%;left:55%;transform:rotate(3deg)">planning_v4_FINAL.xlsx</div>
+      </div>
+      <div class="pad" style="display:flex;flex-direction:column;justify-content:center;width:62%">
+        <p class="eyebrow"><span class="bar"></span>Aujourd'hui</p>
+        <h2 class="head">Votre centre tourne sur Excel,<br>vos mails… et <em>votre mémoire.</em></h2>
+      </div>
+      <div class="subbar">Excel, mails, relances oubliées… ça vous parle ?</div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">01</span><span class="dur">0–5 s</span></div>
+      <p class="scene-role">Accroche / douleur</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">Votre centre tourne sur Excel, vos mails… et votre mémoire.</p></div>
+      <div class="field"><p class="lbl">Sous-texte</p><p class="sub">Notes éparpillées qui flottent à l'écran (relances, docs, sessions vides).</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Gérer un organisme de formation, aujourd'hui, c'est jongler entre dix outils. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Les notes apparaissent une à une et tremblent légèrement ; le titre se révèle mot à mot.</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 2 ============ -->
+  <div class="scene">
+    <div class="frame">
+      <span class="ratio-tag">16:9</span>
+      <div class="pad" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+        <p class="eyebrow" style="justify-content:center"><span class="bar"></span>Le coût réel</p>
+        <div class="stat">4&nbsp;000&nbsp;€</div>
+        <h2 class="head" style="font-size:4cqw;margin-top:2cqw">Une session à moitié vide,<br>c'est <em>du chiffre d'affaires qui s'envole.</em></h2>
+      </div>
+      <div class="subbar">Une session sous-remplie = des milliers d'euros perdus.</div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">02</span><span class="dur">5–10 s</span></div>
+      <p class="scene-role">Tension</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">Une session à moitié vide, c'est du chiffre d'affaires qui s'envole.</p></div>
+      <div class="field"><p class="lbl">Sous-texte</p><p class="sub">Chiffre choc « 4 000 € » qui se compte puis se fissure / s'efface.</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Et pendant ce temps, des sessions restent à moitié vides — et personne n'a le temps de relancer. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Le compteur monte jusqu'à 4 000 € puis le chiffre pâlit (fade) pour matérialiser la perte.</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 3 ============ -->
+  <div class="scene">
+    <div class="frame">
+      <span class="ratio-tag">16:9</span>
+      <div class="split rev">
+        <div class="txt">
+          <p class="eyebrow"><span class="bar"></span>La solution</p>
+          <h2 class="head" style="font-size:4.6cqw">Et si tout votre centre tenait sur <em>un seul écran ?</em></h2>
+        </div>
+        <div class="vis">
+          <div class="vis-grad"></div>
+          <div class="browser" style="top:9%;left:4%;width:104%">
+            <div class="bar"><i></i><i></i><i></i><div class="url"></div></div>
+            <img src="../assets/20-dashboard.webp" alt="Tableau de bord Le Bon Rebond">
+          </div>
+        </div>
+      </div>
+      <div class="subbar">Voici le cockpit Le Bon Rebond.</div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">03</span><span class="dur">10–20 s</span></div>
+      <p class="scene-role">Révélation produit</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">Et si tout votre centre tenait sur un seul écran ?</p></div>
+      <div class="field"><p class="lbl">Écran produit</p><p class="sub">Tableau de bord réel : CA prévisionnel, taux de remplissage, relances, recommandation de l'assistant.</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Le Bon Rebond réunit tout : votre CA prévisionnel, vos sessions, vos relances et vos indicateurs — en un seul tableau de bord. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Le dashboard glisse depuis la droite ; les KPI s'incrémentent (count-up) ; surbrillance douce sur « Taux de remplissage ».</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 4 ============ -->
+  <div class="scene">
+    <div class="frame">
+      <span class="ratio-tag">16:9</span>
+      <div class="split">
+        <div class="txt">
+          <p class="eyebrow"><span class="bar"></span>Différenciateur 1</p>
+          <h2 class="head" style="font-size:4cqw">Vos prospects relancés, vos docs Qualiopi <em>générés tout seuls.</em></h2>
+          <p class="deck" style="font-size:1.9cqw">Fini les relances oubliées et les conventions à la main.</p>
+        </div>
+        <div class="vis">
+          <div class="vis-grad"></div>
+          <div class="browser" style="top:11%;left:0;width:108%">
+            <div class="bar"><i></i><i></i><i></i><div class="url"></div></div>
+            <img src="../assets/23-prospects.webp" alt="CRM prospects avec relances">
+          </div>
+        </div>
+      </div>
+      <div class="subbar wrap2">Relances automatiques · documents générés en un clic</div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">04</span><span class="dur">20–30 s</span></div>
+      <p class="scene-role">Différenciateur · pilotage</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">Vos prospects relancés, vos documents générés tout seuls.</p></div>
+      <div class="field"><p class="lbl">Écran produit</p><p class="sub">CRM pipeline (Nouveau → Gagné) + pop-in « Générer convention / attestation ».</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Vos prospects sont relancés au bon moment, et vos conventions, convocations et attestations Qualiopi se génèrent en un clic. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Une carte prospect passe de « Relance » à « Gagné » ; un document PDF apparaît avec un effet de pile.</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 5 ============ -->
+  <div class="scene">
+    <div class="frame">
+      <span class="ratio-tag">16:9</span>
+      <div class="split rev">
+        <div class="txt">
+          <p class="eyebrow"><span class="bar"></span>Différenciateur 2</p>
+          <h2 class="head" style="font-size:4cqw">De nouveaux apprenants qualifiés, <em>sans prospecter.</em></h2>
+          <p class="deck" style="font-size:1.9cqw">Votre catalogue exposé au réseau Le Bon Rebond.</p>
+        </div>
+        <div class="vis">
+          <div class="vis-grad"></div>
+          <div class="browser" style="top:11%;left:-8%;width:108%">
+            <div class="bar"><i></i><i></i><i></i><div class="url"></div></div>
+            <img src="../assets/02-marketplace.webp" alt="Marketplace des formations">
+          </div>
+        </div>
+      </div>
+      <div class="subbar wrap2">Des demandes pré-qualifiées arrivent directement dans votre espace</div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">05</span><span class="dur">30–38 s</span></div>
+      <p class="scene-role">Différenciateur · marketplace</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">De nouveaux apprenants qualifiés, sans prospecter.</p></div>
+      <div class="field"><p class="lbl">Écran produit</p><p class="sub">Marketplace : formations du centre exposées à des milliers d'actifs en reconversion.</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Et grâce à la marketplace, votre centre est exposé à des milliers d'actifs en reconversion : des demandes qualifiées arrivent, sans démarchage. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Les cartes formations se déposent en grille ; un badge « + 1 demande » apparaît en pop.</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 6 ============ -->
+  <div class="scene">
+    <div class="frame">
+      <span class="ratio-tag">16:9</span>
+      <div class="pad" style="display:flex;flex-direction:column;justify-content:center">
+        <p class="eyebrow"><span class="bar"></span>Conçu pour les organismes</p>
+        <div class="labels">
+          <div class="lab"><span class="tick"></span> Compatible Qualiopi</div>
+          <div class="lab"><span class="tick"></span> Sans engagement</div>
+        </div>
+      </div>
+      <div class="subbar wrap2">Qualiopi-ready · sans engagement</div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">06</span><span class="dur">38–44 s</span></div>
+      <p class="scene-role">Preuve de confiance</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">Compatible Qualiopi · Sans engagement</p></div>
+      <div class="field"><p class="lbl">Sous-texte</p><p class="sub">Trois gages de réassurance, cochés un à un.</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Compatible Qualiopi, et sans engagement. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Les trois coches s'animent en cascade (check vert), rythme rassurant.</p>
+    </div>
+  </div>
+
+  <!-- ============ SCÈNE 7 ============ -->
+  <div class="scene">
+    <div class="frame cover">
+      <span class="ratio-tag">16:9</span>
+      <div class="pad" style="display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center">
+        <div class="logo"><span class="mark"></span><span class="wm">Le Bon<b>Rebond</b></span></div>
+        <div>
+          <h2 class="head big" style="font-size:4.7cqw">Créez votre espace<br><em>gratuit</em> en 2 minutes.</h2>
+          <div style="margin-top:3.2cqw"><span class="cta-btn">Créez votre espace gratuit <span class="arr">→</span></span></div>
+        </div>
+        <div class="url" style="color:var(--green)">lebonrebond.optiquant-ia.com</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="scene-no"><span class="n">07</span><span class="dur">44–50 s</span></div>
+      <p class="scene-role">CTA unique + logo + URL</p>
+      <div class="field"><p class="lbl">Titre à l'écran</p><p class="onscreen">Créez votre espace gratuit en 2 minutes.</p></div>
+      <div class="field"><p class="lbl">Bouton</p><p class="sub">« Créez votre espace gratuit → » (orange, CTA d'action)</p></div>
+      <div class="vo"><p class="lbl">Voix off</p><p>« Créez votre espace gratuit dès aujourd'hui sur lebonrebond.optiquant-ia.com. »</p></div>
+      <p class="motion"><span class="lbl-i">Motion</span> Logo en fondu, le bouton pulse doucement une fois, l'URL se souligne.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

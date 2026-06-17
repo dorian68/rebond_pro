@@ -52,3 +52,6 @@ next-env.d.ts
 
 # logs de dev
 *.log
+
+# Bundles DesignSync (artefacts locaux)
+.dsbundle/

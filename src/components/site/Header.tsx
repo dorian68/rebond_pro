@@ -4,16 +4,116 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-const navLinks = [
-  { label: "Formations", to: "/formation" },
-  { label: "Bilan de compétences", to: "/bilan-de-competences" },
-  { label: "Centres", to: "/centres" },
-  { label: "À propos", to: "/a-propos" },
-  { label: "Contact", to: "/contact" },
+type NavChild = { label: string; to: string };
+type NavItem = { label: string; to?: string; children?: NavChild[] };
+
+const navItems: NavItem[] = [
+  {
+    label: "Nos bilans",
+    children: [
+      { label: "Bilan de compétences", to: "/bilan-de-competences" },
+      { label: "Bilan d'orientation", to: "/bilan-orientation" },
+    ],
+  },
+  { label: "Trouver une formation", to: "/formation" },
+  { label: "Pour les centres", to: "/centres" },
+  {
+    label: "À propos",
+    children: [
+      { label: "Qui sommes-nous ?", to: "/a-propos" },
+      { label: "Blog et actus", to: "/blog" },
+    ],
+  },
 ];
+
+const linkStyle = (active: boolean): React.CSSProperties => ({
+  fontSize: ".92rem",
+  fontWeight: 600,
+  color: active ? "#15314C" : "#5d6f7c",
+  padding: "6px 0",
+  whiteSpace: "nowrap",
+  transition: "color .2s",
+  textDecoration: "none",
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  background: "none",
+  border: "none",
+});
+
+/** Onglet desktop : lien simple ou menu déroulant (au survol). */
+function DesktopNavItem({ item, pathname }: { item: NavItem; pathname: string }) {
+  const [hover, setHover] = useState(false);
+
+  if (!item.children) {
+    return (
+      <Link href={item.to!} style={linkStyle(pathname === item.to)}>
+        {item.label}
+      </Link>
+    );
+  }
+
+  const active = item.children.some((c) => pathname === c.to);
+
+  return (
+    <div style={{ position: "relative" }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <span style={linkStyle(active)}>
+        {item.label}
+        <ChevronDown size={15} style={{ transition: "transform .2s", transform: hover ? "rotate(180deg)" : "none" }} />
+      </span>
+      <AnimatePresence>
+        {hover && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            // paddingTop garde la zone de survol continue (pas de "trou" qui referme le menu)
+            style={{ position: "absolute", top: "100%", left: 0, paddingTop: 10, minWidth: 234, zIndex: 70 }}
+          >
+            <div
+              style={{
+                background: "rgba(250,245,236,.99)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(21,49,76,.12)",
+                borderRadius: 14,
+                boxShadow: "0 16px 40px rgba(21,49,76,.14)",
+                padding: 8,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
+              {item.children.map((c) => (
+                <Link
+                  key={c.to}
+                  href={c.to}
+                  style={{
+                    display: "block",
+                    padding: "10px 14px",
+                    borderRadius: 9,
+                    fontSize: ".9rem",
+                    fontWeight: 600,
+                    color: pathname === c.to ? "#15314C" : "#5d6f7c",
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                    background: pathname === c.to ? "rgba(21,49,76,.06)" : "transparent",
+                  }}
+                >
+                  {c.label}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 const Header = () => {
   const [open, setOpen] = useState(false);
@@ -55,25 +155,10 @@ const Header = () => {
         {/* Nav desktop — cachée sous 1024px */}
         <nav
           className="vitrine-desktop-only"
-          style={{ display: "flex", gap: 16, marginLeft: 6, flexWrap: "nowrap" }}
+          style={{ display: "flex", gap: 24, marginLeft: 10, flexWrap: "nowrap" }}
         >
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              href={link.to}
-              style={{
-                fontSize: ".92rem",
-                fontWeight: 600,
-                color: pathname === link.to ? "#15314C" : "#5d6f7c",
-                padding: "6px 0",
-                position: "relative",
-                whiteSpace: "nowrap",
-                transition: "color .2s",
-                textDecoration: "none",
-              }}
-            >
-              {link.label}
-            </Link>
+          {navItems.map((item) => (
+            <DesktopNavItem key={item.label} item={item} pathname={pathname} />
           ))}
         </nav>
 
@@ -145,24 +230,58 @@ const Header = () => {
             }}
           >
             <nav style={{ padding: "16px 24px 24px" }}>
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  href={link.to}
-                  onClick={() => setOpen(false)}
-                  style={{
-                    display: "block",
-                    padding: "13px 8px",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    color: pathname === link.to ? "#15314C" : "#5d6f7c",
-                    borderBottom: "1px solid rgba(21,49,76,.07)",
-                    textDecoration: "none",
-                  }}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navItems.map((item) =>
+                item.children ? (
+                  <div key={item.label} style={{ borderBottom: "1px solid rgba(21,49,76,.07)", paddingBottom: 6 }}>
+                    <div
+                      style={{
+                        padding: "13px 8px 4px",
+                        fontSize: ".76rem",
+                        fontWeight: 700,
+                        letterSpacing: ".09em",
+                        textTransform: "uppercase",
+                        color: "rgba(21,49,76,.45)",
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                    {item.children.map((c) => (
+                      <Link
+                        key={c.to}
+                        href={c.to}
+                        onClick={() => setOpen(false)}
+                        style={{
+                          display: "block",
+                          padding: "10px 16px",
+                          fontSize: ".98rem",
+                          fontWeight: 600,
+                          color: pathname === c.to ? "#15314C" : "#5d6f7c",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {c.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    key={item.to}
+                    href={item.to!}
+                    onClick={() => setOpen(false)}
+                    style={{
+                      display: "block",
+                      padding: "13px 8px",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      color: pathname === item.to ? "#15314C" : "#5d6f7c",
+                      borderBottom: "1px solid rgba(21,49,76,.07)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ),
+              )}
 
               <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
                 <Link

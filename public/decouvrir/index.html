@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<base href="/decouvrir/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Le Bon Rebond — Rencontrons-nous</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF5EC; --navy:#15314C; --teal:#2C8E86; --green:#5FB14E;
+    --orange:#E07C39; --paper:#FFFFFF; --wa:#25D366;
+    --line:rgba(21,49,76,.12); --muted:#52606e;
+    --serif:'Newsreader',Georgia,serif; --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  html,body{margin:0}
+  body{background:var(--cream);color:var(--navy);font-family:var(--sans);line-height:1.5;overflow-x:hidden;
+    background-image:radial-gradient(130% 70% at 50% -15%, rgba(44,142,134,.12), transparent 58%),
+                     radial-gradient(120% 60% at 100% 105%, rgba(95,177,78,.10), transparent 55%);}
+  .shell{max-width:600px;margin:0 auto;position:relative}
+
+  /* ---------- sticky switch bar ---------- */
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+    gap:12px;padding:10px 16px;max-width:600px;margin:0 auto;
+    background:rgba(250,245,236,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+    transform:translateY(-110%);transition:transform .45s var(--ease);}
+  .topbar.show{transform:none}
+  .topbar img{height:30px;width:auto;display:block}
+  .switch{display:flex;gap:6px;background:rgba(21,49,76,.06);border-radius:999px;padding:4px}
+  .switch button{appearance:none;border:0;background:transparent;cursor:pointer;font-family:var(--sans);
+    font-size:12.5px;font-weight:700;color:var(--muted);padding:7px 13px;border-radius:999px;transition:all .25s var(--ease)}
+  .switch button[aria-selected="true"]{background:var(--navy);color:#fff}
+
+  /* ---------- intro (plein écran) ---------- */
+  .intro{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:48px 26px 40px;position:relative}
+  .intro .logo{width:min(78%,330px);height:auto;display:block;margin:0 auto;
+    animation:fadeUp .8s var(--ease) both}
+  .intro .tag{font-family:var(--serif);font-weight:500;font-size:clamp(22px,6vw,30px);line-height:1.2;letter-spacing:-.01em;
+    margin:26px 0 0;max-width:440px;animation:fadeUp .8s .1s var(--ease) both}
+  .intro .tag em{font-style:italic;color:var(--teal)}
+  .ask{margin:40px 0 16px;font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);
+    animation:fadeUp .8s .2s var(--ease) both}
+
+  .doors{display:flex;flex-direction:column;gap:14px;width:100%;max-width:440px;animation:fadeUp .8s .3s var(--ease) both}
+  .door{appearance:none;cursor:pointer;text-align:left;border:1.5px solid var(--line);background:var(--paper);
+    border-radius:20px;padding:22px 22px;display:flex;align-items:center;gap:18px;color:var(--navy);
+    font-family:var(--sans);box-shadow:0 18px 40px -30px rgba(21,49,76,.5);
+    transition:transform .2s var(--ease),box-shadow .25s var(--ease),border-color .2s var(--ease),background .2s var(--ease)}
+  .door:hover{transform:translateY(-4px);box-shadow:0 26px 50px -28px rgba(21,49,76,.55);border-color:rgba(21,49,76,.28)}
+  .door:active{transform:translateY(-1px) scale(.99)}
+  .door .num{flex:none;width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:26px;font-weight:600;color:#fff;background:linear-gradient(140deg,var(--teal),var(--green))}
+  .door.b2c .num{background:linear-gradient(140deg,var(--green),#7cc06b)}
+  .door .tx{flex:1}
+  .door .tx > span{display:block}
+  .door .dk{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--teal);margin-bottom:3px}
+  .door .dl{font-size:18px;font-weight:700;line-height:1.15}
+  .door .dd{font-size:13px;color:var(--muted);margin-top:3px}
+  .door .arr{flex:none;font-size:22px;color:var(--navy);opacity:.4;transition:transform .2s var(--ease),opacity .2s}
+  .door:hover .arr{opacity:1;transform:translateX(4px)}
+
+  .scrollcue{margin-top:38px;font-size:24px;color:var(--teal);opacity:.55;animation:bob 1.8s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+  /* ---------- content ---------- */
+  .content{display:none;padding:8px 26px 0}
+  .content.on{display:block}
+  .panel-head{padding-top:40px}
+  .eyebrow{display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:0 0 12px}
+  .eyebrow .b{width:26px;height:3px;border-radius:2px;background:var(--green)}
+  .ptitle{font-family:var(--serif);font-weight:500;font-size:clamp(26px,7vw,34px);line-height:1.1;letter-spacing:-.01em;margin:0}
+  .ptitle em{font-style:italic;color:var(--teal)}
+
+  .video{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:var(--navy);
+    box-shadow:0 30px 56px -30px rgba(21,49,76,.6);border:1px solid var(--line);margin-top:26px}
+  .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+  .vcap{font-size:12.5px;color:var(--muted);text-align:center;margin:10px 0 0}
+
+  .benefits{list-style:none;padding:0;margin:30px 0 4px;display:flex;flex-direction:column;gap:14px}
+  .benefits li{display:flex;gap:13px;align-items:flex-start;font-size:15.5px;line-height:1.4}
+  .benefits .tick{flex:none;width:26px;height:26px;border-radius:50%;background:var(--green);position:relative;margin-top:1px}
+  .benefits .tick::after{content:"";position:absolute;left:35%;top:21%;width:24%;height:44%;border:solid #fff;border-width:0 2.6px 2.6px 0;transform:rotate(42deg)}
+
+  .cta-stack{display:flex;flex-direction:column;gap:12px;margin-top:30px}
+  .cta{display:flex;align-items:center;justify-content:center;gap:12px;min-height:58px;border-radius:15px;
+    font-family:var(--sans);font-weight:700;font-size:17px;text-decoration:none;border:0;cursor:pointer;
+    transition:transform .12s var(--ease),filter .15s,box-shadow .2s}
+  .cta:active{transform:scale(.985)}
+  .cta svg{width:22px;height:22px;flex:none}
+  .cta.wa{background:var(--wa);color:#fff;box-shadow:0 16px 30px -18px rgba(37,211,102,.9)}
+  .cta.mail{background:var(--navy);color:#fff}
+  .cta:hover{filter:brightness(1.04)}
+
+  .divider{display:flex;align-items:center;gap:12px;margin:30px 0 18px;color:var(--muted);font-size:13px;font-weight:600}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  form{display:flex;flex-direction:column;gap:13px}
+  .fl{font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:5px;display:block}
+  .field input{width:100%;height:54px;border:1.5px solid var(--line);border-radius:14px;padding:0 16px;
+    font-family:var(--sans);font-size:16px;color:var(--navy);background:var(--paper);outline:none;transition:border-color .15s,box-shadow .15s}
+  .field input:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(44,142,134,.12)}
+  .field input::placeholder{color:#9aa6b2}
+  .submit{background:var(--orange);color:#fff;min-height:60px;font-size:18px;margin-top:4px;box-shadow:0 18px 34px -18px rgba(224,124,57,.9)}
+  .consent{font-size:11.5px;color:var(--muted);text-align:center;margin:2px 4px 0;line-height:1.4}
+  .err{color:#c0392b;font-size:13px;font-weight:600;margin:0;min-height:0}
+
+  .success{text-align:center;padding:24px 8px;display:none}
+  .success.show{display:block;animation:fadeUp .6s var(--ease) both}
+  .success .ring{width:78px;height:78px;border-radius:50%;background:var(--green);margin:0 auto 18px;position:relative;animation:pop .5s var(--ease) both}
+  .success .ring::after{content:"";position:absolute;left:34%;top:24%;width:26%;height:46%;border:solid #fff;border-width:0 5px 5px 0;transform:rotate(42deg)}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  .success h3{font-family:var(--serif);font-weight:500;font-size:27px;margin:0 0 8px}
+  .success p{color:var(--muted);font-size:15px;margin:0 0 22px}
+
+  .ft{padding:40px 26px 46px;text-align:center}
+  .ft img{height:34px;width:auto;opacity:.9;margin-bottom:10px}
+  .ft a{display:block;color:var(--teal);font-weight:700;font-size:14px;text-decoration:none}
+  .ft .sm{font-size:12px;color:var(--muted);margin-top:5px;letter-spacing:.02em}
+
+  /* scroll reveal */
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .75s var(--ease),transform .75s var(--ease);transition-delay:var(--d,0s)}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.intro .logo,.intro .tag,.ask,.doors{animation:none}}
+</style>
+</head>
+<body>
+
+  <!-- sticky switch -->
+  <div class="topbar" id="topbar">
+    <img src="assets/logo-lebonrebond.png" alt="Le Bon Rebond">
+    <div class="switch" role="tablist">
+      <button id="sw-centre" role="tab" aria-selected="false" onclick="selectDoor('centre', false)">Centre</button>
+      <button id="sw-particulier" role="tab" aria-selected="false" onclick="selectDoor('particulier', false)">Particulier</button>
+    </div>
+  </div>
+
+<div class="shell">
+
+  <!-- intro plein écran -->
+  <section class="intro" id="intro">
+    <img class="logo" src="assets/logo-lebonrebond.png" alt="Le Bon Rebond">
+    <p class="tag">Transformez un doute en <em>direction</em>.</p>
+    <p class="ask">Quel est votre profil ?</p>
+    <div class="doors">
+      <button class="door" id="door-centre" onclick="selectDoor('centre', true)">
+        <span class="num">1</span>
+        <span class="tx"><span class="dk">Vous dirigez un organisme</span><span class="dl">Je suis un centre de formation</span><span class="dd">Cockpit, marketplace, Qualiopi</span></span>
+        <span class="arr">→</span>
+      </button>
+      <button class="door b2c" id="door-particulier" onclick="selectDoor('particulier', true)">
+        <span class="num">2</span>
+        <span class="tx"><span class="dk">Bilan de compétences</span><span class="dl">Je veux un bilan de compétences</span><span class="dd">Bilan, cap clair, bons centres</span></span>
+        <span class="arr">→</span>
+      </button>
+    </div>
+    <div class="scrollcue" id="scrollcue">↓</div>
+  </section>
+
+  <!-- contenu révélé -->
+  <main class="content" id="content">
+    <div class="panel-head reveal">
+      <p class="eyebrow"><span class="b"></span><span id="p-eyebrow"></span></p>
+      <h1 class="ptitle" id="p-title"></h1>
+    </div>
+
+    <div class="reveal" style="--d:.05s">
+      <div class="video"><iframe id="p-video" title="Vidéo de présentation" loading="lazy" allow="autoplay"></iframe></div>
+      <p class="vcap" id="p-vcap"></p>
+    </div>
+
+    <ul class="benefits" id="p-benefits"></ul>
+
+    <div class="cta-stack reveal">
+      <a class="cta wa" id="cta-wa" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 6.5 3 10.9c0 1.6.6 3.1 1.6 4.4L4 21l5.9-1.5c.7.2 1.4.3 2.1.3 5 0 9-3.6 9-8.9C21 6.5 17 3 12 3z"/></svg>
+        Discuter sur WhatsApp
+      </a>
+      <a class="cta mail" id="cta-mail" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>
+        Nous écrire par email
+      </a>
+    </div>
+
+    <div class="reveal">
+      <div class="divider">ou laissez-nous vos coordonnées</div>
+      <form id="lead-form" novalidate>
+        <div class="field"><label class="fl" for="f-name">Prénom &amp; nom</label>
+          <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Ex. Camille Martin"></div>
+        <div class="field"><label class="fl" for="f-phone">Téléphone</label>
+          <input id="f-phone" name="phone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
+        <div class="field"><label class="fl" for="f-email">Email</label>
+          <input id="f-email" name="email" type="email" autocomplete="email" placeholder="vous@email.com"></div>
+        <p class="err" id="f-err"></p>
+        <button class="cta submit" type="submit" id="f-submit">Être recontacté·e →</button>
+        <p class="consent">En envoyant ce formulaire, vous acceptez d'être recontacté·e par Le Bon Rebond. Données traitées uniquement à cette fin.</p>
+      </form>
+      <div class="success" id="success">
+        <div class="ring"></div>
+        <h3>C'est noté, merci !</h3>
+        <p id="success-msg">Nous vous recontactons très vite.</p>
+        <a class="cta wa" id="success-wa" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 6.5 3 10.9c0 1.6.6 3.1 1.6 4.4L4 21l5.9-1.5c.7.2 1.4.3 2.1.3 5 0 9-3.6 9-8.9C21 6.5 17 3 12 3z"/></svg>
+          Parler à un conseiller maintenant
+        </a>
+      </div>
+    </div>
+
+    <footer class="ft reveal">
+      <img src="assets/logo-lebonrebond.png" alt="Le Bon Rebond">
+      <a href="https://lebonrebond.optiquant-ia.com" target="_blank" rel="noopener">lebonrebond.optiquant-ia.com</a>
+      <div class="sm">Un nouveau départ, la bonne direction.</div>
+    </footer>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   À PERSONNALISER — vos coordonnées
+   ============================================================ */
+const CONTACT = {
+  whatsapp: '33783960192',                            // ← numéro WhatsApp, format international SANS le "+"
+  email:    'lebonrebond.contact@optiquant-ia.com'    // ← email de réception des leads
+};
+
+const DOORS = {
+  centre: {
+    swId:'sw-centre',
+    eyebrow:'Pour les organismes de formation',
+    title:'Pilotez tout votre centre — et recevez des apprenants <em>sans prospecter</em>.',
+    video:'storyboards/video-a-embed.html',
+    vcap:'45 s — découvrez le cockpit Le Bon Rebond',
+    benefits:[
+      'Un cockpit unique : planning, CRM, documents Qualiopi et indicateurs',
+      'Des apprenants qualifiés via la marketplace, sans démarchage',
+      'Conçu pour les organismes · compatible Qualiopi · sans engagement'
+    ],
+    waMsg:'Bonjour, je dirige un centre de formation et je souhaite découvrir Le Bon Rebond (cockpit + marketplace). Pouvons-nous en parler ?',
+    subject:'Centre de formation — demande d\u2019infos Le Bon Rebond',
+    leadLabel:'Centre de formation'
+  },
+  particulier: {
+    swId:'sw-particulier',
+    eyebrow:'Bilan de compétences · orientation',
+    title:'Trouvez votre prochaine <em>direction</em> professionnelle, simplement.',
+    video:'storyboards/video-b-embed.html',
+    vcap:'45 s — la méthode Le Bon Rebond',
+    benefits:[
+      'Un cap clair, pas un catalogue : on part de VOTRE situation',
+      'Les bons organismes certifiés près de chez vous, finançables CPF',
+      'Un accompagnement humain, à chaque étape'
+    ],
+    waMsg:'Bonjour, je réfléchis à mon avenir professionnel et je souhaite faire le point avec Le Bon Rebond. Pouvons-nous échanger ?',
+    subject:'Faire le point — demande d\u2019infos Le Bon Rebond',
+    leadLabel:'Particulier — bilan de compétences'
+  }
+};
+
+let currentDoor = null;
+
+function waLink(msg){ return 'https://wa.me/' + CONTACT.whatsapp + '?text=' + encodeURIComponent(msg); }
+function mailLink(subject, body){ return 'mailto:' + CONTACT.email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body); }
+
+// reveal observer
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+}, { threshold:0.12, rootMargin:'0px 0px -8% 0px' });
+
+function selectDoor(key, doScroll){
+  const first = currentDoor === null;
+  currentDoor = key;
+  const d = DOORS[key];
+  // switch pills
+  for(const k in DOORS){ document.getElementById(DOORS[k].swId).setAttribute('aria-selected', String(k===key)); }
+  // content
+  document.getElementById('p-eyebrow').textContent = d.eyebrow;
+  document.getElementById('p-title').innerHTML = d.title;
+  document.getElementById('p-vcap').textContent = d.vcap;
+  const vid = document.getElementById('p-video');
+  if(vid.getAttribute('data-src') !== d.video){ vid.src = d.video; vid.setAttribute('data-src', d.video); }
+  const ul = document.getElementById('p-benefits');
+  ul.innerHTML = '';
+  d.benefits.forEach((b,i)=>{ const li=document.createElement('li'); li.className='reveal'; li.style.setProperty('--d',(i*0.08)+'s'); li.innerHTML='<span class="tick"></span><span>'+b+'</span>'; ul.appendChild(li); });
+  // ctas
+  document.getElementById('cta-wa').href = waLink(d.waMsg);
+  document.getElementById('cta-mail').href = mailLink(d.subject, d.waMsg + '\n\n— Envoyé depuis la page Le Bon Rebond');
+  document.getElementById('success-wa').href = waLink(d.waMsg);
+  // reset funnel
+  document.getElementById('lead-form').style.display = '';
+  document.getElementById('success').classList.remove('show');
+  document.getElementById('f-err').textContent = '';
+
+  const content = document.getElementById('content');
+  content.classList.add('on');
+
+  // (re)observe reveals
+  document.querySelectorAll('#content .reveal').forEach(el=>{ el.classList.remove('in'); io.observe(el); });
+
+  if(doScroll){
+    requestAnimationFrame(()=>{
+      const top = content.getBoundingClientRect().top + window.pageYOffset - 8;
+      window.scrollTo({ top, behavior:'smooth' });
+    });
+  }
+}
+
+/* sticky bar visibility */
+const topbar = document.getElementById('topbar');
+window.addEventListener('scroll', ()=>{
+  const introH = document.getElementById('intro').offsetHeight;
+  if(currentDoor && window.pageYOffset > introH*0.55){ topbar.classList.add('show'); }
+  else { topbar.classList.remove('show'); }
+}, {passive:true});
+
+/* lead capture (sans service tiers) */
+function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+document.getElementById('lead-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const name = document.getElementById('f-name').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const err = document.getElementById('f-err');
+  if(!name){ err.textContent = 'Indiquez votre nom.'; return; }
+  if(!phone && !email){ err.textContent = 'Laissez au moins un téléphone ou un email.'; return; }
+  if(email && !validEmail(email)){ err.textContent = 'Email invalide.'; return; }
+  err.textContent = '';
+
+  const d = DOORS[currentDoor];
+  const showSuccess = function(){
+    document.getElementById('lead-form').style.display = 'none';
+    document.getElementById('success-msg').textContent = phone ? 'Nous vous recontactons très vite au '+phone+'.' : 'Nous vous recontactons très vite.';
+    document.getElementById('success').classList.add('show');
+  };
+  // Fallback : si l'envoi serveur échoue, on ouvre un mail pré-rempli → aucun lead perdu.
+  const mailtoFallback = function(){
+    const body = 'NOUVEAU LEAD — '+d.leadLabel+'\n\nNom : '+name+'\nTéléphone : '+(phone||'—')+'\nEmail : '+(email||'—')+'\nSource : Événement\n';
+    window.location.href = mailLink('Lead — '+d.leadLabel, body);
+  };
+  const submitBtn = (e.submitter) || this.querySelector('[type=submit]');
+  if(submitBtn){ submitBtn.disabled = true; }
+
+  fetch('/api/lead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, phone: phone, email: email, profil: currentDoor, source: 'Carte de visite — événement', date: new Date().toISOString() })
+  })
+  .then(function(r){ if(!r.ok){ throw new Error('http '+r.status); } return r.json(); })
+  .then(function(){ showSuccess(); })
+  .catch(function(){ mailtoFallback(); showSuccess(); })
+  .finally(function(){ if(submitBtn){ submitBtn.disabled = false; } });
+});
+</script>
+</body>
+</html>

@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -43,28 +42,6 @@ const values = [
   { n: "iv.", title: "Un accompagnement humain", text: "Pas seulement une plateforme : de vraies personnes pour vous guider du doute à la décision." },
 ];
 
-/* Placeholder image component */
-function ImgSlot({ id, style, alt }: { id: string; style?: CSSProperties; alt: string }) {
-  return (
-    <div
-      data-slot={id}
-      aria-label={alt}
-      style={{
-        width: "100%",
-        height: "100%",
-        background: "#e7ddca",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        ...style,
-      }}
-    >
-      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>
-        {alt}
-      </span>
-    </div>
-  );
-}
 
 /* Lien texte avec flèche */
 function TextLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -125,7 +102,7 @@ export default function Home() {
                 initial="hidden" animate="visible" custom={4} variants={fadeUp}
                 style={{ display: "flex", flexWrap: "wrap", gap: "10px 26px", marginTop: 34 }}
               >
-                {["Accès rapide aux organismes", "Accompagnement personnalisé", "100 % orienté reconversion"].map((txt) => (
+                {["Accès rapide aux organismes certifiés", "Accompagnement personnalisé", "100% orienté résultat"].map((txt) => (
                   <span key={txt} style={{ fontSize: ".92rem", color: "#5d6f7c", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 10 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#5FB14E", flexShrink: 0 }} />
                     {txt}
@@ -305,10 +282,10 @@ export default function Home() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "end", marginBottom: 62 }} className="method-head-grid">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
               <span style={{ display: "inline-block", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: ".8rem", letterSpacing: ".14em", textTransform: "uppercase", color: "#C5662A", background: "rgba(224,124,57,.12)", padding: "8px 16px", borderRadius: 100, marginBottom: 20 }}>
-                Notre méthode propriétaire
+                Notre méthode
               </span>
               <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2.1rem, 4vw, 3.1rem)", fontWeight: 500, letterSpacing: "-.02em", margin: 0, color: "#15314C" }}>
-                La méthode <em style={{ fontStyle: "italic", color: "#2C8E86" }}>Rebond Clarté</em>
+                La méthode <em style={{ fontStyle: "italic", color: "#2C8E86" }}>Rebond</em>
               </h2>
             </motion.div>
             <motion.p
@@ -392,7 +369,8 @@ export default function Home() {
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
               style={{ width: "100%", height: 440, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}
             >
-              <ImgSlot id="proof" alt="Photo — portrait souriant d'une personne ayant réussi sa reconversion" style={{ height: "100%" }} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/photos/temoignage-camille.webp" alt="Camille R., reconversion réussie vers les métiers du numérique" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </motion.div>
 
             {/* Citation */}
@@ -405,10 +383,11 @@ export default function Home() {
               </p>
               <div style={{ marginTop: 30, display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ width: 54, height: 54, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-                  <ImgSlot id="avatar" alt="Portrait de Camille R." style={{ height: "100%" }} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/photos/temoignage-camille-avatar.webp" alt="Camille R." loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, color: "#15314C" }}>Camille R. <span style={{ fontSize: ".85rem", color: "#85939d", fontStyle: "italic" }}>(exemple — à remplacer)</span></div>
+                  <div style={{ fontWeight: 700, color: "#15314C" }}>Camille R.</div>
                   <div style={{ color: "#5d6f7c", fontSize: ".92rem" }}>Reconversion vers les métiers du numérique</div>
                 </div>
               </div>
