@@ -164,6 +164,7 @@ export async function generateDocuments(formData: FormData): Promise<DocumentAct
 
   try {
     if ((PER_LEARNER as readonly string[]).includes(type)) {
+      if (s.enrollments.length === 0) return { error: "Aucun apprenant inscrit sur cette session pour ce document individuel." };
       for (const e of s.enrollments) {
         const data = baseData(org, type, s);
         data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };
