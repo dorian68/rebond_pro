@@ -1,14 +1,14 @@
 import { requireTenant } from "@/lib/tenant";
 import { listDocuments, documentSuggestions } from "@/server/documents";
 import { sessionOptions } from "@/server/options";
-import { generateDocuments } from "@/server/documents-actions";
 import { getDocumentTemplates } from "@/server/parametres";
 import { Card, PageHeader, EmptyState } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { formatDate } from "@/lib/utils";
 import { SendDocButton, DeleteDocButton } from "./doc-actions";
 import { BulkJobClient } from "./bulk-job-client";
-import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
+import { ManualGenerateForm, SuggestionGenerateForm } from "./generate-controls";
+import { DOC_LABELS } from "@/lib/document-types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,13 +38,7 @@ export default async function DocumentsPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sug.label}</div>
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{sug.reason}</div>
                   </div>
-                  {canEdit && (
-                    <form action={generateDocuments}>
-                      <input type="hidden" name="type" value={sug.type} />
-                      <input type="hidden" name="sessionId" value={sug.sessionId} />
-                      <button type="submit" className="btn btn-secondary btn-sm" style={{ flex: "none" }}><Icon name="file-text" size={14} /> Générer{sug.count > 1 ? ` (${sug.count})` : ""}</button>
-                    </form>
-                  )}
+                  {canEdit && <SuggestionGenerateForm suggestion={sug} />}
                 </div>
               ))}
             </div>
@@ -57,32 +51,7 @@ export default async function DocumentsPage() {
           {sessions.length === 0 ? (
             <p className="muted-3" style={{ fontSize: 13 }}>Créez une session pour générer des documents.</p>
           ) : canEdit ? (
-            <form action={generateDocuments} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label className="field-label">Type de document</label>
-                <select className="select" name="type" defaultValue="CONVOCATION">
-                  {GENERATABLE_DOCUMENT_TYPES.map((t) => <option key={t} value={t}>{DOC_LABELS[t]}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Session</label>
-                <select className="select" name="sessionId" required>
-                  {sessions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Modèle</label>
-                <select className="select" name="templateId" defaultValue="">
-                  <option value="">Automatique : modèle DOCX du type, sinon PDF intégré</option>
-                  <option value="__builtin">Forcer le modèle PDF intégré</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>{DOC_LABELS[t.type] ?? t.type} — {t.name} ({t.engine})</option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" className="btn btn-primary"><Icon name="file-text" size={16} /> Générer le document</button>
-              <p className="muted-3" style={{ fontSize: 11.5 }}>Les documents individuels sont générés pour chaque apprenant inscrit ; l&apos;émargement liste tous les inscrits.</p>
-            </form>
+            <ManualGenerateForm sessions={sessions} templates={templates} />
           ) : <p className="muted-3" style={{ fontSize: 13 }}>Lecture seule.</p>}
         </Card>
       </div>

@@ -18,6 +18,8 @@ const EDITORS = ["OWNER", "ADMIN", "ASSISTANT"] as const;
 const PER_LEARNER = [...PER_LEARNER_DOCUMENT_TYPES];
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+export type DocumentActionState = { ok?: boolean; error?: string; message?: string };
+
 async function orgLegal(ctx: TenantContext) {
   const o = await prisma.organization.findUnique({ where: { id: ctx.organizationId }, select: { name: true, legalName: true, legalAddress: true, nda: true, legalRep: true } });
   return o!;
@@ -148,33 +150,52 @@ async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: s
 }
 
 /** Action principale : génère un document (unitaire ou en lot selon le type). */
-export async function generateDocuments(formData: FormData): Promise<void> {
+export async function generateDocuments(formData: FormData): Promise<DocumentActionState> {
   const ctx = await requireTenant();
   requireRole(ctx, [...EDITORS]);
   const type = String(formData.get("type") || "");
   const sessionId = String(formData.get("sessionId") || "");
   const templateId = String(formData.get("templateId") || "") || null;
-  if (!type || !sessionId) return;
+  if (!type || !sessionId) return { error: "Type de document et session requis." };
   const s = await loadSession(ctx, sessionId);
-  if (!s) return;
+  if (!s) return { error: "Session introuvable." };
   const org = await orgLegal(ctx);
+  let count = 0;
 
-  if ((PER_LEARNER as readonly string[]).includes(type)) {
-    for (const e of s.enrollments) {
+  try {
+    if ((PER_LEARNER as readonly string[]).includes(type)) {
+      for (const e of s.enrollments) {
+        const data = baseData(org, type, s);
+        data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };
+        await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data, templateId);
+        count += 1;
+      }
+    } else {
       const data = baseData(org, type, s);
-      data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };
-      await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data, templateId);
+      if (type === "EMARGEMENT") data.learners = s.enrollments.map((e) => ({ fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company }));
+      if ((type === "CONVENTION" || type === "DEVIS") && s.enrollments[0]) data.learner = { fullName: `${s.enrollments[0].learner.firstName} ${s.enrollments[0].learner.lastName}`, company: s.enrollments[0].learner.company };
+      await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data, templateId);
+      count = 1;
     }
-  } else {
-    const data = baseData(org, type, s);
-    if (type === "EMARGEMENT") data.learners = s.enrollments.map((e) => ({ fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company }));
-    if ((type === "CONVENTION" || type === "DEVIS") && s.enrollments[0]) data.learner = { fullName: `${s.enrollments[0].learner.firstName} ${s.enrollments[0].learner.lastName}`, company: s.enrollments[0].learner.company };
-    await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data, templateId);
+  } catch (e) {
+    logger.error("documents.generate_failed", {
+      organizationId: ctx.organizationId,
+      type,
+      sessionId,
+      templateId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return { error: e instanceof Error ? e.message : "Génération impossible." };
   }
 
   revalidatePath("/documents");
   revalidatePath(`/sessions/${sessionId}`);
   revalidatePath("/dashboard");
+  return { ok: true, message: `${count} document${count > 1 ? "s" : ""} généré${count > 1 ? "s" : ""}.` };
+}
+
+export async function generateDocumentsAction(_prev: DocumentActionState, formData: FormData): Promise<DocumentActionState> {
+  return generateDocuments(formData);
 }
 
 /** Génère un document pour une inscription précise (depuis fiche session/apprenant). */
