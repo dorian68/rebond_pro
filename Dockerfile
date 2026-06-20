@@ -37,6 +37,7 @@ COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 # Garantit la présence du moteur Prisma (parfois non tracé par le standalone)
 COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+RUN mkdir -p /app/storage && chown -R node:node /app/storage
 
 USER node
 EXPOSE 3000

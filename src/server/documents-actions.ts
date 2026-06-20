@@ -11,6 +11,7 @@ import { MODALITY_LABELS } from "@/lib/labels";
 import { DOC_LABELS, PER_LEARNER_DOCUMENT_TYPES } from "@/lib/document-types";
 import { renderDocxTemplate } from "@/server/docx/template-engine";
 import { logger } from "@/lib/logger";
+import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 
 const EDITORS = ["OWNER", "ADMIN", "ASSISTANT"] as const;
@@ -115,6 +116,10 @@ async function renderDocument(
 async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: string; enrollmentId?: string; formationId?: string }, data: DocData, templateId?: string | null) {
   const template = await resolveTemplate(ctx, type, templateId);
   const rendered = await renderDocument(template, data);
+  const fileId = randomUUID();
+  const fileName = `${type.toLowerCase()}-${fileId}.${rendered.extension}`;
+  const key = `documents/${ctx.organizationId}/${fileName}`;
+  await saveFile(key, rendered.buffer);
   const doc = await prisma.document.create({
     data: {
       organizationId: ctx.organizationId,
@@ -126,12 +131,10 @@ async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: s
       formationId: ids.formationId ?? null,
       templateId: rendered.templateId ?? null,
       mimeType: rendered.mimeType,
+      fileUrl: key,
+      fileName,
     },
   });
-  const fileName = `${type.toLowerCase()}-${doc.id}.${rendered.extension}`;
-  const key = `documents/${ctx.organizationId}/${fileName}`;
-  await saveFile(key, rendered.buffer);
-  await prisma.document.update({ where: { id: doc.id }, data: { fileUrl: key, fileName } });
   await auditDocumentEvent(ctx, "document.generated", doc.id, {
     type,
     sessionId: ids.sessionId ?? null,
