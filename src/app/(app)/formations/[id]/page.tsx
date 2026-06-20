@@ -33,6 +33,7 @@ export default async function FormationDetailPage({ params }: { params: Promise<
   const fillRates = upcoming.map((s) => (s.capacity > 0 ? (s._count.enrollments / s.capacity) * 100 : 0));
   const avgFill = fillRates.length ? Math.round(fillRates.reduce((a, b) => a + b, 0) / fillRates.length) : 0;
   const forecast = upcoming.reduce((acc, s) => acc + s._count.enrollments * s.pricePerLearner, 0);
+  const isPubliclyReachable = f.status === "PUBLIE" && f.isPublic && Boolean(f.publicSlug);
 
   return (
     <div className="fade-up">
@@ -45,7 +46,7 @@ export default async function FormationDetailPage({ params }: { params: Promise<
           <>
             <Link href={`/formations/${f.id}/edit`} className="btn btn-secondary btn-sm"><Icon name="edit" size={15} /> Modifier</Link>
             <PublishToggle id={f.id} isPublic={f.isPublic} />
-            {f.isPublic && f.publicSlug && (
+            {isPubliclyReachable && (
               <Link href={`/${ctx.organizationSlug}/f/${f.publicSlug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="external" size={15} /> Voir la page</Link>
             )}
             <DeleteFormationButton id={f.id} />
@@ -55,13 +56,21 @@ export default async function FormationDetailPage({ params }: { params: Promise<
 
       <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 16 }}>
         <div>
-          {f.isPublic && f.publicSlug && (
+          {isPubliclyReachable ? (
             <Card style={{ marginBottom: 16, background: "var(--primary-tint)", borderColor: "var(--primary-100)" }}>
               <span className="eyebrow">Page publique active</span>
               <p style={{ fontSize: 13, color: "var(--ink-2)", margin: "8px 0 12px" }}>Chaque demande reçue depuis cette page crée ou met à jour un prospect dans votre CRM.</p>
               <Link href={`/${ctx.organizationSlug}/f/${f.publicSlug}`} target="_blank" className="btn btn-primary btn-sm"><Icon name="globe" size={15} /> Ouvrir la page publique</Link>
             </Card>
-          )}
+          ) : f.isPublic && f.publicSlug ? (
+            <Card style={{ marginBottom: 16, background: "var(--warn-bg, #fff7ed)", borderColor: "var(--warn, #f59e0b)" }}>
+              <span className="eyebrow">Page publique en attente</span>
+              <p style={{ fontSize: 13, color: "var(--ink-2)", margin: "8px 0 12px" }}>
+                La page publique est preparee, mais elle ne sera accessible qu'apres passage de la formation au statut <strong>Publié</strong>.
+              </p>
+              {canEdit && <Link href={`/formations/${f.id}/edit`} className="btn btn-secondary btn-sm"><Icon name="edit" size={15} /> Passer la formation en publié</Link>}
+            </Card>
+          ) : null}
           <Card style={{ marginBottom: 16 }}>
             {f.shortDescription && <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 18, lineHeight: 1.5 }}>{f.shortDescription}</p>}
             <Field label="Objectifs pédagogiques">{f.objectives}</Field>
