@@ -37,7 +37,9 @@ export function Sidebar({
       }}
     >
       <div style={{ height: "var(--topbar-h)", display: "flex", alignItems: "center", padding: "0 20px", borderBottom: "1px solid var(--border-2)" }}>
-        <Logo size={50} priority />
+        <Link href="/" title="Retour au site Le Bon Rebond" aria-label="Retour au site Le Bon Rebond">
+          <Logo size={50} priority />
+        </Link>
       </div>
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "14px 12px" }}>
