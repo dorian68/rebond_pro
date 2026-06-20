@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireTenant, requireRole } from "@/lib/tenant";
+import { revalidatePath } from "next/cache";
+import { assertRole, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { uploadPublicImage } from "@/lib/storage";
 
@@ -29,16 +30,25 @@ export async function POST(req: Request) {
   try {
     let url: string;
     if (kind === "org_logo" || kind === "org_cover") {
-      requireRole(ctx, ["OWNER", "ADMIN"]);
+      if (!assertRole(ctx, ["OWNER", "ADMIN"])) return NextResponse.json({ error: "Action non autorisée." }, { status: 403 });
       const field = kind === "org_logo" ? "logoUrl" : "coverImageUrl";
       url = await uploadPublicImage(`org/${ctx.organizationId}/${field}-${stamp}.${ext}`, buffer, file.type);
       await prisma.organization.update({ where: { id: ctx.organizationId }, data: { [field]: url } });
+      revalidatePath("/parametres");
     } else if (kind === "trainer_photo") {
-      requireRole(ctx, ["OWNER", "ADMIN"]);
-      const trainer = await prisma.trainer.findFirst({ where: { id: trainerId, organizationId: ctx.organizationId } });
+      const trainer = await prisma.trainer.findFirst({
+        where: { id: trainerId, organizationId: ctx.organizationId, deletedAt: null },
+        select: { id: true, userId: true },
+      });
       if (!trainer) return NextResponse.json({ error: "Formateur introuvable." }, { status: 404 });
+      const canManageTrainer = assertRole(ctx, ["OWNER", "ADMIN"]);
+      const canEditOwnProfile = ctx.role === "TRAINER" && trainer.userId === ctx.userId;
+      if (!canManageTrainer && !canEditOwnProfile) return NextResponse.json({ error: "Action non autorisée." }, { status: 403 });
       url = await uploadPublicImage(`trainer/${ctx.organizationId}/${trainerId}-${stamp}.${ext}`, buffer, file.type);
       await prisma.trainer.update({ where: { id: trainerId }, data: { photoUrl: url } });
+      revalidatePath("/trainer/profil");
+      revalidatePath(`/formateurs/${trainerId}`);
+      revalidatePath(`/formateurs/${trainerId}/edit`);
     } else {
       return NextResponse.json({ error: "Type d'upload inconnu." }, { status: 400 });
     }
