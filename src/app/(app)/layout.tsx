@@ -5,7 +5,7 @@ import { AgentDock } from "@/components/agent/AgentDock";
 import { requireTenant } from "@/lib/tenant";
 import { isPlatformAdmin } from "@/lib/platform";
 import { prisma } from "@/lib/prisma";
-import { documentSuggestions } from "@/server/documents";
+import { countDocumentSuggestions } from "@/server/documents";
 
 function deriveInitials(name: string | null, email: string | null): string {
   if (name) {
@@ -22,14 +22,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (ctx.role === "LEARNER") redirect("/espace");
   const now = new Date();
 
-  const [relances, suggestions, platformAdmin] = await Promise.all([
+  const [relances, docsToGenerate, platformAdmin] = await Promise.all([
     prisma.prospect.count({
       where: { organizationId: ctx.organizationId, deletedAt: null, nextFollowUpDate: { lte: now }, stage: { in: ["NOUVEAU", "CONTACTE", "DEVIS", "RELANCE"] } },
     }),
-    documentSuggestions(ctx),
+    countDocumentSuggestions(ctx),
     isPlatformAdmin(),
   ]);
-  const docsToGenerate = suggestions.length;
 
   const notifications: TopNotif[] = [];
   if (relances > 0) notifications.push({ id: "n-relances", type: "warn", icon: "send", title: `${relances} prospect${relances > 1 ? "s" : ""} à relancer`, text: "Des relances commerciales sont en attente cette semaine." });

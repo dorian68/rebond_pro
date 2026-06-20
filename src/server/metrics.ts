@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { TenantContext } from "@/lib/tenant";
-import { documentSuggestions } from "@/server/documents";
+import { countDocumentSuggestions } from "@/server/documents";
 
 const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 
@@ -46,15 +46,14 @@ export async function getDashboardMetrics(ctx: TenantContext) {
 
   const avgFill = upcoming.length ? Math.round(upcoming.reduce((a, s) => a + s.fillRate, 0) / upcoming.length) : 0;
 
-  const [prospectsActifs, relances, suggestions, formationCount, trainerCount, learnerCount] = await Promise.all([
+  const [prospectsActifs, relances, docsToGenerate, formationCount, trainerCount, learnerCount] = await Promise.all([
     prisma.prospect.count({ where: { organizationId: orgId, deletedAt: null, stage: { in: ["NOUVEAU", "CONTACTE", "DEVIS", "RELANCE"] } } }),
     prisma.prospect.count({ where: { organizationId: orgId, deletedAt: null, nextFollowUpDate: { lte: now }, stage: { in: ["NOUVEAU", "CONTACTE", "DEVIS", "RELANCE"] } } }),
-    documentSuggestions(ctx),
+    countDocumentSuggestions(ctx),
     prisma.formation.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.trainer.count({ where: { organizationId: orgId, deletedAt: null } }),
     prisma.learner.count({ where: { organizationId: orgId, deletedAt: null } }),
   ]);
-  const docsToGenerate = suggestions.length;
 
   // Série CA prévisionnel : 6 mois glissants + 2 mois de projection
   const series: { m: string; v: number; proj?: boolean }[] = [];

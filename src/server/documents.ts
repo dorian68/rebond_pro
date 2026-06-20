@@ -6,6 +6,14 @@ import { DOC_LABELS } from "@/lib/document-types";
 import { getDocumentGenerationPreflight, resolveDocumentTemplate } from "@/server/documents/document-context";
 
 export type DocItem = Awaited<ReturnType<typeof listDocuments>>[number];
+type DocumentSuggestionCandidate = {
+  sessionId: string;
+  formationTitle: string;
+  type: string;
+  count: number;
+  reason: string;
+  dueLabel: string;
+};
 
 export async function listDocuments(ctx: TenantContext) {
   const docs = await prisma.document.findMany({
@@ -36,8 +44,7 @@ export async function listDocuments(ctx: TenantContext) {
   });
 }
 
-/** Suggestions « à générer » calculées à partir de l'activité. */
-export async function documentSuggestions(ctx: TenantContext) {
+async function documentSuggestionCandidates(ctx: TenantContext): Promise<DocumentSuggestionCandidate[]> {
   const now = new Date();
   const sessions = await prisma.session.findMany({
     where: { organizationId: ctx.organizationId, deletedAt: null, status: { not: "ANNULEE" } },
@@ -49,43 +56,66 @@ export async function documentSuggestions(ctx: TenantContext) {
     orderBy: { startDate: "asc" },
   });
 
-  const suggestions: { sessionId: string; label: string; type: string; count: number; reason: string; dueLabel: string; completionStatus: string; completionScore: number; missingCount: number; templateName: string; engineLabel: string }[] = [];
-  async function pushSuggestion(s: (typeof sessions)[number], type: string, count: number, reason: string, dueLabel: string) {
-    const [preflight, template] = await Promise.all([
-      getDocumentGenerationPreflight({ ctx, type, sessionId: s.id }),
-      resolveDocumentTemplate({ ctx, type }),
-    ]);
-    suggestions.push({
+  const candidates: DocumentSuggestionCandidate[] = [];
+  function pushCandidate(s: (typeof sessions)[number], type: string, count: number, reason: string, dueLabel: string) {
+    candidates.push({
       sessionId: s.id,
-      label: `${DOC_LABELS[type] ?? type} — ${s.formation.title}`,
+      formationTitle: s.formation.title,
       type,
       count,
       reason,
       dueLabel,
-      completionStatus: preflight.completionStatus,
-      completionScore: preflight.completionScore,
-      missingCount: preflight.missingVariables.length,
-      templateName: template.name,
-      engineLabel: preflight.engineLabel,
     });
   }
+
   for (const s of sessions) {
     const types = new Set(s.documents.map((d) => d.type));
     const upcoming = s.endDate >= now && s.status !== "TERMINEE";
     const done = s.status === "TERMINEE";
     const range = formatDateRange(s.startDate, s.endDate);
     if (upcoming && s._count.enrollments > 0 && !types.has("CONVOCATION")) {
-      await pushSuggestion(s, "CONVOCATION", s._count.enrollments, `${range} · ${s._count.enrollments} apprenant(s)`, "Avant session");
+      pushCandidate(s, "CONVOCATION", s._count.enrollments, `${range} · ${s._count.enrollments} apprenant(s)`, "Avant session");
     }
     if (upcoming && !types.has("EMARGEMENT")) {
-      await pushSuggestion(s, "EMARGEMENT", 1, range, "Pendant session");
+      pushCandidate(s, "EMARGEMENT", 1, range, "Pendant session");
     }
     if (done && s._count.enrollments > 0 && !types.has("ATTESTATION")) {
-      await pushSuggestion(s, "ATTESTATION", s._count.enrollments, `Terminée ${range}`, "Après session");
+      pushCandidate(s, "ATTESTATION", s._count.enrollments, `Terminée ${range}`, "Après session");
     }
-    if (upcoming && !types.has("PROGRAMME")) await pushSuggestion(s, "PROGRAMME", 1, range, "Avant session");
-    if (upcoming && s._count.enrollments > 0 && !types.has("CONVENTION")) await pushSuggestion(s, "CONVENTION", 1, `${range} · à préparer`, "Avant session");
-    if (done && s._count.enrollments > 0 && !types.has("QUESTIONNAIRE_SATISFACTION")) await pushSuggestion(s, "QUESTIONNAIRE_SATISFACTION", s._count.enrollments, `Terminée ${range}`, "Après session");
+    if (upcoming && !types.has("PROGRAMME")) pushCandidate(s, "PROGRAMME", 1, range, "Avant session");
+    if (upcoming && s._count.enrollments > 0 && !types.has("CONVENTION")) pushCandidate(s, "CONVENTION", 1, `${range} · à préparer`, "Avant session");
+    if (done && s._count.enrollments > 0 && !types.has("QUESTIONNAIRE_SATISFACTION")) pushCandidate(s, "QUESTIONNAIRE_SATISFACTION", s._count.enrollments, `Terminée ${range}`, "Après session");
+  }
+  return candidates;
+}
+
+export async function countDocumentSuggestions(ctx: TenantContext) {
+  const candidates = await documentSuggestionCandidates(ctx);
+  return candidates.length;
+}
+
+/** Suggestions « à générer » calculées à partir de l'activité. */
+export async function documentSuggestions(ctx: TenantContext) {
+  const candidates = await documentSuggestionCandidates(ctx);
+  const suggestions: { sessionId: string; label: string; type: string; count: number; reason: string; dueLabel: string; completionStatus: string; completionScore: number; missingCount: number; templateName: string; engineLabel: string }[] = [];
+  for (const candidate of candidates.slice(0, 12)) {
+    const [preflight, template] = await Promise.all([
+      getDocumentGenerationPreflight({ ctx, type: candidate.type, sessionId: candidate.sessionId }),
+      resolveDocumentTemplate({ ctx, type: candidate.type }),
+    ]);
+    suggestions.push({
+      sessionId: candidate.sessionId,
+      label: `${DOC_LABELS[candidate.type] ?? candidate.type} — ${candidate.formationTitle}`,
+      type: candidate.type,
+      count: candidate.count,
+      reason: candidate.reason,
+      dueLabel: candidate.dueLabel,
+      completionStatus: preflight.completionStatus,
+      completionScore: preflight.completionScore,
+      missingCount: preflight.missingVariables.length,
+      templateName: template.name,
+      engineLabel: preflight.engineLabel,
+    });
   }
   return suggestions.slice(0, 12);
 }

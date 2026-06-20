@@ -26,12 +26,12 @@ function KpiCard({ label, value, icon, sub, urgent }: { label: string; value: st
 export default async function DashboardPage() {
   const ctx = await requireTenant();
   const m = await getDashboardMetrics(ctx);
-  const setupComplete = m.setup.formationCount > 0 && m.setup.sessionCount > 0 && m.setup.trainerCount > 0 && m.setup.prospectCount > 0;
+  const setupComplete = m.setup.formationCount > 0 && m.setup.sessionCount > 0 && m.setup.trainerCount > 0;
   const setupItems = [
     { label: "Ajouter une formation", done: m.setup.formationCount > 0, href: "/formations/new" },
     { label: "Planifier une session", done: m.setup.sessionCount > 0, href: "/sessions/new" },
     { label: "Ajouter un formateur", done: m.setup.trainerCount > 0, href: "/formateurs/new" },
-    { label: "Qualifier un prospect", done: m.setup.prospectCount > 0, href: "/prospects/new" },
+    { label: "Qualifier un prospect", done: m.setup.prospectCount > 0, href: "/prospects/new", optional: true },
   ];
 
   return (
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
             <div>
               <span className="eyebrow">Activation du cockpit</span>
               <h2 style={{ fontSize: 18, margin: "7px 0 4px" }}>Transformez ce tableau vide en prochaines actions utiles.</h2>
-              <p style={{ color: "var(--ink-2)", fontSize: 13 }}>Complétez ces quatre repères. Chaque donnée alimente réellement le planning, le CRM et les indicateurs.</p>
+              <p style={{ color: "var(--ink-2)", fontSize: 13 }}>Complétez les repères opérationnels. Chaque donnée alimente réellement le planning, le CRM et les indicateurs.</p>
             </div>
             <Link href="/onboarding" className="btn btn-primary btn-sm">Reprendre la configuration</Link>
           </div>
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
             {setupItems.map((item) => (
               <Link key={item.label} href={item.href} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, background: "#fff", border: "1px solid var(--border)" }}>
                 <Icon name={item.done ? "check-circle" : "circle"} size={16} style={{ color: item.done ? "var(--positive)" : "var(--ink-3)" }} />
-                <span style={{ fontSize: 12.5, fontWeight: 700 }}>{item.label}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700 }}>{item.label}{item.optional ? " · optionnel" : ""}</span>
               </Link>
             ))}
           </div>
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
       {/* KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 18 }}>
         <KpiCard label="CA prévisionnel" value={formatMoney(m.kpis.caForecast)} icon="trending-up" sub={`Trimestre : ${formatMoney(m.kpis.caQuarter)}`} />
-        <KpiCard label="Sessions à venir" value={String(m.kpis.sessionsAVenir)} icon="calendar" sub="ce trimestre" />
+        <KpiCard label="Sessions à venir" value={String(m.kpis.sessionsAVenir)} icon="calendar" sub="toutes dates futures" />
         <KpiCard label="Taux de remplissage" value={`${m.kpis.avgFill} %`} icon="gauge" sub="objectif 70 %" />
         <KpiCard label="Prospects actifs" value={String(m.kpis.prospectsActifs)} icon="users" sub="pipeline" />
         <KpiCard label="Relances à faire" value={String(m.kpis.relances)} icon="send" sub="cette semaine" urgent={m.kpis.relances > 0} />
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
               <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>Recommandation de l&apos;assistant</div>
               <p style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.55 }}>{m.aiReco.text}</p>
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <Link href="/prospects" className="btn btn-ai btn-sm"><Icon name="send" size={15} /> Générer une relance</Link>
+                <Link href="/prospects" className="btn btn-ai btn-sm"><Icon name="send" size={15} /> Voir les relances</Link>
                 <Link href="/prospects" className="btn btn-secondary btn-sm">Voir les prospects</Link>
                 <Link href="/planning" className="btn btn-secondary btn-sm">Optimiser le planning</Link>
               </div>
