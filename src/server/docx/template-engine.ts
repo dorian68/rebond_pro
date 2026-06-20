@@ -2,6 +2,9 @@ import "server-only";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import type { DocData } from "@/server/pdf/templates";
+import { variableLabel } from "@/lib/document-variables";
+
+export type MissingVariableStrategy = "readable_placeholder" | "keep_variable" | "empty";
 
 function cleanTag(raw: string) {
   return raw.replace(/^[#\/\^!@~:%]+/, "").trim();
@@ -23,7 +26,7 @@ export function extractDocxVariables(input: Buffer): string[] {
   return [...found].sort();
 }
 
-export function docDataToTemplateData(d: DocData): Record<string, unknown> {
+export function docDataToTemplateData(d: DocData, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   const firstLearner = d.learner ?? d.learners?.[0] ?? null;
   const data = {
     org: d.org,
@@ -58,16 +61,28 @@ export function docDataToTemplateData(d: DocData): Record<string, unknown> {
     learner_name: firstLearner?.fullName ?? "",
     learner_company: firstLearner?.company ?? "",
   };
-  return data;
+  return { ...data, ...overrides };
 }
 
-export function renderDocxTemplate(template: Buffer, d: DocData): Buffer {
+function missingValue(tag: string, strategy: MissingVariableStrategy): string {
+  if (strategy === "keep_variable") return `{${tag}}`;
+  if (strategy === "empty") return "";
+  return `[À compléter : ${variableLabel(tag)}]`;
+}
+
+export function renderDocxTemplate(
+  template: Buffer,
+  d: DocData,
+  options: { values?: Record<string, unknown>; missingVariableStrategy?: MissingVariableStrategy } = {},
+): Buffer {
   const zip = new PizZip(template);
+  const values = docDataToTemplateData(d, options.values);
+  const missingVariableStrategy = options.missingVariableStrategy ?? "readable_placeholder";
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
-    nullGetter: () => "",
+    nullGetter: (part) => missingValue(part.value, missingVariableStrategy),
   });
-  doc.render(docDataToTemplateData(d));
+  doc.render(values);
   return doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" }) as Buffer;
 }

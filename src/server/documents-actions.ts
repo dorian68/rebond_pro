@@ -10,14 +10,14 @@ import { formatMoney, formatDateRange } from "@/lib/utils";
 import { MODALITY_LABELS } from "@/lib/labels";
 import { DOC_LABELS, PER_LEARNER_DOCUMENT_TYPES } from "@/lib/document-types";
 import { renderDocxTemplate } from "@/server/docx/template-engine";
+import { contextSnapshot, DOCX_MIME, getDocumentGenerationPreflight, type DocumentPreflight } from "@/server/documents/document-context";
+import { readablePlaceholder } from "@/server/documents/document-context";
 import { logger } from "@/lib/logger";
 import { randomUUID } from "crypto";
 import type { Prisma } from "@prisma/client";
 
 const EDITORS = ["OWNER", "ADMIN", "ASSISTANT"] as const;
 const PER_LEARNER = [...PER_LEARNER_DOCUMENT_TYPES];
-const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
 export type DocumentActionState = { ok?: boolean; error?: string; message?: string };
 
 async function orgLegal(ctx: TenantContext) {
@@ -53,6 +53,48 @@ function baseData(org: Awaited<ReturnType<typeof orgLegal>>, type: string, s: Se
   };
 }
 
+function withReadableMissing(preflight: DocumentPreflight): Record<string, string | number | null | undefined> {
+  const values = { ...preflight.values };
+  for (const missing of preflight.missingVariables) values[missing.key] = readablePlaceholder(missing.key);
+  return values;
+}
+
+function enrichDocData(data: DocData, values: Record<string, string | number | null | undefined>): DocData {
+  return {
+    ...data,
+    generatedAt: String(values.generatedAt ?? data.generatedAt),
+    org: {
+      ...data.org,
+      name: String(values.org_name ?? data.org.name),
+      legalName: String(values.org_legal_name ?? data.org.legalName ?? ""),
+      legalAddress: String(values.org_legal_address ?? data.org.legalAddress ?? ""),
+      nda: String(values.org_nda ?? data.org.nda ?? ""),
+      legalRep: String(values.org_legal_rep ?? data.org.legalRep ?? ""),
+    },
+    formation: data.formation ? {
+      ...data.formation,
+      title: String(values.formation_title ?? data.formation.title),
+      durationDays: typeof values.formation_duration_days === "number" ? values.formation_duration_days : data.formation.durationDays,
+      durationHours: typeof values.formation_duration_hours === "number" ? values.formation_duration_hours : data.formation.durationHours,
+      program: String(values.formation_program ?? data.formation.program ?? ""),
+      objectives: String(values.formation_objectives ?? data.formation.objectives ?? ""),
+      modality: String(values.formation_modality ?? data.formation.modality ?? ""),
+    } : data.formation,
+    session: data.session ? {
+      ...data.session,
+      dateRange: String(values.session_date_range ?? values.session_date ?? data.session.dateRange),
+      trainerName: String(values.trainer_name ?? data.session.trainerName ?? ""),
+      roomName: String(values.room_name ?? values.session_location ?? data.session.roomName ?? ""),
+    } : data.session,
+    learner: data.learner ? {
+      ...data.learner,
+      fullName: String(values.learner_name ?? data.learner.fullName),
+      company: String(values.learner_company ?? data.learner.company ?? ""),
+    } : data.learner,
+    amountText: String(values.amountText ?? data.amountText ?? ""),
+  };
+}
+
 async function auditDocumentEvent(ctx: TenantContext, action: string, entityId: string, after: Prisma.InputJsonObject) {
   await prisma.auditLog.create({
     data: {
@@ -73,51 +115,41 @@ async function auditDocumentEvent(ctx: TenantContext, action: string, entityId: 
   });
 }
 
-async function resolveTemplate(ctx: TenantContext, type: string, templateId?: string | null) {
-  if (templateId && templateId !== "__builtin") {
-    return prisma.documentTemplate.findFirst({
-      where: {
-        id: templateId,
-        type: type as never,
-        OR: [{ organizationId: ctx.organizationId }, { organizationId: null }],
-      },
-    });
-  }
-  return prisma.documentTemplate.findFirst({
-    where: {
-      type: type as never,
-      engine: "DOCX",
-      sourceFileUrl: { not: null },
-      OR: [{ organizationId: ctx.organizationId }, { organizationId: null }],
-    },
-    orderBy: [{ organizationId: "desc" }, { updatedAt: "desc" }],
-  });
-}
-
 async function renderDocument(
-  template: Awaited<ReturnType<typeof resolveTemplate>>,
+  preflight: DocumentPreflight,
   data: DocData,
-): Promise<{ buffer: Buffer; extension: "docx" | "pdf"; mimeType: string; templateId?: string }> {
-  if (template?.engine === "DOCX" && template.sourceFileUrl) {
-    const source = await readFile(template.sourceFileUrl);
+): Promise<{ buffer: Buffer; extension: "docx" | "pdf"; mimeType: string; templateId?: string; templateVersion?: number }> {
+  const values = withReadableMissing(preflight);
+  const dataForRender = enrichDocData(data, values);
+  if (preflight.template.engine === "DOCX" && preflight.template.sourceFileUrl) {
+    const source = await readFile(preflight.template.sourceFileUrl);
     return {
-      buffer: renderDocxTemplate(source, data),
+      buffer: renderDocxTemplate(source, dataForRender, { values, missingVariableStrategy: "readable_placeholder" }),
       extension: "docx",
       mimeType: DOCX_MIME,
-      templateId: template.id,
+      templateId: preflight.template.id,
+      templateVersion: preflight.template.version,
     };
   }
   return {
-    buffer: await renderDocumentPdf(data),
+    buffer: await renderDocumentPdf(dataForRender),
     extension: "pdf",
     mimeType: "application/pdf",
-    templateId: template?.id,
+    templateId: preflight.template.id,
+    templateVersion: preflight.template.version,
   };
 }
 
-async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: string; enrollmentId?: string; formationId?: string }, data: DocData, templateId?: string | null) {
-  const template = await resolveTemplate(ctx, type, templateId);
-  const rendered = await renderDocument(template, data);
+async function persistDoc(
+  ctx: TenantContext,
+  type: string,
+  ids: { sessionId?: string; enrollmentId?: string; formationId?: string },
+  data: DocData,
+  templateId?: string | null,
+  manualOverrides?: unknown,
+) {
+  const preflight = await getDocumentGenerationPreflight({ ctx, type, sessionId: ids.sessionId, enrollmentId: ids.enrollmentId, templateId, manualOverrides });
+  const rendered = await renderDocument(preflight, data);
   const fileId = randomUUID();
   const fileName = `${type.toLowerCase()}-${fileId}.${rendered.extension}`;
   const key = `documents/${ctx.organizationId}/${fileName}`;
@@ -132,6 +164,12 @@ async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: s
       enrollmentId: ids.enrollmentId ?? null,
       formationId: ids.formationId ?? null,
       templateId: rendered.templateId ?? null,
+      templateVersion: rendered.templateVersion ?? null,
+      completionStatus: preflight.completionStatus,
+      completionScore: preflight.completionScore,
+      missingVariables: preflight.missingVariables as unknown as Prisma.InputJsonValue,
+      generationContextSnapshot: contextSnapshot(preflight) as Prisma.InputJsonValue,
+      manualOverrides: (manualOverrides && typeof manualOverrides === "object" ? manualOverrides : {}) as Prisma.InputJsonValue,
       mimeType: rendered.mimeType,
       fileUrl: key,
       fileName,
@@ -143,8 +181,12 @@ async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: s
     enrollmentId: ids.enrollmentId ?? null,
     formationId: ids.formationId ?? null,
     templateId: rendered.templateId ?? null,
+    templateVersion: rendered.templateVersion ?? null,
     mimeType: rendered.mimeType,
     fileName,
+    completionStatus: preflight.completionStatus,
+    completionScore: preflight.completionScore,
+    missingVariablesCount: preflight.missingVariables.length,
   });
   return doc.id;
 }
@@ -156,6 +198,15 @@ export async function generateDocuments(formData: FormData): Promise<DocumentAct
   const type = String(formData.get("type") || "");
   const sessionId = String(formData.get("sessionId") || "");
   const templateId = String(formData.get("templateId") || "") || null;
+  const manualOverridesRaw = String(formData.get("manualOverrides") || "").trim();
+  let manualOverrides: unknown = {};
+  if (manualOverridesRaw) {
+    try {
+      manualOverrides = JSON.parse(manualOverridesRaw);
+    } catch {
+      return { error: "Compléments manuels invalides (JSON attendu)." };
+    }
+  }
   if (!type || !sessionId) return { error: "Type de document et session requis." };
   const s = await loadSession(ctx, sessionId);
   if (!s) return { error: "Session introuvable." };
@@ -168,14 +219,14 @@ export async function generateDocuments(formData: FormData): Promise<DocumentAct
       for (const e of s.enrollments) {
         const data = baseData(org, type, s);
         data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };
-        await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data, templateId);
+        await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data, templateId, manualOverrides);
         count += 1;
       }
     } else {
       const data = baseData(org, type, s);
       if (type === "EMARGEMENT") data.learners = s.enrollments.map((e) => ({ fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company }));
       if ((type === "CONVENTION" || type === "DEVIS") && s.enrollments[0]) data.learner = { fullName: `${s.enrollments[0].learner.firstName} ${s.enrollments[0].learner.lastName}`, company: s.enrollments[0].learner.company };
-      await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data, templateId);
+      await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data, templateId, manualOverrides);
       count = 1;
     }
   } catch (e) {
@@ -193,6 +244,26 @@ export async function generateDocuments(formData: FormData): Promise<DocumentAct
   revalidatePath(`/sessions/${sessionId}`);
   revalidatePath("/dashboard");
   return { ok: true, message: `${count} document${count > 1 ? "s" : ""} généré${count > 1 ? "s" : ""}.` };
+}
+
+export async function getDocumentGenerationPreflightAction(formData: FormData): Promise<{ ok: true; preflight: DocumentPreflight } | { ok: false; error: string }> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...EDITORS]);
+  const type = String(formData.get("type") || "");
+  const sessionId = String(formData.get("sessionId") || "");
+  const templateId = String(formData.get("templateId") || "") || null;
+  const manualOverridesRaw = String(formData.get("manualOverrides") || "").trim();
+  let manualOverrides: unknown = {};
+  if (manualOverridesRaw) {
+    try {
+      manualOverrides = JSON.parse(manualOverridesRaw);
+    } catch {
+      return { ok: false, error: "Compléments manuels invalides (JSON attendu)." };
+    }
+  }
+  if (!type || !sessionId) return { ok: false, error: "Type de document et session requis." };
+  const preflight = await getDocumentGenerationPreflight({ ctx, type, sessionId, templateId, manualOverrides });
+  return { ok: true, preflight };
 }
 
 export async function generateDocumentsAction(_prev: DocumentActionState, formData: FormData): Promise<DocumentActionState> {

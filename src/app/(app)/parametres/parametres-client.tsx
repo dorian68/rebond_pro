@@ -4,9 +4,10 @@ import { useState, useActionState, useTransition } from "react";
 import { Card } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { ImageUpload } from "@/components/app/ImageUpload";
-import { updateOrganization, inviteMember, updateMemberRole, removeMember, saveDocumentTemplate, uploadDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
+import { updateOrganization, inviteMember, updateMemberRole, removeMember, saveDocumentTemplate, uploadDocumentTemplate, setDefaultDocumentTemplate, archiveDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
 import { createCheckoutSession, createBillingPortalSession } from "@/server/billing-actions";
 import { DOCUMENT_TYPES } from "@/lib/document-types";
+import { DOCUMENT_VARIABLE_MAP } from "@/lib/document-variables";
 import type { BillingState } from "@/server/billing";
 import type { Plan } from "@prisma/client";
 import type { FormActionState } from "@/server/formations-actions";
@@ -32,6 +33,11 @@ type Template = {
   sourceFileName: string | null;
   sourceMimeType: string | null;
   variables: string[];
+  description: string | null;
+  organizationId: string | null;
+  isDefault: boolean;
+  status: string;
+  version: number;
 };
 
 const TABS = [
@@ -327,17 +333,19 @@ function MembresTab({ members, role }: { members: Member[]; role: string }) {
 function TemplatesTab({ templates, role }: { templates: Template[]; role: string }) {
   const canEdit = ["OWNER", "ADMIN"].includes(role);
   const [selectedType, setSelectedType] = useState("CONVENTION");
-  const existing = templates.find((t) => t.type === selectedType);
+  const selectedTemplates = templates.filter((t) => t.type === selectedType);
+  const existing = selectedTemplates.find((t) => t.organizationId !== null && t.status === "ACTIVE") ?? selectedTemplates.find((t) => t.status === "ACTIVE");
   const selectedLabel = DOCUMENT_TYPES.find((d) => d.value === selectedType)?.label ?? selectedType;
   const [textState, textAction, textPending] = useActionState<FormActionState, FormData>(saveDocumentTemplate, undefined);
   const [uploadState, uploadAction, uploadPending] = useActionState<FormActionState, FormData>(uploadDocumentTemplate, undefined);
+  const [templateBusy, startTemplateAction] = useTransition();
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}>
       <div>
         <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: "var(--ink-3)" }}>Types de documents</div>
         {DOCUMENT_TYPES.map((dt) => {
-          const hasCustom = templates.some((t) => t.type === dt.value);
+          const hasCustom = templates.some((t) => t.type === dt.value && t.organizationId !== null && t.status === "ACTIVE");
           return (
             <button key={dt.value} onClick={() => setSelectedType(dt.value)}
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 14px", marginBottom: 4, borderRadius: 8, background: selectedType === dt.value ? "var(--primary-soft)" : "transparent", color: selectedType === dt.value ? "var(--primary)" : "var(--ink)", fontWeight: selectedType === dt.value ? 700 : 500, fontSize: 13, border: "none", cursor: "pointer", textAlign: "left" }}
@@ -355,16 +363,47 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
         <p style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20 }}>
           Importez un fichier DOCX avec des variables entre accolades : <code>{`{formation_title}`}</code>, <code>{`{learner_name}`}</code>, <code>{`{session_date}`}</code>, <code>{`{org_name}`}</code>.
         </p>
-        {existing && (
-          <div style={{ padding: "10px 12px", background: "var(--surface-3)", borderRadius: 8, fontSize: 12.5, color: "var(--ink-2)", marginBottom: 16 }}>
-            Modèle actif : <strong>{existing.name}</strong> · moteur <strong>{existing.engine}</strong>
-            {existing.sourceFileName ? <> · fichier <strong>{existing.sourceFileName}</strong></> : null}
-            {existing.variables.length > 0 ? <div style={{ marginTop: 8 }}>Variables détectées : {existing.variables.map((v) => <code key={v} style={{ marginRight: 6 }}>{v}</code>)}</div> : null}
+        {selectedTemplates.length > 0 && (
+          <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+            {selectedTemplates.map((tpl) => {
+              const recognized = tpl.variables.filter((v) => DOCUMENT_VARIABLE_MAP[v]);
+              const unknown = tpl.variables.filter((v) => !DOCUMENT_VARIABLE_MAP[v]);
+              return (
+                <div key={tpl.id} style={{ padding: "10px 12px", background: "var(--surface-3)", borderRadius: 8, fontSize: 12.5, color: "var(--ink-2)" }}>
+                  <div className="spread" style={{ gap: 10 }}>
+                    <div>
+                      <strong>{tpl.name}</strong> · {tpl.organizationId ? "Centre" : "Plateforme"} · moteur <strong>{tpl.engine}</strong> · v{tpl.version}
+                      {tpl.isDefault ? <span className="badge badge-primary" style={{ marginLeft: 8 }}>Défaut</span> : null}
+                      {tpl.status !== "ACTIVE" ? <span className="badge" style={{ marginLeft: 8 }}>{tpl.status}</span> : null}
+                      {tpl.sourceFileName ? <div>Fichier : <strong>{tpl.sourceFileName}</strong></div> : null}
+                    </div>
+                    {canEdit && tpl.organizationId && tpl.status === "ACTIVE" ? (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {!tpl.isDefault && <button className="btn btn-ghost btn-sm" disabled={templateBusy} onClick={() => startTemplateAction(() => setDefaultDocumentTemplate(tpl.id))}>Définir défaut</button>}
+                        <button className="btn btn-ghost btn-sm" disabled={templateBusy} onClick={() => startTemplateAction(() => archiveDocumentTemplate(tpl.id))}>Archiver</button>
+                      </div>
+                    ) : null}
+                  </div>
+                  {tpl.variables.length > 0 ? (
+                    <div style={{ marginTop: 8, display: "grid", gap: 4 }}>
+                      <div>{tpl.variables.length} variable(s) détectée(s) · {recognized.length} reconnue(s) · {unknown.length} inconnue(s)</div>
+                      <div>{recognized.map((v) => <code key={v} style={{ marginRight: 6 }}>{v}</code>)}</div>
+                      {unknown.length > 0 ? <div style={{ color: "var(--danger)" }}>Inconnues : {unknown.map((v) => <code key={v} style={{ marginRight: 6 }}>{v}</code>)}</div> : null}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         )}
         <form action={uploadAction} style={{ display: "grid", gap: 16 }}>
           <input type="hidden" name="type" value={selectedType} />
           <Field key={`upload-name-${selectedType}`} label="Nom du modèle" name="name" defaultValue={existing?.name ?? selectedLabel} disabled={!canEdit} />
+          <Field key={`upload-desc-${selectedType}`} label="Description" name="description" defaultValue={existing?.description ?? ""} disabled={!canEdit} />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
+            <input type="checkbox" name="isDefault" defaultChecked={selectedTemplates.filter((t) => t.organizationId !== null && t.status === "ACTIVE").length === 0} disabled={!canEdit} />
+            Définir comme modèle par défaut pour ce type
+          </label>
           <div>
             <label className="label">Fichier modèle DOCX</label>
             <input name="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="input" disabled={!canEdit} />
@@ -387,6 +426,10 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
         <form key={`text-template-${selectedType}`} action={textAction} style={{ display: "grid", gap: 16 }}>
           <input type="hidden" name="type" value={selectedType} />
           <Field label="Nom du modèle" name="name" defaultValue={existing?.name ?? selectedLabel} disabled={!canEdit} />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
+            <input type="checkbox" name="isDefault" disabled={!canEdit} />
+            Définir comme modèle par défaut
+          </label>
           <div>
             <label className="label">Contenu du modèle (texte)</label>
             <textarea name="contentTemplate" className="input" rows={14} defaultValue={existing?.contentTemplate ?? ""} disabled={!canEdit}

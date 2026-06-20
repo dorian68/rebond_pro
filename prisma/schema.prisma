@@ -151,6 +151,18 @@ enum DocumentStatus {
   ENVOYE
 }
 
+enum DocumentCompletionStatus {
+  COMPLETE
+  PARTIAL
+  DRAFT
+}
+
+enum DocumentTemplateStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+}
+
 enum ComplaintStatus {
   OUVERTE
   EN_COURS
@@ -267,6 +279,7 @@ model User {
   memberships Membership[]
   trainer     Trainer?
   ownedProspects Prospect[] @relation("ProspectOwner")
+  createdDocumentTemplates DocumentTemplate[]
   aiInteractions AiInteraction[]
   auditLogs     AuditLog[]
   notifications Notification[]
@@ -695,20 +708,30 @@ model DocumentTemplate {
   organizationId  String?      // null = modèle global par défaut
   type            DocumentType
   name            String
+  description     String?
   contentTemplate String       // HTML/MJML avec variables {{...}}
   engine          String       @default("TEXT")
   sourceFileUrl   String?
   sourceFileName  String?
   sourceMimeType  String?
   variables       String[]     @default([])
+  isDefault       Boolean      @default(false)
+  status          DocumentTemplateStatus @default(ACTIVE)
+  version         Int          @default(1)
+  variablesDetected Json?
+  variableMappings Json?
+  createdById     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
   documents    Document[]
 
   @@index([organizationId])
+  @@index([type])
+  @@index([status])
 }
 
 model Document {
@@ -722,6 +745,13 @@ model Document {
   mimeType       String?        @default("application/pdf")
   generatedAt    DateTime?
   sentAt         DateTime?
+  templateVersion Int?
+  completionStatus DocumentCompletionStatus @default(COMPLETE)
+  completionScore Int @default(100)
+  missingVariables Json?
+  generationContextSnapshot Json?
+  manualOverrides Json?
+  finalizedAt    DateTime?
 
   // entités liées (au moins une selon le type)
   formationId  String?
@@ -739,6 +769,7 @@ model Document {
 
   @@index([organizationId])
   @@index([sessionId])
+  @@index([completionStatus])
 }
 
 // --------------------------- QUALITÉ ---------------------------

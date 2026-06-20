@@ -1,0 +1,9 @@
+[
+  {
+    "type": "CONVOCATION",
+    "name": "Convocation standard",
+    "file": "convocation-standard.docx",
+    "description": "Modèle de convocation standard fourni par la plateforme",
+    "isDefault": true
+  }
+]

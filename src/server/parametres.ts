@@ -27,6 +27,6 @@ export async function getMembers(ctx: TenantContext) {
 export async function getDocumentTemplates(ctx: TenantContext) {
   return prisma.documentTemplate.findMany({
     where: { OR: [{ organizationId: ctx.organizationId }, { organizationId: null }] },
-    orderBy: [{ organizationId: "desc" }, { type: "asc" }],
+    orderBy: [{ status: "asc" }, { isDefault: "desc" }, { organizationId: "desc" }, { type: "asc" }, { updatedAt: "desc" }],
   });
 }

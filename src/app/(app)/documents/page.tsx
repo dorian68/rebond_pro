@@ -13,6 +13,7 @@ import { DOC_LABELS } from "@/lib/document-types";
 export const dynamic = "force-dynamic";
 
 const STATUS_BADGE: Record<string, [string, string]> = { A_GENERER: ["badge-warn", "À générer"], GENERE: ["badge-primary", "Généré"], ENVOYE: ["badge-positive", "Envoyé"] };
+const COMPLETION_BADGE: Record<string, [string, string]> = { COMPLETE: ["badge-positive", "Complet"], PARTIAL: ["badge-warn", "À compléter"], DRAFT: ["badge-danger", "Brouillon"] };
 
 export default async function DocumentsPage() {
   const ctx = await requireTenant();
@@ -37,6 +38,11 @@ export default async function DocumentsPage() {
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sug.label}</div>
                     <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{sug.reason}</div>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                      <span className={`badge ${(COMPLETION_BADGE[sug.completionStatus] ?? COMPLETION_BADGE.COMPLETE)[0]}`}>{(COMPLETION_BADGE[sug.completionStatus] ?? COMPLETION_BADGE.COMPLETE)[1]} · {sug.completionScore}%</span>
+                      <span className="badge">{sug.engineLabel}</span>
+                      {sug.missingCount > 0 ? <span className="badge badge-warn">{sug.missingCount} champ(s) à compléter</span> : null}
+                    </div>
                   </div>
                   {canEdit && <SuggestionGenerateForm suggestion={sug} />}
                 </div>
@@ -70,15 +76,17 @@ export default async function DocumentsPage() {
             <tbody>
               {docs.map((d) => {
                 const [cls, label] = STATUS_BADGE[d.status] ?? STATUS_BADGE.GENERE;
+                const [completionCls, completionLabel] = COMPLETION_BADGE[d.completionStatus] ?? COMPLETION_BADGE.COMPLETE;
                 return (
                   <tr key={d.id}>
                     <td style={{ fontWeight: 700 }}>{DOC_LABELS[d.type] ?? d.type}</td>
                     <td className="muted">
                       {d.target}
                       {d.templateName ? <span style={{ display: "block", fontSize: 11 }}>Modèle : {d.templateName}</span> : null}
+                      <span style={{ display: "block", fontSize: 11 }}>Complétion : {d.completionScore}%</span>
                     </td>
                     <td className="muted">{formatDate(d.generatedAt)}</td>
-                    <td><span className={"badge " + cls}>{label}</span></td>
+                    <td><span className={"badge " + cls}>{label}</span> <span className={"badge " + completionCls}>{completionLabel}</span></td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
                         <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm"><Icon name="download" size={15} /> {d.mimeType?.includes("wordprocessingml") ? "DOCX" : "PDF"}</a>
