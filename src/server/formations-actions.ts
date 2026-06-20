@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant, requireRole } from "@/lib/tenant";
 import { revalidateMarketplace } from "@/server/marketplace";
 import { slugify } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 export type FormActionState = { error?: string; ok?: boolean } | undefined;
 
@@ -148,7 +149,39 @@ export async function togglePublish(id: string): Promise<void> {
   const willPublish = !existing.isPublic;
   let publicSlug = existing.publicSlug;
   if (willPublish && !publicSlug) publicSlug = await uniquePublicSlug(existing.title, existing.id);
-  await prisma.formation.update({ where: { id }, data: { isPublic: willPublish, publicSlug } });
+  const updated = await prisma.formation.update({
+    where: { id },
+    data: {
+      isPublic: willPublish,
+      publicSlug,
+      ...(willPublish ? { status: "PUBLIE" as const } : {}),
+    },
+    select: { id: true, title: true, status: true, isPublic: true, publicSlug: true },
+  });
+  logger.info(willPublish ? "formation.public_page.published" : "formation.public_page.unpublished", {
+    organizationId: ctx.organizationId,
+    formationId: id,
+    by: ctx.email,
+    before: { status: existing.status, isPublic: existing.isPublic, publicSlug: existing.publicSlug },
+    after: { status: updated.status, isPublic: updated.isPublic, publicSlug: updated.publicSlug },
+  });
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorId: ctx.userId,
+      action: willPublish ? "formation.public_page.published" : "formation.public_page.unpublished",
+      entityType: "Formation",
+      entityId: id,
+      before: { status: existing.status, isPublic: existing.isPublic, publicSlug: existing.publicSlug },
+      after: { status: updated.status, isPublic: updated.isPublic, publicSlug: updated.publicSlug },
+    },
+  }).catch((e) => {
+    logger.error("formation.public_page.audit_failed", {
+      organizationId: ctx.organizationId,
+      formationId: id,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  });
   revalidatePath(`/formations/${id}`);
   if (ctx.organizationSlug && publicSlug) revalidatePath(`/${ctx.organizationSlug}/f/${publicSlug}`);
   revalidateMarketplace(); // rafraîchit le cache public (catalogue, fiches centre/formation)
