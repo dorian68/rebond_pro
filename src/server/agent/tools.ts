@@ -222,7 +222,10 @@ export const AGENT_TOOLS: AgentTool[] = [
       fd.set("type", String(args.type));
       fd.set("sessionId", String(args.sessionId));
       if (args.templateId) fd.set("templateId", String(args.templateId));
-      await generateDocuments(fd);
+      const result = await generateDocuments(fd);
+      if (!result.ok) {
+        return { textForLLM: `Génération impossible : ${result.error ?? "erreur inconnue"}.` };
+      }
       return { textForLLM: `Document ${args.type} généré pour la session ${args.sessionId}.`, custom: { name: "app.refresh", value: {} } };
     },
   },

@@ -4,7 +4,7 @@ import { useState, useActionState, useTransition } from "react";
 import { Card } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { ImageUpload } from "@/components/app/ImageUpload";
-import { updateOrganization, inviteMember, updateMemberRole, removeMember, saveDocumentTemplate, uploadDocumentTemplate, setDefaultDocumentTemplate, archiveDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
+import { updateOrganization, inviteMember, updateMemberRole, removeMember, uploadDocumentTemplate, setDefaultDocumentTemplate, archiveDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
 import { createCheckoutSession, createBillingPortalSession } from "@/server/billing-actions";
 import { DOCUMENT_TYPES } from "@/lib/document-types";
 import { DOCUMENT_VARIABLE_MAP } from "@/lib/document-variables";
@@ -336,7 +336,6 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
   const selectedTemplates = templates.filter((t) => t.type === selectedType);
   const existing = selectedTemplates.find((t) => t.organizationId !== null && t.status === "ACTIVE") ?? selectedTemplates.find((t) => t.status === "ACTIVE");
   const selectedLabel = DOCUMENT_TYPES.find((d) => d.value === selectedType)?.label ?? selectedType;
-  const [textState, textAction, textPending] = useActionState<FormActionState, FormData>(saveDocumentTemplate, undefined);
   const [uploadState, uploadAction, uploadPending] = useActionState<FormActionState, FormData>(uploadDocumentTemplate, undefined);
   const [templateBusy, startTemplateAction] = useTransition();
 
@@ -418,32 +417,6 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
         </form>
       </Card>
 
-      <Card>
-        <h3 style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>Modèle texte historique</h3>
-        <p style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20 }}>
-          Cet espace conserve l'ancien format texte. Pour les fichiers générés téléchargeables, utilisez le modèle DOCX ci-dessus ou le PDF intégré.
-        </p>
-        <form key={`text-template-${selectedType}`} action={textAction} style={{ display: "grid", gap: 16 }}>
-          <input type="hidden" name="type" value={selectedType} />
-          <Field label="Nom du modèle" name="name" defaultValue={existing?.name ?? selectedLabel} disabled={!canEdit} />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
-            <input type="checkbox" name="isDefault" disabled={!canEdit} />
-            Définir comme modèle par défaut
-          </label>
-          <div>
-            <label className="label">Contenu du modèle (texte)</label>
-            <textarea name="contentTemplate" className="input" rows={14} defaultValue={existing?.contentTemplate ?? ""} disabled={!canEdit}
-              style={{ fontFamily: "monospace", fontSize: 13, resize: "vertical" }} />
-          </div>
-          {canEdit && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button type="submit" className="btn btn-secondary" disabled={textPending}>{textPending ? "Enregistrement…" : "Enregistrer le modèle texte"}</button>
-              {textState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>✓ Modèle texte enregistré</span>}
-              {textState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{textState.error}</span>}
-            </div>
-          )}
-        </form>
-      </Card>
       </div>
     </div>
   );
