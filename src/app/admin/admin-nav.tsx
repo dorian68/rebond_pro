@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/admin/centres", label: "Centres", icon: "building" },
   { href: "/admin/formateurs", label: "Formateurs", icon: "presentation" },
   { href: "/admin/beneficiaires", label: "Bénéficiaires", icon: "smile" },
+  { href: "/admin/documents", label: "Bibliothèque docs", icon: "file-text" },
   { href: "/admin/finances", label: "Flux financiers", icon: "euro" },
 ];
 
