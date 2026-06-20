@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/tenant";
 import { enforceQuota } from "@/server/quota";
+import { assertSessionSchedulable } from "@/server/scheduling-constraints";
 import { slugify } from "@/lib/utils";
 import type { Role } from "@prisma/client";
 import type { AgentTool, ToolResult } from "@/server/agent/tools";
@@ -173,6 +174,7 @@ export const WRITE_TOOLS: AgentTool[] = [
       if (a.trainerId) { const t = await prisma.trainer.findFirst({ where: { id: s(a.trainerId), organizationId: ctx.organizationId } }); if (!t) throw new Error("Formateur invalide."); }
       if (a.roomId) { const r = await prisma.room.findFirst({ where: { id: s(a.roomId), organizationId: ctx.organizationId } }); if (!r) throw new Error("Salle invalide."); }
       const slots = Array.isArray(a.slots) && a.slots.length ? (a.slots as unknown[]).map((x) => enumOf(x, SLOTS, "slot")) : ["JOURNEE"];
+      await assertSessionSchedulable({ organizationId: ctx.organizationId, startDate: start, endDate: end, slots, trainerId: opt(a.trainerId), roomId: opt(a.roomId) });
       const sess = await prisma.session.create({
         data: {
           organizationId: ctx.organizationId, formationId: formation.id,
@@ -213,6 +215,15 @@ export const WRITE_TOOLS: AgentTool[] = [
       if (a.endDate != null) data.endDate = end;
       if (a.trainerId != null) { const tid = opt(a.trainerId); if (tid) { const t = await prisma.trainer.findFirst({ where: { id: tid, organizationId: ctx.organizationId } }); if (!t) throw new Error("Formateur invalide."); } data.trainerId = tid ?? null; }
       if (a.roomId != null) { const rid = opt(a.roomId); if (rid) { const r = await prisma.room.findFirst({ where: { id: rid, organizationId: ctx.organizationId } }); if (!r) throw new Error("Salle invalide."); } data.roomId = rid ?? null; }
+      await assertSessionSchedulable({
+        organizationId: ctx.organizationId,
+        startDate: start,
+        endDate: end,
+        slots: existing.slots,
+        trainerId: (data.trainerId as string | null | undefined) ?? existing.trainerId,
+        roomId: (data.roomId as string | null | undefined) ?? existing.roomId,
+        excludeSessionId: existing.id,
+      });
       if (a.capacity != null) data.capacity = num(a.capacity);
       if (a.pricePerLearnerEuros != null) data.pricePerLearner = euros(a.pricePerLearnerEuros);
       if (a.status != null) data.status = enumOf(a.status, SESSION_STATUS, "status");

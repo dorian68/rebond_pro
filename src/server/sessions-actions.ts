@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireTenant, requireRole } from "@/lib/tenant";
 import type { FormActionState } from "@/server/formations-actions";
+import { findSessionSchedulingConflicts } from "@/server/scheduling-constraints";
 
 const EDITORS = ["OWNER", "ADMIN", "ASSISTANT"] as const;
 const SLOTS = ["MATIN", "APRES_MIDI", "JOURNEE", "SOIR"] as const;
@@ -56,6 +57,15 @@ export async function createSession(_prev: FormActionState, formData: FormData):
   const start = new Date(d.startDate);
   const end = new Date(d.endDate);
   if (end < start) return { error: "La date de fin doit suivre la date de début." };
+  const conflicts = await findSessionSchedulingConflicts({
+    organizationId: ctx.organizationId,
+    startDate: start,
+    endDate: end,
+    slots,
+    trainerId: d.trainerId || null,
+    roomId: d.roomId || null,
+  });
+  if (conflicts.length) return { error: conflicts[0] };
 
   const created = await prisma.session.create({
     data: {
@@ -90,6 +100,16 @@ export async function updateSession(id: string, _prev: FormActionState, formData
   const start = new Date(d.startDate);
   const end = new Date(d.endDate);
   if (end < start) return { error: "La date de fin doit suivre la date de début." };
+  const conflicts = await findSessionSchedulingConflicts({
+    organizationId: ctx.organizationId,
+    startDate: start,
+    endDate: end,
+    slots,
+    trainerId: d.trainerId || null,
+    roomId: d.roomId || null,
+    excludeSessionId: id,
+  });
+  if (conflicts.length) return { error: conflicts[0] };
 
   await prisma.session.update({
     where: { id },

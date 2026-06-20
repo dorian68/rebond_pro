@@ -34,6 +34,7 @@
     "smoke:billing": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-billing.ts",
     "smoke:quota": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-quota.ts",
     "smoke:trainer-portal": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-trainer-portal.ts",
+    "smoke:planning-stress": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-planning-stress.ts",
     "smoke:beneficiary": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-beneficiary.ts",
     "smoke:platform": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-platform.ts",
     "smoke:persona": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-persona.ts",
