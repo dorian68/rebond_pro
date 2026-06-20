@@ -12,6 +12,8 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
   const { id } = await params;
   const o = await getCenterDetail(id);
   if (!o) notFound();
+  const publicFormations = o.formations.filter((f) => f.status === "PUBLIE" && f.isPublic);
+  const isMarketplaceVisible = o.marketplaceStatus === "APPROVED" && o.publicProfileEnabled && publicFormations.length > 0;
 
   return (
     <div className="fade-up">
@@ -30,10 +32,20 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} />
-          {o.marketplaceStatus === "APPROVED" && <Link href="/marketplace#centres" target="_blank" className="btn btn-secondary btn-sm"><Icon name="layers" size={15} /> Voir dans la marketplace</Link>}
-          {o.marketplaceStatus === "APPROVED" && <Link href={`/${o.slug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="globe" size={15} /> Page publique</Link>}
+          {isMarketplaceVisible && <Link href="/marketplace#centres" target="_blank" className="btn btn-secondary btn-sm"><Icon name="layers" size={15} /> Voir dans la marketplace</Link>}
+          {isMarketplaceVisible && <Link href={`/${o.slug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="globe" size={15} /> Page publique</Link>}
         </div>
       </div>
+
+      {!isMarketplaceVisible && (
+        <Card style={{ marginBottom: 16, borderColor: "var(--warn-border)", background: "var(--warn-bg)" }}>
+          <strong style={{ fontSize: 13.5 }}>Centre non visible sur la marketplace.</strong>
+          <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 6 }}>
+            Conditions requises : profil public actif, validation marketplace, et au moins une formation avec le statut Publiée et la page publique active.
+            Aujourd'hui : {publicFormations.length} formation{publicFormations.length > 1 ? "s" : ""} publicable{publicFormations.length > 1 ? "s" : ""}.
+          </p>
+        </Card>
+      )}
 
       {o.marketplaceStatus === "REJECTED" && o.marketplaceRejectionReason && (
         <div className="badge badge-danger" style={{ marginBottom: 16, padding: "8px 12px", display: "block", width: "fit-content" }}>
@@ -98,7 +110,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
                   <tr key={f.id}>
                     <td style={{ fontWeight: 600 }}>{f.title}</td>
                     <td className="muted">{f.status}</td>
-                    <td>{f.isPublic ? "Oui" : "Non"}</td>
+                    <td>{f.status === "PUBLIE" && f.isPublic ? <span className="badge badge-positive">Visible marketplace</span> : f.isPublic ? "Page publique active" : "Non"}</td>
                     <td className="tnum">{formatMoney(f.price)}</td>
                   </tr>
                 ))}

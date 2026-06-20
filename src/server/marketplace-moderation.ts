@@ -28,6 +28,19 @@ function siteUrl(path: string): string {
 /** Valide la publication d'un centre sur la marketplace (admin god-mode) + email de confirmation. */
 export async function approveCenterMarketplace(orgId: string): Promise<ModerationResult> {
   const admin = await requirePlatformAdmin();
+  const readiness = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: {
+      publicProfileEnabled: true,
+      _count: { select: { formations: { where: { isPublic: true, status: "PUBLIE", deletedAt: null } } } },
+    },
+  });
+  if (!readiness) return { ok: false, error: "Centre introuvable." };
+  if (!readiness.publicProfileEnabled) return { ok: false, error: "Activez d'abord le profil public du centre." };
+  if (readiness._count.formations === 0) {
+    return { ok: false, error: "Publiez au moins une formation avant de valider ce centre sur la marketplace." };
+  }
+
   const org = await prisma.organization.update({
     where: { id: orgId },
     data: {

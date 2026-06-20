@@ -13,7 +13,7 @@ runner("marketplace_smoke", async () => {
   const t = await createTestTenant("mkt");
   const tag = `SmokeCat-${Date.now()}`;
   try {
-    await prisma.organization.update({ where: { id: t.organizationId }, data: { tagline: "Accroche smoke", city: "VilleSmoke", description: "Centre de test marketplace." } });
+    await prisma.organization.update({ where: { id: t.organizationId }, data: { tagline: "Accroche smoke", city: "VilleSmoke", description: "Centre de test marketplace.", marketplaceStatus: "APPROVED" } });
     const trainer = await prisma.trainer.create({ data: { organizationId: t.organizationId, firstName: "Marco", lastName: "Polo", initials: "MP", specialities: ["SmokeSkill"], bio: "Bio smoke", yearsExperience: 9, active: true } });
     const pubSlug = `smoke-mkt-${Date.now()}`;
     const formation = await prisma.formation.create({

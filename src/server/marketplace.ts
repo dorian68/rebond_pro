@@ -1,5 +1,5 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
+import { unstable_cache, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { Modality, Level } from "@prisma/client";
 
@@ -193,13 +193,7 @@ export const getPublicTrainer = unstable_cache(
   { revalidate: 120, tags: [MARKETPLACE_TAG] },
 );
 
-/**
- * Force le rafraîchissement immédiat du cache marketplace après une mutation.
- * En attendant l'API stable de Next 16, on s'appuie sur le TTL court (≤60-300s) ;
- * ce no-op garde un point d'extension propre côté actions.
- */
+/** Invalide immédiatement le cache marketplace après une mutation depuis une Server Action. */
 export function revalidateMarketplace() {
-  // Invalidation par TTL court (≤60s, cf. options unstable_cache) — pattern du repo
-  // sous Next 16 (revalidateTag y exige un profil, réservé à `use cache`).
-  // Point d'extension : les mutations appellent aussi revalidatePath sur /marketplace.
+  updateTag(MARKETPLACE_TAG);
 }
