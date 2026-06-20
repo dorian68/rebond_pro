@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 import type { Role } from "@prisma/client";
 
 /**
@@ -49,6 +50,14 @@ export type TenantContext = {
   role: Role;
 };
 
+const getActiveMembershipForUser = cache(async (userId: string) => {
+  return prisma.membership.findFirst({
+    where: { userId, status: "ACTIVE", organization: { deletedAt: null } },
+    include: { organization: { select: { id: true, name: true, slug: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+});
+
 /** Session brute (peut être null). Mémoïsée par rendu. */
 export const getSession = cache(async () => {
   if (process.env.DEV_AUTOLOGIN === "true") {
@@ -68,7 +77,29 @@ export async function requireTenant(): Promise<TenantContext> {
   if (!session?.user?.id) redirect("/login");
 
   const u = session.user;
-  if (!u.organizationId) redirect("/onboarding");
+  const membership = await getActiveMembershipForUser(u.id);
+  if (membership) {
+    if (!u.organizationId || u.organizationId !== membership.organizationId || u.role !== membership.role) {
+      logger.warn("tenant.session_stale_resolved_from_db", {
+        userId: u.id,
+        tokenOrganizationId: u.organizationId ?? null,
+        dbOrganizationId: membership.organizationId,
+        tokenRole: u.role ?? null,
+        dbRole: membership.role,
+      });
+    }
+    return {
+      userId: u.id,
+      email: u.email ?? null,
+      name: u.name ?? null,
+      organizationId: membership.organizationId,
+      organizationName: membership.organization.name,
+      organizationSlug: membership.organization.slug,
+      role: membership.role,
+    };
+  }
+
+  if (!u.organizationId) redirect("/login");
 
   return {
     userId: u.id,

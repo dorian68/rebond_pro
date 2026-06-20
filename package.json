@@ -19,6 +19,7 @@
     "db:reset": "prisma migrate reset",
     "db:diagnose": "tsx scripts/diagnose-db.ts",
     "debug:center-publication": "tsx --tsconfig scripts/tsconfig.json scripts/debug-center-publication.ts",
+    "debug:onboarding": "tsx --tsconfig scripts/tsconfig.json scripts/debug-onboarding.ts",
     "smoke:lot5": "tsx scripts/smoke-lot5.ts",
     "smoke:auth": "tsx scripts/smoke-auth-verification.ts",
     "smoke:registration": "tsx scripts/smoke-registration.ts",
