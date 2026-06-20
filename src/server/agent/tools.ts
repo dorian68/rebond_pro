@@ -8,6 +8,7 @@ import { MODALITY_LABELS, PROSPECT_STAGE_LABELS } from "@/lib/labels";
 import type { UIBlock } from "@/lib/ag-ui/types";
 import { WRITE_TOOLS } from "@/server/agent/write-tools";
 import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
+import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -28,7 +29,7 @@ const APP_MAP = {
     { path: "/planning", desc: "Calendrier hebdo, conflits, meilleurs créneaux" },
     { path: "/prospects", desc: "CRM pipeline Kanban" },
     { path: "/apprenants", desc: "Apprenants & inscriptions" },
-    { path: "/documents", desc: "Génération de documents PDF" },
+    { path: "/documents", desc: "Génération de documents PDF ou DOCX à partir des données cockpit et des modèles du centre" },
     { path: "/qualite", desc: "Indicateurs qualité" },
     { path: "/formateurs", desc: "Formateurs & disponibilités" },
     { path: "/assistant", desc: "Assistant IA (page dédiée)" },
@@ -183,14 +184,35 @@ export const AGENT_TOOLS: AgentTool[] = [
   },
   // ---- Actions sensibles (human-in-the-loop) ----
   {
+    name: "list_document_templates",
+    description: "Liste les modèles de documents disponibles pour le centre, notamment les modèles DOCX importés utilisables par generate_document.",
+    input_schema: { type: "object", properties: {} },
+    execute: async (ctx) => {
+      const templates = await prisma.documentTemplate.findMany({
+        where: { OR: [{ organizationId: ctx.organizationId }, { organizationId: null }] },
+        orderBy: [{ organizationId: "desc" }, { type: "asc" }],
+        select: { id: true, type: true, name: true, engine: true, sourceFileName: true, variables: true },
+      });
+      const block: UIBlock = {
+        type: "data_table",
+        title: "Modèles de documents",
+        columns: ["Type", "Nom", "Moteur", "Fichier"],
+        rows: templates.map((t) => [DOC_LABELS[t.type] ?? t.type, t.name, t.engine, t.sourceFileName ?? "—"]),
+        emptyText: "Aucun modèle importé.",
+      };
+      return { textForLLM: JSON.stringify(templates), uiBlock: block };
+    },
+  },
+  {
     name: "generate_document",
-    description: "Génère un document officiel (convocation, attestation, convention, programme, émargement, devis) pour une session. ACTION SENSIBLE : nécessite validation humaine.",
+    description: "Génère un document officiel pour une session. Utilise le modèle DOCX du centre si disponible, sinon le PDF intégré. ACTION SENSIBLE : nécessite validation humaine.",
     sensitive: true,
     input_schema: {
       type: "object",
       properties: {
-        type: { type: "string", enum: ["CONVOCATION", "ATTESTATION", "CONVENTION", "PROGRAMME", "EMARGEMENT", "DEVIS"] },
+        type: { type: "string", enum: GENERATABLE_DOCUMENT_TYPES },
         sessionId: { type: "string" },
+        templateId: { type: "string" },
       },
       required: ["type", "sessionId"],
     },
@@ -199,6 +221,7 @@ export const AGENT_TOOLS: AgentTool[] = [
       const fd = new FormData();
       fd.set("type", String(args.type));
       fd.set("sessionId", String(args.sessionId));
+      if (args.templateId) fd.set("templateId", String(args.templateId));
       await generateDocuments(fd);
       return { textForLLM: `Document ${args.type} généré pour la session ${args.sessionId}.`, custom: { name: "app.refresh", value: {} } };
     },

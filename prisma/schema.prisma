@@ -125,13 +125,24 @@ enum RoomType {
 enum DocumentType {
   PROGRAMME
   CONVENTION
+  CONTRAT_FORMATION
+  LIVRET_ACCUEIL
+  TEST_POSITIONNEMENT
   CONVOCATION
   EMARGEMENT
+  SUPPORT_COURS
+  QUESTIONNAIRE_SUIVI
   ATTESTATION
   CERTIFICAT
+  ATTESTATION_PRESENCE
   QUESTIONNAIRE_SATISFACTION
+  ENQUETE_SATISFACTION_CHAUD
+  ENQUETE_SATISFACTION_FROID
   SYNTHESE_SATISFACTION
+  DIPLOME_TITRE
   DEVIS
+  FACTURE
+  BPF
 }
 
 enum DocumentStatus {
@@ -685,6 +696,10 @@ model DocumentTemplate {
   type            DocumentType
   name            String
   contentTemplate String       // HTML/MJML avec variables {{...}}
+  engine          String       @default("TEXT")
+  sourceFileUrl   String?
+  sourceFileName  String?
+  sourceMimeType  String?
   variables       String[]     @default([])
 
   createdAt DateTime @default(now())
@@ -703,6 +718,8 @@ model Document {
   templateId     String?
   status         DocumentStatus @default(A_GENERER)
   fileUrl        String?
+  fileName       String?
+  mimeType       String?        @default("application/pdf")
   generatedAt    DateTime?
   sentAt         DateTime?
 

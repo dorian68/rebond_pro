@@ -4,8 +4,9 @@ import { useState, useActionState, useTransition } from "react";
 import { Card } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { ImageUpload } from "@/components/app/ImageUpload";
-import { updateOrganization, inviteMember, updateMemberRole, removeMember, saveDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
+import { updateOrganization, inviteMember, updateMemberRole, removeMember, saveDocumentTemplate, uploadDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
 import { createCheckoutSession, createBillingPortalSession } from "@/server/billing-actions";
+import { DOCUMENT_TYPES } from "@/lib/document-types";
 import type { BillingState } from "@/server/billing";
 import type { Plan } from "@prisma/client";
 import type { FormActionState } from "@/server/formations-actions";
@@ -22,7 +23,16 @@ type Member = {
   id: string; role: string; status: string; invitedEmail: string | null;
   user: { id: string; name: string | null; email: string | null; lastLoginAt: Date | null };
 };
-type Template = { id: string; type: string; name: string; contentTemplate: string };
+type Template = {
+  id: string;
+  type: string;
+  name: string;
+  contentTemplate: string;
+  engine: string;
+  sourceFileName: string | null;
+  sourceMimeType: string | null;
+  variables: string[];
+};
 
 const TABS = [
   { id: "profil", label: "Profil du centre", icon: "building" },
@@ -314,26 +324,19 @@ function MembresTab({ members, role }: { members: Member[]; role: string }) {
 }
 
 // ── Modèles de documents ──────────────────────────────────────────
-const DOC_TYPES = [
-  { value: "CONVENTION", label: "Convention de formation" },
-  { value: "CONVOCATION", label: "Convocation" },
-  { value: "ATTESTATION", label: "Attestation de formation" },
-  { value: "PROGRAMME", label: "Programme de formation" },
-  { value: "EMARGEMENT", label: "Feuille d'émargement" },
-  { value: "DEVIS", label: "Devis" },
-];
-
 function TemplatesTab({ templates, role }: { templates: Template[]; role: string }) {
   const canEdit = ["OWNER", "ADMIN"].includes(role);
   const [selectedType, setSelectedType] = useState("CONVENTION");
   const existing = templates.find((t) => t.type === selectedType);
-  const [state, action, pending] = useActionState<FormActionState, FormData>(saveDocumentTemplate, undefined);
+  const selectedLabel = DOCUMENT_TYPES.find((d) => d.value === selectedType)?.label ?? selectedType;
+  const [textState, textAction, textPending] = useActionState<FormActionState, FormData>(saveDocumentTemplate, undefined);
+  const [uploadState, uploadAction, uploadPending] = useActionState<FormActionState, FormData>(uploadDocumentTemplate, undefined);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 24 }}>
       <div>
         <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: "var(--ink-3)" }}>Types de documents</div>
-        {DOC_TYPES.map((dt) => {
+        {DOCUMENT_TYPES.map((dt) => {
           const hasCustom = templates.some((t) => t.type === dt.value);
           return (
             <button key={dt.value} onClick={() => setSelectedType(dt.value)}
@@ -346,14 +349,44 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
         })}
       </div>
 
+      <div style={{ display: "grid", gap: 16 }}>
       <Card>
-        <h3 style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>{DOC_TYPES.find((d) => d.value === selectedType)?.label}</h3>
+        <h3 style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>{selectedLabel}</h3>
         <p style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20 }}>
-          Personnalisez ce modèle avec des variables : <code>{`{{formation_title}}`}</code>, <code>{`{{learner_name}}`}</code>, <code>{`{{session_date}}`}</code>, <code>{`{{org_name}}`}</code>, <code>{`{{trainer_name}}`}</code>.
+          Importez un fichier DOCX avec des variables entre accolades : <code>{`{formation_title}`}</code>, <code>{`{learner_name}`}</code>, <code>{`{session_date}`}</code>, <code>{`{org_name}`}</code>.
         </p>
-        <form action={action} style={{ display: "grid", gap: 16 }}>
+        {existing && (
+          <div style={{ padding: "10px 12px", background: "var(--surface-3)", borderRadius: 8, fontSize: 12.5, color: "var(--ink-2)", marginBottom: 16 }}>
+            Modèle actif : <strong>{existing.name}</strong> · moteur <strong>{existing.engine}</strong>
+            {existing.sourceFileName ? <> · fichier <strong>{existing.sourceFileName}</strong></> : null}
+            {existing.variables.length > 0 ? <div style={{ marginTop: 8 }}>Variables détectées : {existing.variables.map((v) => <code key={v} style={{ marginRight: 6 }}>{v}</code>)}</div> : null}
+          </div>
+        )}
+        <form action={uploadAction} style={{ display: "grid", gap: 16 }}>
           <input type="hidden" name="type" value={selectedType} />
-          <Field label="Nom du modèle" name="name" defaultValue={existing?.name ?? DOC_TYPES.find((d) => d.value === selectedType)?.label ?? ""} disabled={!canEdit} />
+          <Field key={`upload-name-${selectedType}`} label="Nom du modèle" name="name" defaultValue={existing?.name ?? selectedLabel} disabled={!canEdit} />
+          <div>
+            <label className="label">Fichier modèle DOCX</label>
+            <input name="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="input" disabled={!canEdit} />
+          </div>
+          {canEdit && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button type="submit" className="btn btn-primary" disabled={uploadPending}>{uploadPending ? "Import…" : "Importer le modèle DOCX"}</button>
+              {uploadState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>✓ Modèle DOCX importé</span>}
+              {uploadState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{uploadState.error}</span>}
+            </div>
+          )}
+        </form>
+      </Card>
+
+      <Card>
+        <h3 style={{ fontWeight: 700, marginBottom: 4, fontSize: 15 }}>Modèle texte historique</h3>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 20 }}>
+          Cet espace conserve l'ancien format texte. Pour les fichiers générés téléchargeables, utilisez le modèle DOCX ci-dessus ou le PDF intégré.
+        </p>
+        <form key={`text-template-${selectedType}`} action={textAction} style={{ display: "grid", gap: 16 }}>
+          <input type="hidden" name="type" value={selectedType} />
+          <Field label="Nom du modèle" name="name" defaultValue={existing?.name ?? selectedLabel} disabled={!canEdit} />
           <div>
             <label className="label">Contenu du modèle (texte)</label>
             <textarea name="contentTemplate" className="input" rows={14} defaultValue={existing?.contentTemplate ?? ""} disabled={!canEdit}
@@ -361,13 +394,14 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
           </div>
           {canEdit && (
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Enregistrement…" : "Enregistrer le modèle"}</button>
-              {state?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>✓ Modèle enregistré</span>}
-              {state?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</span>}
+              <button type="submit" className="btn btn-secondary" disabled={textPending}>{textPending ? "Enregistrement…" : "Enregistrer le modèle texte"}</button>
+              {textState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>✓ Modèle texte enregistré</span>}
+              {textState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{textState.error}</span>}
             </div>
           )}
         </form>
       </Card>
+      </div>
     </div>
   );
 }

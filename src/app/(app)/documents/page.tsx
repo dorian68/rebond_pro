@@ -2,24 +2,22 @@ import { requireTenant } from "@/lib/tenant";
 import { listDocuments, documentSuggestions } from "@/server/documents";
 import { sessionOptions } from "@/server/options";
 import { generateDocuments } from "@/server/documents-actions";
+import { getDocumentTemplates } from "@/server/parametres";
 import { Card, PageHeader, EmptyState } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { formatDate } from "@/lib/utils";
 import { SendDocButton, DeleteDocButton } from "./doc-actions";
 import { BulkJobClient } from "./bulk-job-client";
+import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 
 export const dynamic = "force-dynamic";
 
-const TYPE_LABELS: Record<string, string> = {
-  CONVOCATION: "Convocation", ATTESTATION: "Attestation", CERTIFICAT: "Certificat", CONVENTION: "Convention", PROGRAMME: "Programme", EMARGEMENT: "Émargement", DEVIS: "Devis", QUESTIONNAIRE_SATISFACTION: "Questionnaire", SYNTHESE_SATISFACTION: "Synthèse",
-};
 const STATUS_BADGE: Record<string, [string, string]> = { A_GENERER: ["badge-warn", "À générer"], GENERE: ["badge-primary", "Généré"], ENVOYE: ["badge-positive", "Envoyé"] };
-const GEN_TYPES = ["CONVOCATION", "ATTESTATION", "CONVENTION", "PROGRAMME", "EMARGEMENT", "DEVIS"];
 
 export default async function DocumentsPage() {
   const ctx = await requireTenant();
   const canEdit = ["OWNER", "ADMIN", "ASSISTANT"].includes(ctx.role);
-  const [docs, suggestions, sessions] = await Promise.all([listDocuments(ctx), documentSuggestions(ctx), sessionOptions(ctx)]);
+  const [docs, suggestions, sessions, templates] = await Promise.all([listDocuments(ctx), documentSuggestions(ctx), sessionOptions(ctx), getDocumentTemplates(ctx)]);
 
   return (
     <div className="fade-up">
@@ -63,7 +61,7 @@ export default async function DocumentsPage() {
               <div>
                 <label className="field-label">Type de document</label>
                 <select className="select" name="type" defaultValue="CONVOCATION">
-                  {GEN_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+                  {GENERATABLE_DOCUMENT_TYPES.map((t) => <option key={t} value={t}>{DOC_LABELS[t]}</option>)}
                 </select>
               </div>
               <div>
@@ -72,8 +70,18 @@ export default async function DocumentsPage() {
                   {sessions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
-              <button type="submit" className="btn btn-primary"><Icon name="file-text" size={16} /> Générer le PDF</button>
-              <p className="muted-3" style={{ fontSize: 11.5 }}>Les convocations et attestations sont générées pour chaque apprenant inscrit ; l&apos;émargement liste tous les inscrits.</p>
+              <div>
+                <label className="field-label">Modèle</label>
+                <select className="select" name="templateId" defaultValue="">
+                  <option value="">Automatique : modèle DOCX du type, sinon PDF intégré</option>
+                  <option value="__builtin">Forcer le modèle PDF intégré</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{DOC_LABELS[t.type] ?? t.type} — {t.name} ({t.engine})</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary"><Icon name="file-text" size={16} /> Générer le document</button>
+              <p className="muted-3" style={{ fontSize: 11.5 }}>Les documents individuels sont générés pour chaque apprenant inscrit ; l&apos;émargement liste tous les inscrits.</p>
             </form>
           ) : <p className="muted-3" style={{ fontSize: 13 }}>Lecture seule.</p>}
         </Card>
@@ -95,13 +103,16 @@ export default async function DocumentsPage() {
                 const [cls, label] = STATUS_BADGE[d.status] ?? STATUS_BADGE.GENERE;
                 return (
                   <tr key={d.id}>
-                    <td style={{ fontWeight: 700 }}>{TYPE_LABELS[d.type] ?? d.type}</td>
-                    <td className="muted">{d.target}</td>
+                    <td style={{ fontWeight: 700 }}>{DOC_LABELS[d.type] ?? d.type}</td>
+                    <td className="muted">
+                      {d.target}
+                      {d.templateName ? <span style={{ display: "block", fontSize: 11 }}>Modèle : {d.templateName}</span> : null}
+                    </td>
                     <td className="muted">{formatDate(d.generatedAt)}</td>
                     <td><span className={"badge " + cls}>{label}</span></td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                        <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm"><Icon name="download" size={15} /> PDF</a>
+                        <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm"><Icon name="download" size={15} /> {d.mimeType?.includes("wordprocessingml") ? "DOCX" : "PDF"}</a>
                         {canEdit && <SendDocButton id={d.id} disabled={!d.hasEmail} />}
                         {canEdit && <DeleteDocButton id={d.id} />}
                       </div>

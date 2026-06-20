@@ -5,6 +5,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireTenant, requireRole } from "@/lib/tenant";
 import type { FormActionState } from "@/server/formations-actions";
+import { saveFile } from "@/lib/storage";
+import { extractDocxVariables } from "@/server/docx/template-engine";
+import { logger } from "@/lib/logger";
+import type { Prisma } from "@prisma/client";
 
 const ADMIN_ROLES = ["OWNER", "ADMIN"] as const;
 
@@ -155,12 +159,107 @@ export async function saveDocumentTemplate(_prev: FormActionState, formData: For
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
   const d = parsed.data;
   const existing = await prisma.documentTemplate.findFirst({ where: { organizationId: ctx.organizationId, type: d.type as never } });
-  if (existing) {
-    await prisma.documentTemplate.update({ where: { id: existing.id }, data: { name: d.name, contentTemplate: d.contentTemplate } });
-  } else {
-    await prisma.documentTemplate.create({ data: { organizationId: ctx.organizationId, type: d.type as never, name: d.name, contentTemplate: d.contentTemplate } });
-  }
+  const data = { name: d.name, contentTemplate: d.contentTemplate, engine: "TEXT", sourceFileUrl: null, sourceFileName: null, sourceMimeType: null, variables: [] };
+  const template = existing
+    ? await prisma.documentTemplate.update({ where: { id: existing.id }, data })
+    : await prisma.documentTemplate.create({ data: { organizationId: ctx.organizationId, type: d.type as never, ...data } });
+  await auditTemplateEvent({
+    organizationId: ctx.organizationId,
+    actorId: ctx.userId,
+    action: existing ? "document_template.updated" : "document_template.created",
+    templateId: template.id,
+    after: { type: d.type, name: d.name, engine: "TEXT" },
+  });
   revalidatePath("/parametres");
+  return { ok: true };
+}
+
+async function auditTemplateEvent(input: {
+  organizationId: string;
+  actorId?: string;
+  action: string;
+  templateId: string;
+  after: Prisma.InputJsonObject;
+}) {
+  await prisma.auditLog.create({
+    data: {
+      organizationId: input.organizationId,
+      actorId: input.actorId,
+      action: input.action,
+      entityType: "DocumentTemplate",
+      entityId: input.templateId,
+      after: input.after,
+    },
+  }).catch((e) => {
+    logger.error("document_template.audit_failed", {
+      organizationId: input.organizationId,
+      action: input.action,
+      templateId: input.templateId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  });
+}
+
+export async function uploadDocumentTemplate(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...ADMIN_ROLES]);
+  const type = String(formData.get("type") || "");
+  const name = String(formData.get("name") || "").trim();
+  const file = formData.get("file");
+
+  if (!type) return { error: "Type de document requis." };
+  if (name.length < 2) return { error: "Nom du modèle requis." };
+  if (!(file instanceof File) || file.size === 0) return { error: "Fichier DOCX requis." };
+  if (!file.name.toLowerCase().endsWith(".docx")) return { error: "Seuls les fichiers .docx sont acceptés." };
+  if (file.size > 5 * 1024 * 1024) return { error: "Fichier trop volumineux (5 Mo maximum)." };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  let variables: string[];
+  try {
+    variables = extractDocxVariables(buffer);
+  } catch (e) {
+    logger.error("document_template.docx_parse_failed", {
+      organizationId: ctx.organizationId,
+      type,
+      fileName: file.name,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return { error: "Le fichier DOCX n'a pas pu être lu comme modèle." };
+  }
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const key = `document-templates/${ctx.organizationId}/${type.toLowerCase()}-${Date.now()}-${safeName}`;
+  await saveFile(key, buffer);
+
+  const existing = await prisma.documentTemplate.findFirst({ where: { organizationId: ctx.organizationId, type: type as never } });
+  const data = {
+    name,
+    contentTemplate: `DOCX template: ${file.name}`,
+    variables,
+    engine: "DOCX",
+    sourceFileUrl: key,
+    sourceFileName: file.name,
+    sourceMimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+  const template = existing
+    ? await prisma.documentTemplate.update({ where: { id: existing.id }, data })
+    : await prisma.documentTemplate.create({ data: { organizationId: ctx.organizationId, type: type as never, ...data } });
+
+  await auditTemplateEvent({
+    organizationId: ctx.organizationId,
+    actorId: ctx.userId,
+    action: existing ? "document_template.updated" : "document_template.created",
+    templateId: template.id,
+    after: {
+      type,
+      name,
+      engine: "DOCX",
+      sourceFileName: file.name,
+      variables,
+    },
+  });
+  revalidatePath("/parametres");
+  revalidatePath("/documents");
   return { ok: true };
 }
 

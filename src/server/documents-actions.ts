@@ -8,14 +8,14 @@ import { saveFile, deleteFile, readFile } from "@/lib/storage";
 import { sendEmail, brandedEmail } from "@/lib/email";
 import { formatMoney, formatDateRange } from "@/lib/utils";
 import { MODALITY_LABELS } from "@/lib/labels";
-
-const DOC_LABELS: Record<string, string> = {
-  CONVOCATION: "Votre convocation", ATTESTATION: "Votre attestation de formation", CERTIFICAT: "Votre certificat de réalisation",
-  CONVENTION: "Votre convention de formation", PROGRAMME: "Programme de formation", EMARGEMENT: "Feuille d'émargement", DEVIS: "Votre devis",
-};
+import { DOC_LABELS, PER_LEARNER_DOCUMENT_TYPES } from "@/lib/document-types";
+import { renderDocxTemplate } from "@/server/docx/template-engine";
+import { logger } from "@/lib/logger";
+import type { Prisma } from "@prisma/client";
 
 const EDITORS = ["OWNER", "ADMIN", "ASSISTANT"] as const;
-const PER_LEARNER = ["CONVOCATION", "ATTESTATION", "CERTIFICAT"];
+const PER_LEARNER = [...PER_LEARNER_DOCUMENT_TYPES];
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 async function orgLegal(ctx: TenantContext) {
   const o = await prisma.organization.findUnique({ where: { id: ctx.organizationId }, select: { name: true, legalName: true, legalAddress: true, nda: true, legalRep: true } });
@@ -50,14 +50,97 @@ function baseData(org: Awaited<ReturnType<typeof orgLegal>>, type: string, s: Se
   };
 }
 
-async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: string; enrollmentId?: string; formationId?: string }, data: DocData) {
-  const buf = await renderDocumentPdf(data);
-  const doc = await prisma.document.create({
-    data: { organizationId: ctx.organizationId, type: type as never, status: "GENERE", generatedAt: new Date(), sessionId: ids.sessionId ?? null, enrollmentId: ids.enrollmentId ?? null, formationId: ids.formationId ?? null },
+async function auditDocumentEvent(ctx: TenantContext, action: string, entityId: string, after: Prisma.InputJsonObject) {
+  await prisma.auditLog.create({
+    data: {
+      organizationId: ctx.organizationId,
+      actorId: ctx.userId,
+      action,
+      entityType: "Document",
+      entityId,
+      after,
+    },
+  }).catch((e) => {
+    logger.error("documents.audit_failed", {
+      organizationId: ctx.organizationId,
+      action,
+      entityId,
+      error: e instanceof Error ? e.message : String(e),
+    });
   });
-  const key = `documents/${ctx.organizationId}/${doc.id}.pdf`;
-  await saveFile(key, buf);
-  await prisma.document.update({ where: { id: doc.id }, data: { fileUrl: key } });
+}
+
+async function resolveTemplate(ctx: TenantContext, type: string, templateId?: string | null) {
+  if (templateId && templateId !== "__builtin") {
+    return prisma.documentTemplate.findFirst({
+      where: {
+        id: templateId,
+        type: type as never,
+        OR: [{ organizationId: ctx.organizationId }, { organizationId: null }],
+      },
+    });
+  }
+  return prisma.documentTemplate.findFirst({
+    where: {
+      type: type as never,
+      engine: "DOCX",
+      sourceFileUrl: { not: null },
+      OR: [{ organizationId: ctx.organizationId }, { organizationId: null }],
+    },
+    orderBy: [{ organizationId: "desc" }, { updatedAt: "desc" }],
+  });
+}
+
+async function renderDocument(
+  template: Awaited<ReturnType<typeof resolveTemplate>>,
+  data: DocData,
+): Promise<{ buffer: Buffer; extension: "docx" | "pdf"; mimeType: string; templateId?: string }> {
+  if (template?.engine === "DOCX" && template.sourceFileUrl) {
+    const source = await readFile(template.sourceFileUrl);
+    return {
+      buffer: renderDocxTemplate(source, data),
+      extension: "docx",
+      mimeType: DOCX_MIME,
+      templateId: template.id,
+    };
+  }
+  return {
+    buffer: await renderDocumentPdf(data),
+    extension: "pdf",
+    mimeType: "application/pdf",
+    templateId: template?.id,
+  };
+}
+
+async function persistDoc(ctx: TenantContext, type: string, ids: { sessionId?: string; enrollmentId?: string; formationId?: string }, data: DocData, templateId?: string | null) {
+  const template = await resolveTemplate(ctx, type, templateId);
+  const rendered = await renderDocument(template, data);
+  const doc = await prisma.document.create({
+    data: {
+      organizationId: ctx.organizationId,
+      type: type as never,
+      status: "GENERE",
+      generatedAt: new Date(),
+      sessionId: ids.sessionId ?? null,
+      enrollmentId: ids.enrollmentId ?? null,
+      formationId: ids.formationId ?? null,
+      templateId: rendered.templateId ?? null,
+      mimeType: rendered.mimeType,
+    },
+  });
+  const fileName = `${type.toLowerCase()}-${doc.id}.${rendered.extension}`;
+  const key = `documents/${ctx.organizationId}/${fileName}`;
+  await saveFile(key, rendered.buffer);
+  await prisma.document.update({ where: { id: doc.id }, data: { fileUrl: key, fileName } });
+  await auditDocumentEvent(ctx, "document.generated", doc.id, {
+    type,
+    sessionId: ids.sessionId ?? null,
+    enrollmentId: ids.enrollmentId ?? null,
+    formationId: ids.formationId ?? null,
+    templateId: rendered.templateId ?? null,
+    mimeType: rendered.mimeType,
+    fileName,
+  });
   return doc.id;
 }
 
@@ -67,22 +150,23 @@ export async function generateDocuments(formData: FormData): Promise<void> {
   requireRole(ctx, [...EDITORS]);
   const type = String(formData.get("type") || "");
   const sessionId = String(formData.get("sessionId") || "");
+  const templateId = String(formData.get("templateId") || "") || null;
   if (!type || !sessionId) return;
   const s = await loadSession(ctx, sessionId);
   if (!s) return;
   const org = await orgLegal(ctx);
 
-  if (PER_LEARNER.includes(type)) {
+  if ((PER_LEARNER as readonly string[]).includes(type)) {
     for (const e of s.enrollments) {
       const data = baseData(org, type, s);
       data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };
-      await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data);
+      await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data, templateId);
     }
   } else {
     const data = baseData(org, type, s);
     if (type === "EMARGEMENT") data.learners = s.enrollments.map((e) => ({ fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company }));
     if ((type === "CONVENTION" || type === "DEVIS") && s.enrollments[0]) data.learner = { fullName: `${s.enrollments[0].learner.firstName} ${s.enrollments[0].learner.lastName}`, company: s.enrollments[0].learner.company };
-    await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data);
+    await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data, templateId);
   }
 
   revalidatePath("/documents");
@@ -127,9 +211,15 @@ export async function sendDocument(documentId: string): Promise<{ ok: boolean; e
     to,
     subject: `${title}${formationTitle ? ` — ${formationTitle}` : ""}`,
     html: brandedEmail(title, `Bonjour ${doc.enrollment?.learner.firstName ?? ""},<br/><br/>Vous trouverez votre document en pièce jointe.<br/><br/>Cordialement,<br/>${ctx.organizationName ?? "Votre centre de formation"}`),
-    attachments: [{ filename: `${doc.type.toLowerCase()}.pdf`, content: buf }],
+    attachments: [{ filename: doc.fileName ?? `${doc.type.toLowerCase()}.pdf`, content: buf }],
   });
   await prisma.document.update({ where: { id: documentId }, data: { status: "ENVOYE", sentAt: new Date() } });
+  await auditDocumentEvent(ctx, "document.sent", documentId, {
+    type: doc.type,
+    to,
+    fileName: doc.fileName ?? `${doc.type.toLowerCase()}.pdf`,
+    mimeType: doc.mimeType ?? "application/pdf",
+  });
   revalidatePath("/documents");
   return { ok: true };
 }
@@ -152,7 +242,7 @@ export async function generateDocumentsBulkAsync(sessionId: string, type: string
       const s = await loadSession(ctx, sessionId);
       if (!s) { await failJob(jobId, "Session introuvable."); return; }
       const org = await orgLegal(ctx);
-      if (PER_LEARNER.includes(type)) {
+      if ((PER_LEARNER as readonly string[]).includes(type)) {
         for (const e of s.enrollments) {
           const data = baseData(org, type, s);
           data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };

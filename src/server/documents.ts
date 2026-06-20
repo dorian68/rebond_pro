@@ -13,6 +13,7 @@ export async function listDocuments(ctx: TenantContext) {
       formation: { select: { title: true } },
       session: { include: { formation: { select: { title: true } } } },
       enrollment: { include: { learner: { select: { firstName: true, lastName: true, email: true } } } },
+      template: { select: { name: true, engine: true } },
     },
     take: 200,
   });
@@ -21,9 +22,11 @@ export async function listDocuments(ctx: TenantContext) {
       ? `${d.enrollment.learner.firstName} ${d.enrollment.learner.lastName}`
       : d.session?.formation.title ?? d.formation?.title ?? "—";
     return {
-      id: d.id, type: d.type, status: d.status, fileUrl: d.fileUrl,
+      id: d.id, type: d.type, status: d.status, fileUrl: d.fileUrl, fileName: d.fileName, mimeType: d.mimeType,
       target, generatedAt: d.generatedAt, sentAt: d.sentAt,
       hasEmail: !!d.enrollment?.learner.email,
+      templateName: d.template?.name ?? null,
+      templateEngine: d.template?.engine ?? null,
     };
   });
 }

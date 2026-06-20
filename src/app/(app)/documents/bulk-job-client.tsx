@@ -3,13 +3,9 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { generateDocumentsBulkAsync } from "@/server/documents-actions";
+import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 
 type Session = { id: string; label: string };
-
-const TYPE_LABELS: Record<string, string> = {
-  CONVOCATION: "Convocations", ATTESTATION: "Attestations", CERTIFICAT: "Certificats",
-  CONVENTION: "Convention", PROGRAMME: "Programme", EMARGEMENT: "Émargement",
-};
 
 type JobState = { jobId: string; status: "PENDING" | "RUNNING" | "DONE" | "FAILED"; error?: string };
 
@@ -79,7 +75,7 @@ export function BulkJobClient({ sessions }: { sessions: Session[] }) {
             <div>
               <label className="field-label">Type de document</label>
               <select className="select" value={type} onChange={(e) => setType(e.target.value)}>
-                {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {GENERATABLE_DOCUMENT_TYPES.map((t) => <option key={t} value={t}>{DOC_LABELS[t]}</option>)}
               </select>
             </div>
             <div>
