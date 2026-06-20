@@ -6,8 +6,43 @@ import { requirePlatformAdmin } from "@/lib/platform";
 import { sendEmail, brandedEmail } from "@/lib/email";
 import { revalidateMarketplace } from "@/server/marketplace";
 import { logger } from "@/lib/logger";
+import type { Prisma } from "@prisma/client";
 
 export type ModerationResult = { ok: boolean; error?: string };
+
+type MarketplaceAuditSnapshot = {
+  marketplaceStatus: string;
+  publicProfileEnabled: boolean;
+  publicFormationCount: number;
+};
+
+async function auditMarketplaceModeration(input: {
+  organizationId: string;
+  actorId: string;
+  action: string;
+  before?: Prisma.InputJsonObject | null;
+  after?: Prisma.InputJsonObject | null;
+}) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        organizationId: input.organizationId,
+        actorId: input.actorId,
+        action: input.action,
+        entityType: "Organization",
+        entityId: input.organizationId,
+        before: input.before ?? undefined,
+        after: input.after ?? undefined,
+      },
+    });
+  } catch (e) {
+    logger.error("marketplace.audit_failed", {
+      orgId: input.organizationId,
+      action: input.action,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+}
 
 /** Destinataire de la notification centre : email public sinon email du propriétaire (OWNER). */
 async function centerNotifyEmail(orgId: string): Promise<string | null> {
@@ -31,14 +66,40 @@ export async function approveCenterMarketplace(orgId: string): Promise<Moderatio
   const readiness = await prisma.organization.findUnique({
     where: { id: orgId },
     select: {
+      marketplaceStatus: true,
       publicProfileEnabled: true,
       _count: { select: { formations: { where: { isPublic: true, status: "PUBLIE", deletedAt: null } } } },
     },
   });
   if (!readiness) return { ok: false, error: "Centre introuvable." };
-  if (!readiness.publicProfileEnabled) return { ok: false, error: "Activez d'abord le profil public du centre." };
+  const before: MarketplaceAuditSnapshot = {
+    marketplaceStatus: readiness.marketplaceStatus,
+    publicProfileEnabled: readiness.publicProfileEnabled,
+    publicFormationCount: readiness._count.formations,
+  };
+  if (!readiness.publicProfileEnabled) {
+    const error = "Activez d'abord le profil public du centre.";
+    logger.warn("marketplace.approve.blocked", { orgId, by: admin.email, reason: "public_profile_disabled", ...before });
+    await auditMarketplaceModeration({
+      organizationId: orgId,
+      actorId: admin.userId,
+      action: "marketplace.approve.blocked",
+      before,
+      after: { ok: false, reason: "public_profile_disabled", error },
+    });
+    return { ok: false, error };
+  }
   if (readiness._count.formations === 0) {
-    return { ok: false, error: "Publiez au moins une formation avant de valider ce centre sur la marketplace." };
+    const error = "Publiez au moins une formation avant de valider ce centre sur la marketplace.";
+    logger.warn("marketplace.approve.blocked", { orgId, by: admin.email, reason: "no_public_published_formation", ...before });
+    await auditMarketplaceModeration({
+      organizationId: orgId,
+      actorId: admin.userId,
+      action: "marketplace.approve.blocked",
+      before,
+      after: { ok: false, reason: "no_public_published_formation", error },
+    });
+    return { ok: false, error };
   }
 
   const org = await prisma.organization.update({
@@ -53,6 +114,13 @@ export async function approveCenterMarketplace(orgId: string): Promise<Moderatio
   });
 
   logger.info("marketplace.approved", { orgId: org.id, by: admin.email });
+  await auditMarketplaceModeration({
+    organizationId: org.id,
+    actorId: admin.userId,
+    action: "marketplace.approved",
+    before,
+    after: { marketplaceStatus: "APPROVED", marketplaceReviewedBy: admin.userId, marketplaceReviewedAt: new Date().toISOString() },
+  });
   revalidateMarketplace();
   revalidatePath("/admin");
   revalidatePath(`/admin/centres/${orgId}`);
@@ -85,6 +153,14 @@ export async function approveCenterMarketplace(orgId: string): Promise<Moderatio
 /** Refuse / retire la publication d'un centre (admin god-mode) + email avec motif éventuel. */
 export async function rejectCenterMarketplace(orgId: string, reason?: string): Promise<ModerationResult> {
   const admin = await requirePlatformAdmin();
+  const beforeOrg = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: {
+      marketplaceStatus: true,
+      publicProfileEnabled: true,
+      _count: { select: { formations: { where: { isPublic: true, status: "PUBLIE", deletedAt: null } } } },
+    },
+  });
   const org = await prisma.organization.update({
     where: { id: orgId },
     data: {
@@ -97,6 +173,24 @@ export async function rejectCenterMarketplace(orgId: string, reason?: string): P
   });
 
   logger.info("marketplace.rejected", { orgId: org.id, by: admin.email });
+  await auditMarketplaceModeration({
+    organizationId: org.id,
+    actorId: admin.userId,
+    action: "marketplace.rejected",
+    before: beforeOrg
+      ? {
+          marketplaceStatus: beforeOrg.marketplaceStatus,
+          publicProfileEnabled: beforeOrg.publicProfileEnabled,
+          publicFormationCount: beforeOrg._count.formations,
+        }
+      : null,
+    after: {
+      marketplaceStatus: "REJECTED",
+      marketplaceReviewedBy: admin.userId,
+      marketplaceReviewedAt: new Date().toISOString(),
+      reason: reason?.trim() || null,
+    },
+  });
   revalidateMarketplace();
   revalidatePath("/admin");
   revalidatePath(`/admin/centres/${orgId}`);
