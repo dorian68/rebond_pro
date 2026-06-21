@@ -47,7 +47,7 @@ const pillActive: React.CSSProperties = {
   borderColor: "#15314C",
 };
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const { space, setSpace } = useAuthSpace();
   const copy = SPACE_COPY[space];
   const [state, action, pending] = useActionState<ActionState, FormData>(loginAction, undefined);
@@ -62,9 +62,15 @@ export function LoginForm() {
         <button type="button" style={space === "centre" ? pillActive : pillBase} onClick={() => setSpace("centre")}>
           Espace centre
         </button>
+        <button type="button" style={space === "admin" ? pillActive : pillBase} onClick={() => setSpace("admin")}>
+          Administration
+        </button>
       </div>
 
       <form action={action} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <input type="hidden" name="space" value={space} />
+        <input type="hidden" name="next" value={next ?? ""} />
+
         <div>
           <label htmlFor="email" style={labelStyle}>{copy.emailLabel}</label>
           <input
@@ -137,7 +143,9 @@ export function LoginForm() {
 
       {/* Ligne de bascule — dépend de l'espace */}
       <p style={{ textAlign: "center", marginTop: 26, color: "#5d6f7c", fontSize: ".98rem" }}>
-        {space === "centre" ? (
+        {space === "admin" ? (
+          <>Accès réservé aux super-admins plateforme.</>
+        ) : space === "centre" ? (
           <>
             Pas encore partenaire ?{" "}
             <Link href="/centres" style={{ color: "#23756e", fontWeight: 700, textDecoration: "none" }}>

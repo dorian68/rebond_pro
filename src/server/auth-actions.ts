@@ -14,13 +14,25 @@ const loginSchema = z.object({
   email: z.email("Email invalide."),
   password: z.string().min(1, "Mot de passe requis."),
   remember: z.boolean(),
+  space: z.enum(["client", "centre", "admin"]).optional(),
+  next: z.string().optional(),
 });
+
+function safeAdminRedirect(path?: string) {
+  if (!path) return "/admin";
+  if (!path.startsWith("/admin")) return "/admin";
+  if (path.startsWith("//")) return "/admin";
+  if (/[\\\r\n]/.test(path)) return "/admin";
+  return path;
+}
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
     remember: formData.get("remember") === "on",
+    space: formData.get("space") || undefined,
+    next: formData.get("next") || undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
@@ -53,7 +65,11 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 
   // Super-admin plateforme (god-mode) : accès direct au tableau de bord plateforme.
   const isAdmin = account?.platformAdmin === true || adminAllowlist.includes(email);
-  const destination = isAdmin ? "/admin" : needsOnboarding ? "/onboarding" : "/dashboard";
+  const wantsAdmin = parsed.data.space === "admin" || parsed.data.next?.startsWith("/admin") === true;
+  if (wantsAdmin && !isAdmin) {
+    return { error: "Identifiants admin incorrects ou accès non autorisé." };
+  }
+  const destination = isAdmin ? safeAdminRedirect(parsed.data.next) : needsOnboarding ? "/onboarding" : "/dashboard";
 
   try {
     await signIn("credentials", {

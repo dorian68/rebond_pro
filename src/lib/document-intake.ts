@@ -4,6 +4,7 @@ export type DocumentIntakeTarget = (typeof DOCUMENT_INTAKE_TARGETS)[number];
 export type DocumentIntakeDraft = {
   target: DocumentIntakeTarget;
   fields: Record<string, unknown>;
+  items?: Record<string, unknown>[];
   confidence: number;
   missingFields: string[];
   warnings: string[];
@@ -51,6 +52,7 @@ export function consumeDocumentIntakeDraft(target: DocumentIntakeTarget): Docume
     return {
       target,
       fields: parsed.fields,
+      items: Array.isArray(parsed.items) ? parsed.items.filter((item) => item && typeof item === "object").map((item) => item as Record<string, unknown>) : undefined,
       confidence: Number(parsed.confidence) || 0,
       missingFields: Array.isArray(parsed.missingFields) ? parsed.missingFields.map(String) : [],
       warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : [],

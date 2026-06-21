@@ -44,6 +44,16 @@ function parse(formData: FormData) {
   });
 }
 
+function parseItemsJson(formData: FormData) {
+  try {
+    const raw = JSON.parse(String(formData.get("itemsJson") || "[]")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
 export async function createProspect(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const ctx = await requireTenant();
   requireRole(ctx, [...EDITORS]);
@@ -62,6 +72,39 @@ export async function createProspect(_prev: FormActionState, formData: FormData)
   revalidatePath("/prospects");
   revalidatePath("/dashboard");
   redirect(`/prospects/${created.id}`);
+}
+
+export async function createProspectsBatch(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...EDITORS]);
+  const items = parseItemsJson(formData);
+  if (items.length === 0) return { error: "Aucune fiche prospect à créer." };
+
+  let created = 0;
+  for (const item of items) {
+    const parsed = prospectSchema.safeParse({
+      ...(item as Record<string, unknown>),
+      type: (item as Record<string, unknown>).type || "ENTREPRISE",
+      source: (item as Record<string, unknown>).source || "AUTRE",
+      stage: (item as Record<string, unknown>).stage || "NOUVEAU",
+      potentialEuros: (item as Record<string, unknown>).potentialEuros || 0,
+    });
+    if (!parsed.success) return { error: `Ligne ${created + 1}: ${parsed.error.issues[0]?.message ?? "Champs invalides."}` };
+    const d = parsed.data;
+    await prisma.prospect.create({
+      data: {
+        organizationId: ctx.organizationId, name: d.name, contactName: d.contactName, type: d.type,
+        email: d.email || null, phone: d.phone, formationOfInterestId: d.formationOfInterestId || null,
+        source: d.source, stage: d.stage, potentialAmount: Math.round((d.potentialEuros ?? 0) * 100),
+        nextAction: d.nextAction, nextFollowUpDate: d.nextFollowUpDate ? new Date(d.nextFollowUpDate) : null,
+        isHot: d.isHot ?? false, notes: d.notes, ownerId: ctx.userId,
+      },
+    });
+    created += 1;
+  }
+  revalidatePath("/prospects");
+  revalidatePath("/dashboard");
+  return { ok: true };
 }
 
 export async function updateProspect(id: string, _prev: FormActionState, formData: FormData): Promise<FormActionState> {

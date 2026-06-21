@@ -75,7 +75,8 @@ async function generateWithAi(req: IntakeRequest): Promise<unknown> {
   const system = `Tu transformes un document métier de centre de formation en brouillon de formulaire.
 Tu ne crées rien. Tu ne dois renvoyer QUE du JSON valide.
 Respecte strictement ce format:
-{"target":"...","fields":{},"confidence":0.0,"missingFields":[],"warnings":[],"evidence":[{"field":"...","quote":"..."}]}
+{"target":"...","fields":{},"items":[],"confidence":0.0,"missingFields":[],"warnings":[],"evidence":[{"field":"...","quote":"..."}]}
+Si le document contient plusieurs personnes, entreprises, apprenants, bénéficiaires, prospects ou formateurs, remplis items avec une entrée par unité détectée. fields doit alors reprendre la première entrée exploitable.
 N'invente pas d'identifiants. Si un champ doit référencer une entité existante, utilise seulement les IDs fournis dans le contexte.
 Dates au format YYYY-MM-DD. Prix en euros numériques. Enumérations exactes.`;
   const prompt = buildPrompt(req);
@@ -88,7 +89,7 @@ Dates au format YYYY-MM-DD. Prix en euros numériques. Enumérations exactes.`;
     const resp = await getOpenAI().chat.completions.create({
       model: process.env.AG_UI_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
       temperature: 0.1,
-      max_tokens: 1800,
+      max_tokens: 3000,
       response_format: { type: "json_object" },
       messages: [{ role: "system", content: system }, { role: "user", content }],
     });
@@ -106,7 +107,7 @@ Dates au format YYYY-MM-DD. Prix en euros numériques. Enumérations exactes.`;
   const resp = await getAnthropic().messages.create({
     model: process.env.AG_UI_MODEL ?? process.env.AI_MODEL_FAST ?? "claude-haiku-4-5",
     temperature: 0.1,
-    max_tokens: 1800,
+    max_tokens: 3000,
     system,
     messages: [{ role: "user", content }],
   });
@@ -137,13 +138,14 @@ function parseJson(text: string) {
 
 function normalizeDraft(target: DocumentIntakeTarget, raw: unknown): DocumentIntakeDraft {
   const r = (raw ?? {}) as Record<string, unknown>;
-  const rawFields = ((r.fields ?? {}) as Record<string, unknown>) ?? {};
   const allowed = new Set(FIELD_CONTRACTS[target]);
-  const fields: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(rawFields)) {
-    if (!allowed.has(key) || value == null || value === "") continue;
-    fields[key] = value;
-  }
+  const rawItems = Array.isArray(r.items) ? r.items : [];
+  const items = rawItems
+    .map((item) => pickAllowedFields(item, allowed))
+    .filter((item) => Object.keys(item).length > 0)
+    .slice(0, 50);
+  const fields = pickAllowedFields(r.fields, allowed);
+  if (Object.keys(fields).length === 0 && items[0]) Object.assign(fields, items[0]);
   const fieldCount = Object.keys(fields).length;
   const explicitConfidence = clampNumber(r.confidence, 0, 1);
   const heuristicConfidence = fieldCount > 0
@@ -152,6 +154,7 @@ function normalizeDraft(target: DocumentIntakeTarget, raw: unknown): DocumentInt
   return {
     target,
     fields,
+    items: items.length > 1 ? items : undefined,
     confidence: Math.max(explicitConfidence, heuristicConfidence),
     missingFields: arrayOfStrings(r.missingFields),
     warnings: arrayOfStrings(r.warnings),
@@ -159,6 +162,16 @@ function normalizeDraft(target: DocumentIntakeTarget, raw: unknown): DocumentInt
       ? r.evidence.map((e) => ({ field: String((e as { field?: unknown }).field ?? ""), quote: String((e as { quote?: unknown }).quote ?? "").slice(0, 500) })).filter((e) => e.field && e.quote).slice(0, 8)
       : [],
   };
+}
+
+function pickAllowedFields(raw: unknown, allowed: Set<string>) {
+  const rawFields = ((raw ?? {}) as Record<string, unknown>) ?? {};
+  const fields: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rawFields)) {
+    if (!allowed.has(key) || value == null || value === "") continue;
+    fields[key] = value;
+  }
+  return fields;
 }
 
 function fallbackDraft(req: IntakeRequest): DocumentIntakeDraft {

@@ -35,6 +35,16 @@ function parse(formData: FormData) {
   });
 }
 
+function parseItemsJson(formData: FormData) {
+  try {
+    const raw = JSON.parse(String(formData.get("itemsJson") || "[]")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
 function specsToArray(s?: string): string[] {
   return (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 }
@@ -69,6 +79,44 @@ export async function createTrainer(_prev: FormActionState, formData: FormData):
   await setEligibleFormations(created.id, ctx.organizationId, formationIds);
   revalidatePath("/formateurs");
   redirect(`/formateurs/${created.id}`);
+}
+
+export async function createTrainersBatch(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...EDITORS]);
+  const items = parseItemsJson(formData);
+  if (items.length === 0) return { error: "Aucune fiche formateur à créer." };
+  const { quotaUsage } = await import("@/server/quota");
+  const quota = await quotaUsage(ctx, "trainers");
+  if (quota.used + items.length > quota.limit) {
+    return { error: `Limite de votre plan atteinte (${quota.limit} formateurs). Votre import contient ${items.length} fiches.` };
+  }
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index] as Record<string, unknown>;
+    const parsed = trainerSchema.safeParse({
+      ...item,
+      specialities: Array.isArray(item.specialities) ? item.specialities.join(", ") : item.specialities,
+      active: item.active ?? true,
+    });
+    if (!parsed.success) return { error: `Ligne ${index + 1}: ${parsed.error.issues[0]?.message ?? "Champs invalides."}` };
+    const d = parsed.data;
+    const formationIds = Array.isArray(item.formationIds) ? item.formationIds.map(String) : [];
+    const created = await prisma.trainer.create({
+      data: {
+        organizationId: ctx.organizationId,
+        firstName: d.firstName, lastName: d.lastName,
+        initials: (d.firstName[0] + d.lastName[0]).toUpperCase(),
+        email: d.email || null, phone: d.phone, specialities: specsToArray(d.specialities),
+        bio: d.bio, color: d.color, yearsExperience: d.yearsExperience ?? null, active: d.active ?? true,
+      },
+    });
+    await setEligibleFormations(created.id, ctx.organizationId, formationIds);
+  }
+
+  revalidatePath("/formateurs");
+  revalidatePath("/dashboard");
+  return { ok: true };
 }
 
 export async function updateTrainer(id: string, _prev: FormActionState, formData: FormData): Promise<FormActionState> {

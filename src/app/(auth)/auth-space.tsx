@@ -1,14 +1,14 @@
 "use client";
 
-// Double espace de connexion (design validé) : « Espace client » (particuliers)
-// / « Espace centre » (organismes). Le sélecteur pilote les textes du panneau de
-// marque et du formulaire. Deep link : /login#centre pré-sélectionne le centre.
+// Espaces de connexion (design validé) : client, centre, administration.
+// Le sélecteur pilote les textes du panneau de marque et du formulaire.
+// Deep links : /login?space=admin, /login?space=centre ou /login#centre.
 // Le backend ne change pas : un seul loginAction, le rôle route ensuite chacun
 // vers son espace (LEARNER→/espace, TRAINER→/trainer, OWNER/ADMIN→/dashboard).
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type AuthSpace = "client" | "centre";
+export type AuthSpace = "client" | "centre" | "admin";
 
 export const SPACE_COPY = {
   client: {
@@ -27,7 +27,21 @@ export const SPACE_COPY = {
     emailPlaceholder: "contact@votre-centre.fr",
     btn: "Accéder à mon espace centre",
   },
+  admin: {
+    title: "Administrez la plateforme Le Bon Rebond.",
+    sub: "Accès réservé aux super-admins plateforme : validation, supervision et pilotage global.",
+    points: ["Vue consolidée de l'écosystème", "Validation marketplace et conformité", "Agents sandbox et contrôles d'audit"],
+    emailLabel: "Email super-admin",
+    emailPlaceholder: "admin@lebonrebond.fr",
+    btn: "Accéder à l'administration",
+  },
 } as const;
+
+const AUTH_SPACES: AuthSpace[] = ["client", "centre", "admin"];
+
+function normalizeSpace(value: string | null): AuthSpace | null {
+  return AUTH_SPACES.includes(value as AuthSpace) ? (value as AuthSpace) : null;
+}
 
 const Ctx = createContext<{ space: AuthSpace; setSpace: (s: AuthSpace) => void }>({
   space: "client",
@@ -37,10 +51,14 @@ const Ctx = createContext<{ space: AuthSpace; setSpace: (s: AuthSpace) => void }
 export function AuthSpaceProvider({ children }: { children: ReactNode }) {
   const [space, setSpace] = useState<AuthSpace>("client");
 
-  // Pré-sélection via #centre dans l'URL (et réaction aux changements de hash).
+  // Pré-sélection via ?space=... ou #... dans l'URL.
   useEffect(() => {
     const sync = () => {
-      if (window.location.hash.replace("#", "") === "centre") setSpace("centre");
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = normalizeSpace(params.get("space"));
+      const fromHash = normalizeSpace(window.location.hash.replace("#", ""));
+      const nextSpace = fromQuery ?? fromHash;
+      if (nextSpace) setSpace(nextSpace);
     };
     sync();
     window.addEventListener("hashchange", sync);

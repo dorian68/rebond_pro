@@ -4,8 +4,9 @@ import { useState, useActionState } from "react";
 import { Card } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
+import { BulkEntityCreate } from "@/components/app/BulkEntityCreate";
 import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
-import { inviteBeneficiary } from "@/server/beneficiary-actions";
+import { inviteBeneficiary, inviteBeneficiariesBatch } from "@/server/beneficiary-actions";
 import type { FormActionState } from "@/server/formations-actions";
 
 type BeneficiaryDraft = { firstName?: string; lastName?: string; email?: string; phone?: string; objective?: string };
@@ -16,6 +17,7 @@ export function InviteBeneficiary() {
     return imported ? { ...imported.fields } : {};
   });
   const [open, setOpen] = useState(() => Object.keys(draft).length > 0);
+  const [bulkItems, setBulkItems] = useState<Record<string, unknown>[]>([]);
   const [state, action, pending] = useActionState<FormActionState, FormData>(inviteBeneficiary, undefined);
   const [formKey, setFormKey] = useState(0);
 
@@ -36,12 +38,45 @@ export function InviteBeneficiary() {
       </div>
       {!open && (
         <div style={{ marginTop: 16 }}>
-          <DocumentImportPrefill target="beneficiary" onApply={applyDraft} />
+          <DocumentImportPrefill target="beneficiary" onApply={applyDraft} onApplyMany={(items) => setBulkItems(items)} />
+          <div style={{ marginTop: 12 }}>
+            <BulkEntityCreate
+              title="Créer plusieurs bénéficiaires"
+              description="Ajoutez des bénéficiaires à la main ou validez les fiches extraites d'un document."
+              fields={[
+                { name: "firstName", label: "Prénom", required: true },
+                { name: "lastName", label: "Nom", required: true },
+                { name: "email", label: "Email", type: "email", required: true },
+                { name: "phone", label: "Téléphone" },
+                { name: "objective", label: "Objectif" },
+              ]}
+              action={inviteBeneficiariesBatch}
+              items={bulkItems}
+              onItemsChange={setBulkItems}
+              submitLabel={`Créer ${bulkItems.length} bénéficiaire${bulkItems.length > 1 ? "s" : ""}`}
+            />
+          </div>
         </div>
       )}
       {open && (
-        <form key={formKey} action={action} style={{ display: "grid", gap: 14, marginTop: 16 }}>
-          <DocumentImportPrefill target="beneficiary" onApply={applyDraft} />
+        <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
+          <DocumentImportPrefill target="beneficiary" onApply={applyDraft} onApplyMany={(items) => setBulkItems(items)} />
+          <BulkEntityCreate
+            title="Créer plusieurs bénéficiaires"
+            description="Ajoutez des bénéficiaires à la main ou validez les fiches extraites d'un document."
+            fields={[
+              { name: "firstName", label: "Prénom", required: true },
+              { name: "lastName", label: "Nom", required: true },
+              { name: "email", label: "Email", type: "email", required: true },
+              { name: "phone", label: "Téléphone" },
+              { name: "objective", label: "Objectif" },
+            ]}
+            action={inviteBeneficiariesBatch}
+            items={bulkItems}
+            onItemsChange={setBulkItems}
+            submitLabel={`Créer ${bulkItems.length} bénéficiaire${bulkItems.length > 1 ? "s" : ""}`}
+          />
+          <form key={formKey} action={action} style={{ display: "grid", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div><label className="field-label">Prénom *</label><input className="input" name="firstName" required defaultValue={draft.firstName ?? ""} /></div>
             <div><label className="field-label">Nom *</label><input className="input" name="lastName" required defaultValue={draft.lastName ?? ""} /></div>
@@ -54,7 +89,8 @@ export function InviteBeneficiary() {
             {state?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>✓ Bénéficiaire invité</span>}
             {state?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</span>}
           </div>
-        </form>
+          </form>
+        </div>
       )}
     </Card>
   );

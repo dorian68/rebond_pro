@@ -10,9 +10,10 @@ type Props = {
   target: DocumentIntakeTarget;
   context?: Record<string, unknown>;
   onApply: (fields: Record<string, unknown>, draft: DocumentIntakeDraft) => void;
+  onApplyMany?: (items: Record<string, unknown>[], draft: DocumentIntakeDraft) => void;
 };
 
-export function DocumentImportPrefill({ target, context, onApply }: Props) {
+export function DocumentImportPrefill({ target, context, onApply, onApplyMany }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [draft, setDraft] = useState<DocumentIntakeDraft | null>(null);
@@ -53,6 +54,7 @@ export function DocumentImportPrefill({ target, context, onApply }: Props) {
   }
 
   const fieldCount = draft ? Object.keys(draft.fields).length : 0;
+  const itemCount = draft?.items?.length ?? 0;
 
   return (
     <div className="card" style={{ padding: 14, borderStyle: "dashed", background: "var(--surface-2)", marginBottom: 16 }}>
@@ -76,6 +78,7 @@ export function DocumentImportPrefill({ target, context, onApply }: Props) {
         <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="badge badge-primary">{fieldCount} champ{fieldCount > 1 ? "s" : ""} détecté{fieldCount > 1 ? "s" : ""}</span>
+            {itemCount > 1 && <span className="badge badge-positive">{itemCount} fiches détectées</span>}
             <span className="badge badge-neutral">confiance {Math.round(draft.confidence * 100)} %</span>
             {draft.missingFields.length > 0 && <span className="badge badge-warn">{draft.missingFields.length} à compléter</span>}
           </div>
@@ -83,6 +86,11 @@ export function DocumentImportPrefill({ target, context, onApply }: Props) {
             <div className="muted-3" style={{ fontSize: 12 }}>{draft.warnings.slice(0, 2).join(" · ")}</div>
           )}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            {onApplyMany && itemCount > 1 && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => onApplyMany(draft.items ?? [], draft)}>
+                <Icon name="users" size={15} /> Préparer les {itemCount} fiches
+              </button>
+            )}
             <button type="button" className="btn btn-primary btn-sm" onClick={() => onApply(draft.fields, draft)}>
               <Icon name="sparkles" size={15} /> Préremplir le formulaire
             </button>

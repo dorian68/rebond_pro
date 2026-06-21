@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
 import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
+import { BulkEntityCreate } from "@/components/app/BulkEntityCreate";
 import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
+import { createLearnersBatch } from "@/server/learners-actions";
 import type { FormActionState } from "@/server/formations-actions";
 
 type LearnerDefaults = { firstName?: string; lastName?: string; email?: string | null; phone?: string | null; company?: string | null; sessionId?: string };
@@ -22,6 +24,7 @@ export function LearnerForm({
   presetSessionId?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
+  const [bulkItems, setBulkItems] = useState<Record<string, unknown>[]>([]);
   const [draftDefaults, setDraftDefaults] = useState<LearnerDefaults>(() => {
     const imported = consumeDocumentIntakeDraft("learner");
     return imported ? { ...defaults, ...imported.fields } : defaults;
@@ -34,8 +37,27 @@ export function LearnerForm({
   };
 
   return (
-    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <DocumentImportPrefill target="learner" context={{ sessions: enrollSessions ?? [] }} onApply={applyDraft} />
+    <>
+      <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+        <DocumentImportPrefill target="learner" context={{ sessions: enrollSessions ?? [] }} onApply={applyDraft} onApplyMany={(items) => setBulkItems(items)} />
+        <BulkEntityCreate
+          title="Créer plusieurs apprenants"
+          description="Ajoutez plusieurs apprenants puis inscrivez-les éventuellement à une session."
+          fields={[
+            { name: "firstName", label: "Prénom", required: true },
+            { name: "lastName", label: "Nom", required: true },
+            { name: "email", label: "Email", type: "email" },
+            { name: "phone", label: "Téléphone" },
+            { name: "company", label: "Entreprise" },
+            ...(enrollSessions?.length ? [{ name: "sessionId", label: "Session", type: "select" as const, options: [{ value: "", label: "Ne pas inscrire" }, ...enrollSessions.map((s) => ({ value: s.id, label: s.label }))] }] : []),
+          ]}
+          action={createLearnersBatch}
+          items={bulkItems}
+          onItemsChange={setBulkItems}
+          submitLabel={`Créer ${bulkItems.length} apprenant${bulkItems.length > 1 ? "s" : ""}`}
+        />
+      </div>
+      <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Apprenant</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -62,6 +84,7 @@ export function LearnerForm({
         <Link href={cancelHref} className="btn btn-secondary">Annuler</Link>
         <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Enregistrement…" : <><Icon name="check" size={16} /> {submitLabel}</>}</button>
       </div>
-    </form>
+      </form>
+    </>
   );
 }

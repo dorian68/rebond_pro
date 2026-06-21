@@ -3,7 +3,7 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verified?: string; verification?: string; reset?: string }>;
+  searchParams: Promise<{ verified?: string; verification?: string; reset?: string; space?: string; next?: string }>;
 }) {
   const params = await searchParams;
 
@@ -41,7 +41,7 @@ export default async function LoginPage({
         </div>
       )}
 
-      <LoginForm />
+      <LoginForm next={params.next} />
     </div>
   );
 }

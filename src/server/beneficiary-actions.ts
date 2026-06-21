@@ -17,6 +17,16 @@ const inviteSchema = z.object({
   objective: z.string().optional(),
 });
 
+function parseItemsJson(formData: FormData) {
+  try {
+    const raw = JSON.parse(String(formData.get("itemsJson") || "[]")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
 /** Crée un bénéficiaire, lui ouvre un compte (rôle LEARNER) et initialise son parcours de bilan. */
 export async function inviteBeneficiary(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const ctx = await requireTenant();
@@ -27,6 +37,31 @@ export async function inviteBeneficiary(_prev: FormActionState, formData: FormDa
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
   const d = parsed.data;
+  const result = await createBeneficiaryInternal(ctx.organizationId, d);
+  if (!result.ok) return { error: result.error };
+  revalidatePath("/beneficiaires");
+  return { ok: true, error: undefined } as FormActionState;
+}
+
+export async function inviteBeneficiariesBatch(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...STAFF]);
+  const items = parseItemsJson(formData);
+  if (items.length === 0) return { error: "Aucune fiche bénéficiaire à créer." };
+
+  for (let index = 0; index < items.length; index += 1) {
+    const parsed = inviteSchema.safeParse(items[index]);
+    if (!parsed.success) return { error: `Ligne ${index + 1}: ${parsed.error.issues[0]?.message ?? "Champs invalides."}` };
+    const result = await createBeneficiaryInternal(ctx.organizationId, parsed.data);
+    if (!result.ok) return { error: `Ligne ${index + 1}: ${result.error}` };
+  }
+
+  revalidatePath("/beneficiaires");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+async function createBeneficiaryInternal(organizationId: string, d: z.infer<typeof inviteSchema>): Promise<{ ok: true } | { ok: false; error: string }> {
   const email = d.email.toLowerCase();
 
   // Compte utilisateur
@@ -35,25 +70,24 @@ export async function inviteBeneficiary(_prev: FormActionState, formData: FormDa
 
   // Un user = un bénéficiaire (userId unique)
   const existingBen = await prisma.beneficiary.findUnique({ where: { userId: user.id } });
-  if (existingBen) return { error: "Un bénéficiaire existe déjà pour cet email." };
+  if (existingBen) return { ok: false, error: "Un bénéficiaire existe déjà pour cet email." };
 
   await prisma.beneficiary.create({
     data: {
-      organizationId: ctx.organizationId, userId: user.id, firstName: d.firstName, lastName: d.lastName,
+      organizationId, userId: user.id, firstName: d.firstName, lastName: d.lastName,
       email, phone: d.phone, objective: d.objective, status: "active",
       steps: { create: DEFAULT_BILAN_STEPS.map((s, i) => ({ phase: s.phase, title: s.title, description: s.description, order: i })) },
     },
   });
 
   // Membership LEARNER (accès espace personnel)
-  const membership = await prisma.membership.findUnique({ where: { userId_organizationId: { userId: user.id, organizationId: ctx.organizationId } } });
+  const membership = await prisma.membership.findUnique({ where: { userId_organizationId: { userId: user.id, organizationId } } });
   if (!membership) {
-    await prisma.membership.create({ data: { userId: user.id, organizationId: ctx.organizationId, role: "LEARNER", status: "INVITED", invitedAt: new Date(), invitedEmail: email } });
+    await prisma.membership.create({ data: { userId: user.id, organizationId, role: "LEARNER", status: "INVITED", invitedAt: new Date(), invitedEmail: email } });
   }
 
   await deliverBeneficiaryInvite(email, `${d.firstName} ${d.lastName}`).catch(() => {});
-  revalidatePath("/beneficiaires");
-  return { ok: true, error: undefined } as FormActionState;
+  return { ok: true };
 }
 
 export async function updateBeneficiaryStatus(id: string, status: "active" | "completed" | "archived"): Promise<void> {

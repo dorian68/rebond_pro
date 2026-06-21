@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
 import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
+import { BulkEntityCreate } from "@/components/app/BulkEntityCreate";
 import { PROSPECT_STAGE_LABELS, PROSPECT_TYPE_LABELS, PROSPECT_SOURCE_LABELS } from "@/lib/labels";
 import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
+import { createProspectsBatch } from "@/server/prospects-actions";
 import type { FormActionState } from "@/server/formations-actions";
 
 type ProspectDefaults = {
@@ -26,6 +28,7 @@ export function ProspectForm({
   cancelHref?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
+  const [bulkItems, setBulkItems] = useState<Record<string, unknown>[]>([]);
   const [draftDefaults, setDraftDefaults] = useState<ProspectDefaults>(() => {
     const imported = consumeDocumentIntakeDraft("prospect");
     return imported ? { ...defaults, ...imported.fields } : defaults;
@@ -38,8 +41,30 @@ export function ProspectForm({
   };
 
   return (
-    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <DocumentImportPrefill target="prospect" context={{ formations }} onApply={applyDraft} />
+    <>
+      <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+        <DocumentImportPrefill target="prospect" context={{ formations }} onApply={applyDraft} onApplyMany={(items) => setBulkItems(items)} />
+        <BulkEntityCreate
+          title="Créer plusieurs prospects"
+          description="Ajoutez des lignes à la main ou validez les fiches détectées dans un document."
+          fields={[
+            { name: "name", label: "Nom", required: true },
+            { name: "contactName", label: "Contact" },
+            { name: "email", label: "Email", type: "email" },
+            { name: "phone", label: "Téléphone" },
+            { name: "type", label: "Type", type: "select", options: Object.entries(PROSPECT_TYPE_LABELS).map(([value, label]) => ({ value, label })) },
+            { name: "source", label: "Source", type: "select", options: Object.entries(PROSPECT_SOURCE_LABELS).map(([value, label]) => ({ value, label })) },
+            { name: "stage", label: "Étape", type: "select", options: Object.entries(PROSPECT_STAGE_LABELS).map(([value, label]) => ({ value, label })) },
+            { name: "potentialEuros", label: "Montant potentiel", type: "number" },
+            { name: "nextFollowUpDate", label: "Relance", type: "date" },
+          ]}
+          action={createProspectsBatch}
+          items={bulkItems}
+          onItemsChange={setBulkItems}
+          submitLabel={`Créer ${bulkItems.length} prospect${bulkItems.length > 1 ? "s" : ""}`}
+        />
+      </div>
+      <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Prospect</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -87,6 +112,7 @@ export function ProspectForm({
         <Link href={cancelHref} className="btn btn-secondary">Annuler</Link>
         <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Enregistrement…" : <><Icon name="check" size={16} /> {submitLabel}</>}</button>
       </div>
-    </form>
+      </form>
+    </>
   );
 }

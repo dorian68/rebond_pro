@@ -27,6 +27,16 @@ function parse(formData: FormData) {
   });
 }
 
+function parseItemsJson(formData: FormData) {
+  try {
+    const raw = JSON.parse(String(formData.get("itemsJson") || "[]")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
 export async function createLearner(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const ctx = await requireTenant();
   requireRole(ctx, [...EDITORS]);
@@ -43,6 +53,29 @@ export async function createLearner(_prev: FormActionState, formData: FormData):
 
   revalidatePath("/apprenants");
   redirect(`/apprenants/${created.id}`);
+}
+
+export async function createLearnersBatch(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...EDITORS]);
+  const items = parseItemsJson(formData);
+  if (items.length === 0) return { error: "Aucune fiche apprenant à créer." };
+  const sessionId = String(formData.get("sessionId") || "");
+
+  for (let index = 0; index < items.length; index += 1) {
+    const parsed = learnerSchema.safeParse(items[index]);
+    if (!parsed.success) return { error: `Ligne ${index + 1}: ${parsed.error.issues[0]?.message ?? "Champs invalides."}` };
+    const d = parsed.data;
+    const created = await prisma.learner.create({
+      data: { organizationId: ctx.organizationId, firstName: d.firstName, lastName: d.lastName, email: d.email || null, phone: d.phone, company: d.company },
+    });
+    const itemSessionId = String((items[index] as Record<string, unknown>).sessionId || sessionId || "");
+    if (itemSessionId) await enrollInternal(ctx.organizationId, created.id, itemSessionId);
+  }
+
+  revalidatePath("/apprenants");
+  revalidatePath("/dashboard");
+  return { ok: true };
 }
 
 export async function updateLearner(id: string, _prev: FormActionState, formData: FormData): Promise<FormActionState> {

@@ -6,7 +6,9 @@ import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
 import { ImageUpload } from "@/components/app/ImageUpload";
 import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
+import { BulkEntityCreate } from "@/components/app/BulkEntityCreate";
 import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
+import { createTrainersBatch } from "@/server/trainers-actions";
 import type { FormActionState } from "@/server/formations-actions";
 
 const COLORS = ["#2469a6", "#2f7fc4", "#129a93", "#d9821f", "#18996b", "#dc5147"];
@@ -28,6 +30,7 @@ export function TrainerForm({
   trainerId?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
+  const [bulkItems, setBulkItems] = useState<Record<string, unknown>[]>([]);
   const [draftDefaults, setDraftDefaults] = useState<TrainerDefaults>(() => {
     const imported = consumeDocumentIntakeDraft("trainer");
     return imported ? { ...defaults, ...imported.fields } : defaults;
@@ -41,8 +44,28 @@ export function TrainerForm({
   };
 
   return (
-    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <DocumentImportPrefill target="trainer" context={{ formations }} onApply={applyDraft} />
+    <>
+      <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+        <DocumentImportPrefill target="trainer" context={{ formations }} onApply={applyDraft} onApplyMany={(items) => setBulkItems(items)} />
+        <BulkEntityCreate
+          title="Créer plusieurs formateurs"
+          description="Ajoutez des formateurs à la main ou depuis un document. Les rattachements fins aux formations restent éditables ensuite."
+          fields={[
+            { name: "firstName", label: "Prénom", required: true },
+            { name: "lastName", label: "Nom", required: true },
+            { name: "email", label: "Email", type: "email" },
+            { name: "phone", label: "Téléphone" },
+            { name: "specialities", label: "Spécialités", placeholder: "Excel, Power BI" },
+            { name: "yearsExperience", label: "Années d'expérience", type: "number" },
+            { name: "active", label: "Actif", type: "checkbox" },
+          ]}
+          action={createTrainersBatch}
+          items={bulkItems}
+          onItemsChange={setBulkItems}
+          submitLabel={`Créer ${bulkItems.length} formateur${bulkItems.length > 1 ? "s" : ""}`}
+        />
+      </div>
+      <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Identité</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -99,6 +122,7 @@ export function TrainerForm({
         <Link href={cancelHref} className="btn btn-secondary">Annuler</Link>
         <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Enregistrement…" : <><Icon name="check" size={16} /> {submitLabel}</>}</button>
       </div>
-    </form>
+      </form>
+    </>
   );
 }

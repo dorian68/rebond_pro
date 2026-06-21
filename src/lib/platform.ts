@@ -34,6 +34,6 @@ export async function isPlatformAdmin(): Promise<boolean> {
 /** Garde-fou : exige le rôle super-admin plateforme. Redirige sinon. */
 export async function requirePlatformAdmin(): Promise<PlatformAdmin> {
   const admin = await getPlatformAdmin();
-  if (!admin) redirect("/dashboard");
+  if (!admin) redirect("/login?space=admin&next=/admin");
   return admin;
 }
