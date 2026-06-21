@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
+import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
 import { MODALITY_LABELS, LEVEL_LABELS, FORMATION_STATUS_LABELS, CATEGORIES } from "@/lib/labels";
+import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
 import type { FormActionState } from "@/server/formations-actions";
 
 type FormationDefaults = {
@@ -19,6 +21,7 @@ type FormationDefaults = {
   durationDays?: number | null;
   durationHours?: number | null;
   price?: number;
+  priceEuros?: number;
   modality?: string;
   level?: string;
   status?: string;
@@ -39,34 +42,45 @@ export function FormationForm({
   cancelHref?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
+  const [draftDefaults, setDraftDefaults] = useState<FormationDefaults>(() => {
+    const imported = consumeDocumentIntakeDraft("formation");
+    return imported ? { ...defaults, ...imported.fields } : defaults;
+  });
+  const [formKey, setFormKey] = useState(0);
+
+  const applyDraft = (fields: Record<string, unknown>) => {
+    setDraftDefaults((cur) => ({ ...cur, ...fields }));
+    setFormKey((k) => k + 1);
+  };
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <DocumentImportPrefill target="formation" onApply={applyDraft} />
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Informations générales</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label className="field-label" htmlFor="title">Titre de la formation *</label>
-            <input className="input" id="title" name="title" required defaultValue={defaults.title ?? ""} placeholder="Ex : Excel Avancé pour PME" />
+            <input className="input" id="title" name="title" required defaultValue={draftDefaults.title ?? ""} placeholder="Ex : Excel Avancé pour PME" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div>
               <label className="field-label" htmlFor="category">Catégorie</label>
-              <select className="select" id="category" name="category" defaultValue={defaults.category ?? ""}>
+              <select className="select" id="category" name="category" defaultValue={draftDefaults.category ?? ""}>
                 <option value="">—</option>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className="field-label" htmlFor="status">Statut</label>
-              <select className="select" id="status" name="status" defaultValue={defaults.status ?? "BROUILLON"}>
+              <select className="select" id="status" name="status" defaultValue={draftDefaults.status ?? "BROUILLON"}>
                 {Object.entries(FORMATION_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
           </div>
           <div>
             <label className="field-label" htmlFor="shortDescription">Description courte</label>
-            <input className="input" id="shortDescription" name="shortDescription" defaultValue={defaults.shortDescription ?? ""} placeholder="Bénéfice principal en une phrase" />
+            <input className="input" id="shortDescription" name="shortDescription" defaultValue={draftDefaults.shortDescription ?? ""} placeholder="Bénéfice principal en une phrase" />
           </div>
         </div>
       </Card>
@@ -76,35 +90,35 @@ export function FormationForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <div>
             <label className="field-label" htmlFor="modality">Modalité</label>
-            <select className="select" id="modality" name="modality" defaultValue={defaults.modality ?? "PRESENTIEL"}>
+            <select className="select" id="modality" name="modality" defaultValue={draftDefaults.modality ?? "PRESENTIEL"}>
               {Object.entries(MODALITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
             <label className="field-label" htmlFor="level">Niveau</label>
-            <select className="select" id="level" name="level" defaultValue={defaults.level ?? "DEBUTANT"}>
+            <select className="select" id="level" name="level" defaultValue={draftDefaults.level ?? "DEBUTANT"}>
               {Object.entries(LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
             <label className="field-label" htmlFor="priceEuros">Prix (€)</label>
-            <input className="input" id="priceEuros" name="priceEuros" type="number" min={0} step={10} defaultValue={defaults.price != null ? defaults.price / 100 : 0} />
+            <input className="input" id="priceEuros" name="priceEuros" type="number" min={0} step={10} defaultValue={draftDefaults.priceEuros != null ? draftDefaults.priceEuros : draftDefaults.price != null ? draftDefaults.price / 100 : 0} />
           </div>
           <div>
             <label className="field-label" htmlFor="durationDays">Durée (jours)</label>
-            <input className="input" id="durationDays" name="durationDays" type="number" min={0} defaultValue={defaults.durationDays ?? ""} />
+            <input className="input" id="durationDays" name="durationDays" type="number" min={0} defaultValue={draftDefaults.durationDays ?? ""} />
           </div>
           <div>
             <label className="field-label" htmlFor="durationHours">Durée (heures)</label>
-            <input className="input" id="durationHours" name="durationHours" type="number" min={0} defaultValue={defaults.durationHours ?? ""} />
+            <input className="input" id="durationHours" name="durationHours" type="number" min={0} defaultValue={draftDefaults.durationHours ?? ""} />
           </div>
           <div>
             <label className="field-label">Couleur</label>
             <div style={{ display: "flex", gap: 8, alignItems: "center", height: 40 }}>
               {COLORS.map((c, i) => (
                 <label key={c} style={{ cursor: "pointer" }}>
-                  <input type="radio" name="color" value={c} defaultChecked={defaults.color ? defaults.color === c : i === 0} style={{ display: "none" }} />
-                  <span style={{ display: "block", width: 24, height: 24, borderRadius: 7, background: c, outline: (defaults.color ? defaults.color === c : i === 0) ? "2px solid var(--ink)" : "2px solid transparent", outlineOffset: 2 }} />
+                  <input type="radio" name="color" value={c} defaultChecked={draftDefaults.color ? draftDefaults.color === c : i === 0} style={{ display: "none" }} />
+                  <span style={{ display: "block", width: 24, height: 24, borderRadius: 7, background: c, outline: (draftDefaults.color ? draftDefaults.color === c : i === 0) ? "2px solid var(--ink)" : "2px solid transparent", outlineOffset: 2 }} />
                 </label>
               ))}
             </div>
@@ -117,25 +131,25 @@ export function FormationForm({
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label className="field-label" htmlFor="objectives">Objectifs pédagogiques</label>
-            <textarea className="input" id="objectives" name="objectives" rows={3} defaultValue={defaults.objectives ?? ""} />
+            <textarea className="input" id="objectives" name="objectives" rows={3} defaultValue={draftDefaults.objectives ?? ""} />
           </div>
           <div>
             <label className="field-label" htmlFor="program">Programme</label>
-            <textarea className="input" id="program" name="program" rows={4} defaultValue={defaults.program ?? ""} />
+            <textarea className="input" id="program" name="program" rows={4} defaultValue={draftDefaults.program ?? ""} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div>
               <label className="field-label" htmlFor="targetAudience">Public cible</label>
-              <textarea className="input" id="targetAudience" name="targetAudience" rows={2} defaultValue={defaults.targetAudience ?? ""} />
+              <textarea className="input" id="targetAudience" name="targetAudience" rows={2} defaultValue={draftDefaults.targetAudience ?? ""} />
             </div>
             <div>
               <label className="field-label" htmlFor="prerequisites">Prérequis</label>
-              <textarea className="input" id="prerequisites" name="prerequisites" rows={2} defaultValue={defaults.prerequisites ?? ""} />
+              <textarea className="input" id="prerequisites" name="prerequisites" rows={2} defaultValue={draftDefaults.prerequisites ?? ""} />
             </div>
           </div>
           <div>
             <label className="field-label" htmlFor="longDescription">Description longue</label>
-            <textarea className="input" id="longDescription" name="longDescription" rows={4} defaultValue={defaults.longDescription ?? ""} />
+            <textarea className="input" id="longDescription" name="longDescription" rows={4} defaultValue={draftDefaults.longDescription ?? ""} />
           </div>
         </div>
       </Card>

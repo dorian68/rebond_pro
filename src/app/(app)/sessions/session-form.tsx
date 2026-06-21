@@ -4,7 +4,9 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
+import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
 import { SESSION_STATUS_LABELS, SLOT_LABELS } from "@/lib/labels";
+import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
 import type { FormActionState } from "@/server/formations-actions";
 
 type SessionDefaults = {
@@ -16,6 +18,7 @@ type SessionDefaults = {
   slots?: string[];
   capacity?: number;
   price?: number;
+  priceEuros?: number;
   breakEvenSeats?: number;
   status?: string;
   trainerConfirmed?: boolean;
@@ -41,8 +44,20 @@ export function SessionForm({
   cancelHref?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
-  const [formationId, setFormationId] = useState(defaults.formationId ?? formations[0]?.id ?? "");
-  const [price, setPrice] = useState<number>(defaults.price != null ? defaults.price / 100 : (formations.find((f) => f.id === (defaults.formationId ?? formations[0]?.id))?.price ?? 0) / 100);
+  const [draftDefaults, setDraftDefaults] = useState<SessionDefaults>(() => {
+    const imported = consumeDocumentIntakeDraft("session");
+    return imported ? { ...defaults, ...imported.fields } : defaults;
+  });
+  const [formKey, setFormKey] = useState(0);
+  const [formationId, setFormationId] = useState(draftDefaults.formationId ?? formations[0]?.id ?? "");
+  const [price, setPrice] = useState<number>(draftDefaults.priceEuros != null ? draftDefaults.priceEuros : draftDefaults.price != null ? draftDefaults.price / 100 : (formations.find((f) => f.id === (draftDefaults.formationId ?? formations[0]?.id))?.price ?? 0) / 100);
+
+  const applyDraft = (fields: Record<string, unknown>) => {
+    setDraftDefaults((cur) => ({ ...cur, ...fields }));
+    if (typeof fields.formationId === "string") setFormationId(fields.formationId);
+    if (typeof fields.priceEuros === "number") setPrice(fields.priceEuros);
+    setFormKey((k) => k + 1);
+  };
 
   const onFormationChange = (id: string) => {
     setFormationId(id);
@@ -51,7 +66,12 @@ export function SessionForm({
   };
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <DocumentImportPrefill
+        target="session"
+        context={{ formations, trainers, rooms }}
+        onApply={applyDraft}
+      />
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Session</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -65,11 +85,11 @@ export function SessionForm({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div>
               <label className="field-label" htmlFor="startDate">Date de début *</label>
-              <input className="input" id="startDate" name="startDate" type="date" required defaultValue={defaults.startDate ?? ""} />
+              <input className="input" id="startDate" name="startDate" type="date" required defaultValue={draftDefaults.startDate ?? ""} />
             </div>
             <div>
               <label className="field-label" htmlFor="endDate">Date de fin *</label>
-              <input className="input" id="endDate" name="endDate" type="date" required defaultValue={defaults.endDate ?? ""} />
+              <input className="input" id="endDate" name="endDate" type="date" required defaultValue={draftDefaults.endDate ?? ""} />
             </div>
           </div>
           <div>
@@ -77,7 +97,7 @@ export function SessionForm({
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               {SLOTS.map((s) => (
                 <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5, fontWeight: 600, color: "var(--ink-2)" }}>
-                  <input type="checkbox" name={`slot_${s}`} defaultChecked={defaults.slots ? defaults.slots.includes(s) : s === "JOURNEE"} />
+                  <input type="checkbox" name={`slot_${s}`} defaultChecked={draftDefaults.slots ? draftDefaults.slots.includes(s) : s === "JOURNEE"} />
                   {SLOT_LABELS[s]}
                 </label>
               ))}
@@ -91,25 +111,25 @@ export function SessionForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div>
             <label className="field-label" htmlFor="trainerId">Formateur</label>
-            <select className="select" id="trainerId" name="trainerId" defaultValue={defaults.trainerId ?? ""}>
+            <select className="select" id="trainerId" name="trainerId" defaultValue={draftDefaults.trainerId ?? ""}>
               <option value="">— Non assigné</option>
               {trainers.map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>)}
             </select>
           </div>
           <div>
             <label className="field-label" htmlFor="roomId">Salle / Visio</label>
-            <select className="select" id="roomId" name="roomId" defaultValue={defaults.roomId ?? ""}>
+            <select className="select" id="roomId" name="roomId" defaultValue={draftDefaults.roomId ?? ""}>
               <option value="">— Aucune</option>
               {rooms.map((r) => <option key={r.id} value={r.id}>{r.name} {r.type === "VISIO" ? "(visio)" : ""}</option>)}
             </select>
           </div>
           <div>
             <label className="field-label" htmlFor="capacity">Capacité maximale *</label>
-            <input className="input" id="capacity" name="capacity" type="number" min={1} required defaultValue={defaults.capacity ?? 12} />
+            <input className="input" id="capacity" name="capacity" type="number" min={1} required defaultValue={draftDefaults.capacity ?? 12} />
           </div>
           <div>
             <label className="field-label" htmlFor="breakEvenSeats">Seuil de rentabilité (inscrits)</label>
-            <input className="input" id="breakEvenSeats" name="breakEvenSeats" type="number" min={0} defaultValue={defaults.breakEvenSeats ?? 6} />
+            <input className="input" id="breakEvenSeats" name="breakEvenSeats" type="number" min={0} defaultValue={draftDefaults.breakEvenSeats ?? 6} />
           </div>
           <div>
             <label className="field-label" htmlFor="priceEuros">Prix par apprenant (€)</label>
@@ -117,13 +137,13 @@ export function SessionForm({
           </div>
           <div>
             <label className="field-label" htmlFor="status">Statut</label>
-            <select className="select" id="status" name="status" defaultValue={defaults.status ?? "OUVERTE"}>
+            <select className="select" id="status" name="status" defaultValue={draftDefaults.status ?? "OUVERTE"}>
               {Object.entries(SESSION_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
         </div>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "var(--ink-2)", marginTop: 14 }}>
-          <input type="checkbox" name="trainerConfirmed" defaultChecked={defaults.trainerConfirmed ?? false} />
+          <input type="checkbox" name="trainerConfirmed" defaultChecked={draftDefaults.trainerConfirmed ?? false} />
           Formateur confirmé
         </label>
       </Card>

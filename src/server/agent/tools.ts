@@ -9,6 +9,7 @@ import type { UIBlock } from "@/lib/ag-ui/types";
 import { WRITE_TOOLS } from "@/server/agent/write-tools";
 import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
 import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
+import { DOCUMENT_INTAKE_ROUTES, DOCUMENT_INTAKE_TARGETS, type DocumentIntakeTarget } from "@/lib/document-intake";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -242,6 +243,42 @@ export const AGENT_TOOLS: AgentTool[] = [
       const { moveProspect } = await import("@/server/prospects-actions");
       await moveProspect(String(args.prospectId), String(args.stage));
       return { textForLLM: `Prospect ${args.prospectId} déplacé vers ${args.stage}.`, custom: { name: "app.refresh", value: {} } };
+    },
+  },
+  {
+    name: "prepare_form_draft",
+    description: "Prépare un brouillon de formulaire à partir de la conversation ou d'un document partagé. N'enregistre rien en base. Utiliser quand l'utilisateur veut préremplir créer une formation/session/prospect/apprenant/bénéficiaire/formateur depuis un document.",
+    input_schema: {
+      type: "object",
+      properties: {
+        target: { type: "string", enum: DOCUMENT_INTAKE_TARGETS },
+        fields: { type: "object", description: "Champs à préremplir, uniquement ceux du formulaire cible." },
+        confidence: { type: "number" },
+        missingFields: { type: "array", items: { type: "string" } },
+        warnings: { type: "array", items: { type: "string" } },
+        evidence: { type: "array", items: { type: "object", properties: { field: { type: "string" }, quote: { type: "string" } } } },
+      },
+      required: ["target", "fields"],
+    },
+    execute: async (_ctx, args) => {
+      const target = String(args.target) as DocumentIntakeTarget;
+      if (!(DOCUMENT_INTAKE_TARGETS as readonly string[]).includes(target)) return { textForLLM: "Cible de formulaire invalide." };
+      const fields = args.fields && typeof args.fields === "object" ? args.fields as Record<string, unknown> : {};
+      return {
+        textForLLM: `Brouillon ${target} préparé. Le formulaire va être ouvert pour validation humaine avant enregistrement.`,
+        custom: {
+          name: "app.form_draft",
+          value: {
+            target,
+            path: DOCUMENT_INTAKE_ROUTES[target],
+            fields,
+            confidence: typeof args.confidence === "number" ? args.confidence : 0.75,
+            missingFields: Array.isArray(args.missingFields) ? args.missingFields : [],
+            warnings: Array.isArray(args.warnings) ? args.warnings : ["Brouillon préparé par Socrate. Vérifiez avant enregistrement."],
+            evidence: Array.isArray(args.evidence) ? args.evidence : [],
+          },
+        },
+      };
     },
   },
   {

@@ -1,15 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
+import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
 import { PROSPECT_STAGE_LABELS, PROSPECT_TYPE_LABELS, PROSPECT_SOURCE_LABELS } from "@/lib/labels";
+import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
 import type { FormActionState } from "@/server/formations-actions";
 
 type ProspectDefaults = {
   name?: string; contactName?: string | null; type?: string; email?: string | null; phone?: string | null;
   formationOfInterestId?: string | null; source?: string; stage?: string; potentialAmount?: number;
+  potentialEuros?: number;
   nextAction?: string | null; nextFollowUpDate?: string | null; isHot?: boolean; notes?: string | null;
 };
 
@@ -23,24 +26,35 @@ export function ProspectForm({
   cancelHref?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
+  const [draftDefaults, setDraftDefaults] = useState<ProspectDefaults>(() => {
+    const imported = consumeDocumentIntakeDraft("prospect");
+    return imported ? { ...defaults, ...imported.fields } : defaults;
+  });
+  const [formKey, setFormKey] = useState(0);
+
+  const applyDraft = (fields: Record<string, unknown>) => {
+    setDraftDefaults((cur) => ({ ...cur, ...fields }));
+    setFormKey((k) => k + 1);
+  };
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <DocumentImportPrefill target="prospect" context={{ formations }} onApply={applyDraft} />
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Prospect</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div><label className="field-label" htmlFor="name">Nom *</label><input className="input" id="name" name="name" required defaultValue={defaults.name ?? ""} placeholder="Cabinet Nova RH" /></div>
-          <div><label className="field-label" htmlFor="contactName">Contact</label><input className="input" id="contactName" name="contactName" defaultValue={defaults.contactName ?? ""} placeholder="Léa Fontaine" /></div>
+          <div><label className="field-label" htmlFor="name">Nom *</label><input className="input" id="name" name="name" required defaultValue={draftDefaults.name ?? ""} placeholder="Cabinet Nova RH" /></div>
+          <div><label className="field-label" htmlFor="contactName">Contact</label><input className="input" id="contactName" name="contactName" defaultValue={draftDefaults.contactName ?? ""} placeholder="Léa Fontaine" /></div>
           <div>
             <label className="field-label" htmlFor="type">Type</label>
-            <select className="select" id="type" name="type" defaultValue={defaults.type ?? "ENTREPRISE"}>{Object.entries(PROSPECT_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            <select className="select" id="type" name="type" defaultValue={draftDefaults.type ?? "ENTREPRISE"}>{Object.entries(PROSPECT_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </div>
           <div>
             <label className="field-label" htmlFor="source">Source</label>
-            <select className="select" id="source" name="source" defaultValue={defaults.source ?? "AUTRE"}>{Object.entries(PROSPECT_SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            <select className="select" id="source" name="source" defaultValue={draftDefaults.source ?? "AUTRE"}>{Object.entries(PROSPECT_SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </div>
-          <div><label className="field-label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" defaultValue={defaults.email ?? ""} /></div>
-          <div><label className="field-label" htmlFor="phone">Téléphone</label><input className="input" id="phone" name="phone" defaultValue={defaults.phone ?? ""} /></div>
+          <div><label className="field-label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" defaultValue={draftDefaults.email ?? ""} /></div>
+          <div><label className="field-label" htmlFor="phone">Téléphone</label><input className="input" id="phone" name="phone" defaultValue={draftDefaults.phone ?? ""} /></div>
         </div>
       </Card>
 
@@ -49,21 +63,21 @@ export function ProspectForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div>
             <label className="field-label" htmlFor="formationOfInterestId">Formation d&apos;intérêt</label>
-            <select className="select" id="formationOfInterestId" name="formationOfInterestId" defaultValue={defaults.formationOfInterestId ?? ""}>
+            <select className="select" id="formationOfInterestId" name="formationOfInterestId" defaultValue={draftDefaults.formationOfInterestId ?? ""}>
               <option value="">—</option>
               {formations.map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}
             </select>
           </div>
           <div>
             <label className="field-label" htmlFor="stage">Étape</label>
-            <select className="select" id="stage" name="stage" defaultValue={defaults.stage ?? "NOUVEAU"}>{Object.entries(PROSPECT_STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+            <select className="select" id="stage" name="stage" defaultValue={draftDefaults.stage ?? "NOUVEAU"}>{Object.entries(PROSPECT_STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </div>
-          <div><label className="field-label" htmlFor="potentialEuros">Montant potentiel (€)</label><input className="input" id="potentialEuros" name="potentialEuros" type="number" min={0} step={10} defaultValue={defaults.potentialAmount != null ? defaults.potentialAmount / 100 : 0} /></div>
-          <div><label className="field-label" htmlFor="nextFollowUpDate">Prochaine relance</label><input className="input" id="nextFollowUpDate" name="nextFollowUpDate" type="date" defaultValue={defaults.nextFollowUpDate ?? ""} /></div>
-          <div style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="nextAction">Prochaine action</label><input className="input" id="nextAction" name="nextAction" defaultValue={defaults.nextAction ?? ""} placeholder="Envoyer le programme détaillé" /></div>
-          <div style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="notes">Notes</label><textarea className="input" id="notes" name="notes" rows={3} defaultValue={defaults.notes ?? ""} /></div>
+          <div><label className="field-label" htmlFor="potentialEuros">Montant potentiel (€)</label><input className="input" id="potentialEuros" name="potentialEuros" type="number" min={0} step={10} defaultValue={draftDefaults.potentialEuros != null ? draftDefaults.potentialEuros : draftDefaults.potentialAmount != null ? draftDefaults.potentialAmount / 100 : 0} /></div>
+          <div><label className="field-label" htmlFor="nextFollowUpDate">Prochaine relance</label><input className="input" id="nextFollowUpDate" name="nextFollowUpDate" type="date" defaultValue={draftDefaults.nextFollowUpDate ?? ""} /></div>
+          <div style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="nextAction">Prochaine action</label><input className="input" id="nextAction" name="nextAction" defaultValue={draftDefaults.nextAction ?? ""} placeholder="Envoyer le programme détaillé" /></div>
+          <div style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="notes">Notes</label><textarea className="input" id="notes" name="notes" rows={3} defaultValue={draftDefaults.notes ?? ""} /></div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "var(--ink-2)" }}>
-            <input type="checkbox" name="isHot" defaultChecked={defaults.isHot ?? false} /> Prospect chaud 🔥
+            <input type="checkbox" name="isHot" defaultChecked={draftDefaults.isHot ?? false} /> Prospect chaud 🔥
           </label>
         </div>
       </Card>

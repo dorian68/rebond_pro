@@ -8,6 +8,7 @@ export type AppActionDeps = {
 };
 
 const SAFE_PATH = /^\/[a-zA-Z0-9/_-]*$/;
+const DRAFT_TARGETS = ["formation", "session", "prospect", "learner", "beneficiary", "trainer"] as const;
 
 export function dispatchAppAction(name: string, value: unknown, deps: AppActionDeps): boolean {
   const v = (value ?? {}) as Record<string, unknown>;
@@ -23,6 +24,28 @@ export function dispatchAppAction(name: string, value: unknown, deps: AppActionD
     case "app.toast":
       deps.toast(String(v.message ?? ""), (v.type as "info" | "success" | "warn" | "error") ?? "info");
       return true;
+    case "app.form_draft": {
+      const target = String(v.target ?? "");
+      const path = String(v.path ?? "");
+      const fields = v.fields && typeof v.fields === "object" ? v.fields : {};
+      if (!DRAFT_TARGETS.includes(target as never) || !SAFE_PATH.test(path)) return false;
+      try {
+        window.localStorage.setItem(`lbr.document-intake.${target}`, JSON.stringify({
+          target,
+          fields,
+          confidence: typeof v.confidence === "number" ? v.confidence : 0.75,
+          missingFields: Array.isArray(v.missingFields) ? v.missingFields : [],
+          warnings: Array.isArray(v.warnings) ? v.warnings : ["Brouillon préparé depuis Socrate."],
+          evidence: Array.isArray(v.evidence) ? v.evidence : [],
+          storedAt: Date.now(),
+        }));
+        deps.toast("Brouillon prêt : ouverture du formulaire.", "success");
+        deps.navigate(path);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     case "app.highlight": {
       const selector = String(v.selector ?? "");
       if (typeof document !== "undefined" && selector) {

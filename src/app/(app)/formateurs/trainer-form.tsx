@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/primitives";
 import { ImageUpload } from "@/components/app/ImageUpload";
+import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
+import { consumeDocumentIntakeDraft } from "@/lib/document-intake";
 import type { FormActionState } from "@/server/formations-actions";
 
 const COLORS = ["#2469a6", "#2f7fc4", "#129a93", "#d9821f", "#18996b", "#dc5147"];
@@ -26,34 +28,45 @@ export function TrainerForm({
   trainerId?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormActionState, FormData>(action, undefined);
-  const selected = new Set(defaults.formationIds ?? []);
+  const [draftDefaults, setDraftDefaults] = useState<TrainerDefaults>(() => {
+    const imported = consumeDocumentIntakeDraft("trainer");
+    return imported ? { ...defaults, ...imported.fields } : defaults;
+  });
+  const [formKey, setFormKey] = useState(0);
+  const selected = new Set(draftDefaults.formationIds ?? []);
+
+  const applyDraft = (fields: Record<string, unknown>) => {
+    setDraftDefaults((cur) => ({ ...cur, ...fields }));
+    setFormKey((k) => k + 1);
+  };
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <form key={formKey} action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <DocumentImportPrefill target="trainer" context={{ formations }} onApply={applyDraft} />
       <Card>
         <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16 }}>Identité</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div><label className="field-label" htmlFor="firstName">Prénom *</label><input className="input" id="firstName" name="firstName" required defaultValue={defaults.firstName ?? ""} /></div>
-          <div><label className="field-label" htmlFor="lastName">Nom *</label><input className="input" id="lastName" name="lastName" required defaultValue={defaults.lastName ?? ""} /></div>
-          <div><label className="field-label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" defaultValue={defaults.email ?? ""} /></div>
-          <div><label className="field-label" htmlFor="phone">Téléphone</label><input className="input" id="phone" name="phone" defaultValue={defaults.phone ?? ""} /></div>
-          <div><label className="field-label" htmlFor="specialities">Spécialités (séparées par virgule)</label><input className="input" id="specialities" name="specialities" placeholder="Excel, Power BI" defaultValue={(defaults.specialities ?? []).join(", ")} /></div>
-          <div><label className="field-label" htmlFor="yearsExperience">Années d&apos;expérience</label><input className="input" id="yearsExperience" name="yearsExperience" type="number" min={0} placeholder="ex : 10" defaultValue={defaults.yearsExperience ?? ""} /></div>
-          <div style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="bio">Bio (visible sur le profil public)</label><textarea className="input" id="bio" name="bio" rows={3} defaultValue={defaults.bio ?? ""} /></div>
+          <div><label className="field-label" htmlFor="firstName">Prénom *</label><input className="input" id="firstName" name="firstName" required defaultValue={draftDefaults.firstName ?? ""} /></div>
+          <div><label className="field-label" htmlFor="lastName">Nom *</label><input className="input" id="lastName" name="lastName" required defaultValue={draftDefaults.lastName ?? ""} /></div>
+          <div><label className="field-label" htmlFor="email">Email</label><input className="input" id="email" name="email" type="email" defaultValue={draftDefaults.email ?? ""} /></div>
+          <div><label className="field-label" htmlFor="phone">Téléphone</label><input className="input" id="phone" name="phone" defaultValue={draftDefaults.phone ?? ""} /></div>
+          <div><label className="field-label" htmlFor="specialities">Spécialités (séparées par virgule)</label><input className="input" id="specialities" name="specialities" placeholder="Excel, Power BI" defaultValue={(draftDefaults.specialities ?? []).join(", ")} /></div>
+          <div><label className="field-label" htmlFor="yearsExperience">Années d&apos;expérience</label><input className="input" id="yearsExperience" name="yearsExperience" type="number" min={0} placeholder="ex : 10" defaultValue={draftDefaults.yearsExperience ?? ""} /></div>
+          <div style={{ gridColumn: "1 / -1" }}><label className="field-label" htmlFor="bio">Bio (visible sur le profil public)</label><textarea className="input" id="bio" name="bio" rows={3} defaultValue={draftDefaults.bio ?? ""} /></div>
           <div>
             <label className="field-label">Couleur</label>
             <div style={{ display: "flex", gap: 8, alignItems: "center", height: 40 }}>
               {COLORS.map((c, i) => (
                 <label key={c} style={{ cursor: "pointer" }}>
-                  <input type="radio" name="color" value={c} defaultChecked={defaults.color ? defaults.color === c : i === 0} style={{ display: "none" }} />
-                  <span style={{ display: "block", width: 24, height: 24, borderRadius: 7, background: c, outline: (defaults.color ? defaults.color === c : i === 0) ? "2px solid var(--ink)" : "2px solid transparent", outlineOffset: 2 }} />
+                  <input type="radio" name="color" value={c} defaultChecked={draftDefaults.color ? draftDefaults.color === c : i === 0} style={{ display: "none" }} />
+                  <span style={{ display: "block", width: 24, height: 24, borderRadius: 7, background: c, outline: (draftDefaults.color ? draftDefaults.color === c : i === 0) ? "2px solid var(--ink)" : "2px solid transparent", outlineOffset: 2 }} />
                 </label>
               ))}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "flex-end" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "var(--ink-2)" }}>
-              <input type="checkbox" name="active" defaultChecked={defaults.active ?? true} /> Actif
+              <input type="checkbox" name="active" defaultChecked={draftDefaults.active ?? true} /> Actif
             </label>
           </div>
         </div>
@@ -63,7 +76,7 @@ export function TrainerForm({
         <Card>
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>Photo de profil</h3>
           <p className="muted-3" style={{ fontSize: 12.5, marginBottom: 14 }}>Affichée sur le profil public du formateur dans la marketplace.</p>
-          <ImageUpload kind="trainer_photo" trainerId={trainerId} currentUrl={defaults.photoUrl} label="Photo du formateur" shape="circle" />
+          <ImageUpload kind="trainer_photo" trainerId={trainerId} currentUrl={draftDefaults.photoUrl} label="Photo du formateur" shape="circle" />
         </Card>
       )}
 

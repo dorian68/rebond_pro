@@ -446,8 +446,8 @@ export function AgentDock({
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     const MAX = 5 * 1024 * 1024;
-    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
-    const valid = files.filter((f) => ALLOWED.includes(f.type) && f.size <= MAX);
+    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    const valid = files.filter((f) => (ALLOWED.includes(f.type) || f.name.toLowerCase().endsWith(".docx")) && f.size <= MAX);
     if (!valid.length) return;
 
     setExtracting(true);
@@ -693,7 +693,7 @@ export function AgentDock({
                 >
                   <Icon name="paperclip" size={18} />
                 </button>
-                <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" onChange={onFilePick} style={{ display: "none" }} />
+                <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" onChange={onFilePick} style={{ display: "none" }} />
 
                 <textarea
                   ref={taRef}

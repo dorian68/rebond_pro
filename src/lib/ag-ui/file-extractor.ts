@@ -64,10 +64,46 @@ export async function extractFileContent(file: File): Promise<ExtractionResult> 
   if (file.type === "application/pdf") {
     return routePdf(file);
   }
+  if (
+    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    file.name.toLowerCase().endsWith(".docx")
+  ) {
+    return routeDocx(file);
+  }
   if (file.type.startsWith("image/")) {
     return routeImage(file);
   }
   throw new Error(`Type non supporté : ${file.type}`);
+}
+
+// ── Route DOCX ───────────────────────────────────────────────────────────────
+
+async function routeDocx(file: File): Promise<ExtractionResult> {
+  const PizZip = (await import("pizzip")).default;
+  const zip = new PizZip(await file.arrayBuffer());
+  const parts = ["word/document.xml", ...Object.keys(zip.files).filter((name) => /^word\/header\d*\.xml$|^word\/footer\d*\.xml$/.test(name))];
+  const parser = new DOMParser();
+  const texts: string[] = [];
+  for (const part of parts) {
+    const xml = zip.file(part)?.asText();
+    if (!xml) continue;
+    const doc = parser.parseFromString(xml, "application/xml");
+    const nodes = Array.from(doc.getElementsByTagName("w:t"));
+    const value = nodes.map((n) => n.textContent ?? "").join(" ").replace(/\s+/g, " ").trim();
+    if (value) texts.push(value);
+  }
+  const fullText = texts.join("\n\n").trim();
+  const text = fullText.length > MAX_CHARS
+    ? fullText.slice(0, MAX_CHARS) + `\n\n⚠️ [Document DOCX tronqué — ${fullText.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
+    : fullText;
+  return {
+    mode: "text",
+    filename: file.name,
+    mimeType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    extractedText: text,
+    charCount: fullText.length,
+    routingReason: `[A] DOCX — ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
+  };
 }
 
 // ── Route PDF ────────────────────────────────────────────────────────────────
