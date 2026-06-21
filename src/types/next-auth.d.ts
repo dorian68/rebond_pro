@@ -8,6 +8,7 @@ declare module "next-auth" {
     organizationName?: string | null;
     organizationSlug?: string | null;
     role?: Role | string | null;
+    rememberSession?: boolean;
   }
   interface Session {
     user: {
@@ -18,6 +19,8 @@ declare module "next-auth" {
       organizationName: string | null;
       organizationSlug: string | null;
       role: string | null;
+      rememberSession?: boolean;
+      sessionExpiresAt?: string | null;
     };
   }
 }
@@ -28,5 +31,8 @@ declare module "next-auth/jwt" {
     organizationName?: string | null;
     organizationSlug?: string | null;
     role?: string | null;
+    rememberSession?: boolean;
+    sessionExpiresAt?: number;
+    sessionExpired?: boolean;
   }
 }

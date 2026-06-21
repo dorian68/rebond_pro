@@ -13,12 +13,14 @@ export type ActionState = { error?: string; ok?: boolean } | undefined;
 const loginSchema = z.object({
   email: z.email("Email invalide."),
   password: z.string().min(1, "Mot de passe requis."),
+  remember: z.boolean(),
 });
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    remember: formData.get("remember") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
@@ -57,6 +59,7 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     await signIn("credentials", {
       email,
       password: parsed.data.password,
+      remember: parsed.data.remember ? "true" : "false",
       redirectTo: destination,
     });
   } catch (e) {
