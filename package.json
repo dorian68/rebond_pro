@@ -43,6 +43,7 @@
     "smoke:admin-agents": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-admin-agents-sandbox.ts",
     "smoke:connectors": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-connectors.ts",
     "smoke:beneficiary": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-beneficiary.ts",
+    "smoke:platform-beneficiaries": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-platform-beneficiaries.ts",
     "smoke:platform": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-platform.ts",
     "smoke:persona": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-persona.ts",
     "smoke:finance": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-finance.ts",

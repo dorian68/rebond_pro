@@ -61,7 +61,7 @@ export async function inviteBeneficiariesBatch(_prev: FormActionState, formData:
   return { ok: true };
 }
 
-async function createBeneficiaryInternal(organizationId: string, d: z.infer<typeof inviteSchema>): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function createBeneficiaryInternal(organizationId: string, d: z.infer<typeof inviteSchema>): Promise<{ ok: true } | { ok: false; error: string }> {
   const email = d.email.toLowerCase();
 
   // Compte utilisateur

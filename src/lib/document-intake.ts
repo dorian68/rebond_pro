@@ -16,7 +16,7 @@ export const DOCUMENT_INTAKE_ROUTES: Record<DocumentIntakeTarget, string> = {
   session: "/sessions/new",
   prospect: "/prospects/new",
   learner: "/apprenants/new",
-  beneficiary: "/beneficiaires",
+  beneficiary: "/admin/beneficiaires",
   trainer: "/formateurs/new",
 };
 

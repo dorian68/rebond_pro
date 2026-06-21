@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { PLATFORM_BENEFICIARY_ORG_SLUG } from "@/server/platform-beneficiary-org";
 
 /**
  * Agrégations CROSS-TENANT pour le super-admin plateforme.
@@ -109,12 +110,42 @@ export async function listAllTrainers() {
 
 export async function listAllBeneficiaries() {
   const rows = await prisma.beneficiary.findMany({
-    select: { id: true, firstName: true, lastName: true, email: true, status: true, createdAt: true, organization: { select: { id: true, name: true, slug: true } }, steps: { select: { status: true } }, _count: { select: { interests: true } } },
+    select: {
+      id: true, firstName: true, lastName: true, email: true, phone: true, objective: true, status: true, createdAt: true,
+      organization: { select: { id: true, name: true, slug: true } },
+      user: { select: { id: true, email: true, lastLoginAt: true } },
+      steps: { select: { status: true } },
+      _count: { select: { interests: true } },
+    },
     orderBy: { createdAt: "desc" },
     take: 500,
   });
   return rows.map((b) => {
     const total = b.steps.length, done = b.steps.filter((s) => s.status === "done").length;
-    return { ...b, progress: total ? Math.round((done / total) * 100) : 0 };
+    return { ...b, progress: total ? Math.round((done / total) * 100) : 0, stepsDone: done, stepsTotal: total };
+  });
+}
+
+export async function getPlatformBeneficiary(id: string) {
+  return prisma.beneficiary.findUnique({
+    where: { id },
+    include: {
+      organization: { select: { id: true, name: true, slug: true } },
+      user: { select: { id: true, email: true, lastLoginAt: true, emailVerified: true } },
+      steps: { orderBy: { order: "asc" } },
+      interests: {
+        include: { formation: { select: { id: true, title: true, color: true, organizationId: true, organization: { select: { id: true, name: true, slug: true } } } } },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+}
+
+export async function listBeneficiaryTransferCenters(excludeOrganizationId?: string) {
+  return prisma.organization.findMany({
+    where: { deletedAt: null, slug: { not: PLATFORM_BENEFICIARY_ORG_SLUG }, ...(excludeOrganizationId ? { id: { not: excludeOrganizationId } } : {}) },
+    select: { id: true, name: true, slug: true, city: true },
+    orderBy: { name: "asc" },
+    take: 500,
   });
 }

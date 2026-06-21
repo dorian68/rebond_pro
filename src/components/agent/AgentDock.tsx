@@ -310,7 +310,7 @@ function agentContext(pathname: string): { intro: string; suggestions: Suggestio
   if (center[seg]) {
     return { intro: "Je peux analyser votre centre, retrouver des informations, proposer des créneaux et préparer des actions — en toute sécurité.", suggestions: center[seg] };
   }
-  const cockpitSegs = ["beneficiaires", "apprenants", "formateurs", "documents", "qualite", "assistant"];
+  const cockpitSegs = ["apprenants", "formateurs", "documents", "qualite", "assistant"];
   if (cockpitSegs.includes(seg)) {
     return { intro: "Je peux analyser votre centre, retrouver des informations et préparer des actions — en toute sécurité.", suggestions: center.dashboard };
   }
