@@ -6,8 +6,10 @@ import { Icon } from "@/components/ui/Icon";
 import { ImageUpload } from "@/components/app/ImageUpload";
 import { updateOrganization, inviteMember, updateMemberRole, removeMember, uploadDocumentTemplate, setDefaultDocumentTemplate, archiveDocumentTemplate, loadDemoDataAction } from "@/server/parametres-actions";
 import { createCheckoutSession, createBillingPortalSession } from "@/server/billing-actions";
+import { connectExternalConnector } from "@/server/connectors-actions";
 import { DOCUMENT_TYPES } from "@/lib/document-types";
 import { DOCUMENT_VARIABLE_MAP } from "@/lib/document-variables";
+import type { ConnectorCapability, ConnectorKey, ConnectorScope } from "@/lib/connectors";
 import type { BillingState } from "@/server/billing";
 import type { Plan } from "@prisma/client";
 import type { FormActionState } from "@/server/formations-actions";
@@ -39,18 +41,35 @@ type Template = {
   status: string;
   version: number;
 };
+type ConnectorStatus = {
+  key: ConnectorKey;
+  label: string;
+  provider: "google" | "microsoft";
+  priority: number;
+  capabilities: ConnectorCapability[];
+  scopes: ConnectorScope[];
+  scope: ConnectorScope;
+  defaultScope: ConnectorScope;
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY";
+  description: string;
+  connected: boolean;
+  status: string;
+  accountId: string | null;
+};
+type ConnectorsState = { enabled: boolean; connectors: ConnectorStatus[] };
 
 const TABS = [
   { id: "profil", label: "Profil du centre", icon: "building" },
   { id: "abonnement", label: "Abonnement", icon: "euro" },
   { id: "membres", label: "Membres & accès", icon: "users" },
   { id: "templates", label: "Modèles de documents", icon: "file-text" },
+  { id: "connecteurs", label: "Connecteurs", icon: "layers" },
   { id: "avance", label: "Avancé", icon: "settings" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
 
-export function ParametresClient({ org, members, templates, role, billing }: { org: Org; members: Member[]; templates: Template[]; role: string; billing: BillingState }) {
+export function ParametresClient({ org, members, templates, role, billing, connectors }: { org: Org; members: Member[]; templates: Template[]; role: string; billing: BillingState; connectors: ConnectorsState }) {
   const [tab, setTab] = useState<Tab>("profil");
 
   return (
@@ -77,6 +96,7 @@ export function ParametresClient({ org, members, templates, role, billing }: { o
       {tab === "abonnement" && <AbonnementTab billing={billing} role={role} />}
       {tab === "membres" && <MembresTab members={members} role={role} />}
       {tab === "templates" && <TemplatesTab templates={templates} role={role} />}
+      {tab === "connecteurs" && <ConnecteursTab connectors={connectors} role={role} />}
       {tab === "avance" && <AvanceTab role={role} orgName={org.name} />}
     </div>
   );
@@ -422,6 +442,128 @@ function TemplatesTab({ templates, role }: { templates: Template[]; role: string
   );
 }
 
+// ── Connecteurs ──────────────────────────────────────────────────
+function ConnecteursTab({ connectors, role }: { connectors: ConnectorsState; role: string }) {
+  const canConnect = ["OWNER", "ADMIN", "ASSISTANT", "COMMERCIAL"].includes(role);
+  const canConnectOrganization = ["OWNER", "ADMIN"].includes(role);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const ordered = [...connectors.connectors].sort((a, b) => a.priority - b.priority);
+  const personal = ordered.filter((connector) => connector.scope === "personal");
+  const organization = ordered.filter((connector) => connector.scope === "organization");
+
+  async function connect(key: ConnectorKey, scope: ConnectorScope) {
+    setBusy(`${key}:${scope}`);
+    setError(null);
+    try {
+      const result = await connectExternalConnector(key, scope);
+      if (result.url) {
+        window.location.assign(result.url);
+        return;
+      }
+      setError(result.error ?? "Connexion impossible.");
+    } catch {
+      setError("Erreur inattendue pendant la connexion.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <Card>
+        <div className="spread" style={{ alignItems: "flex-start", gap: 18 }}>
+          <div>
+            <h3 style={{ fontWeight: 700, marginBottom: 6, fontSize: 15 }}>Connectivité Socrate</h3>
+            <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.6, maxWidth: 760 }}>
+              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas et documents connectés, importer un fichier dans son contexte, et créer des brouillons email. Aucun outil d&apos;envoi direct n&apos;est exposé.
+            </p>
+          </div>
+          <span className={connectors.enabled ? "badge badge-primary" : "badge"}>
+            {connectors.enabled ? "Composio actif" : "Composio non configuré"}
+          </span>
+        </div>
+        {!connectors.enabled ? (
+          <p style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)", padding: "10px 12px", background: "var(--surface-3)", borderRadius: 10 }}>
+            Ajoutez <code>COMPOSIO_API_KEY</code> dans l&apos;environnement serveur pour activer les connexions OAuth.
+          </p>
+        ) : null}
+        {error ? <p style={{ marginTop: 12, fontSize: 13, color: "var(--danger)" }}>{error}</p> : null}
+      </Card>
+
+      <div style={{ display: "grid", gap: 18 }}>
+        {ordered.length === 0 ? (
+          <Card>
+            <p style={{ fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6 }}>
+              Les connecteurs externes sont réservés aux propriétaires, administrateurs, assistants et commerciaux du centre.
+            </p>
+          </Card>
+        ) : null}
+        {personal.length > 0 ? (
+          <ConnectorGroup title="Mes connexions" subtitle="Comptes propres à l'utilisateur connecté : agendas personnels et brouillons email." connectors={personal} canConnect={canConnect} busy={busy} enabled={connectors.enabled} onConnect={connect} />
+        ) : null}
+        {organization.length > 0 ? (
+          <ConnectorGroup title="Connexions du centre" subtitle="Comptes partagés par le centre : bibliothèques documentaires, Drive/SharePoint et calendriers communs." connectors={organization} canConnect={canConnectOrganization} busy={busy} enabled={connectors.enabled} onConnect={connect} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ConnectorGroup({ title, subtitle, connectors, canConnect, busy, enabled, onConnect }: {
+  title: string;
+  subtitle: string;
+  connectors: ConnectorStatus[];
+  canConnect: boolean;
+  busy: string | null;
+  enabled: boolean;
+  onConnect: (key: ConnectorKey, scope: ConnectorScope) => void;
+}) {
+  return (
+    <section style={{ display: "grid", gap: 10 }}>
+      <div>
+        <h3 style={{ fontWeight: 750, fontSize: 15, marginBottom: 3 }}>{title}</h3>
+        <p style={{ fontSize: 13, color: "var(--ink-3)" }}>{subtitle}</p>
+      </div>
+      {connectors.map((connector) => {
+        const busyKey = `${connector.key}:${connector.scope}`;
+        return (
+          <Card key={busyKey}>
+            <div className="spread" style={{ alignItems: "center", gap: 18 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                  <Icon name={connector.provider === "google" ? "globe" : "layers"} size={16} style={{ color: "var(--primary)" }} />
+                  <h3 style={{ fontWeight: 750, fontSize: 15 }}>{connector.label}</h3>
+                  <span className={connector.connected ? "badge badge-primary" : "badge"}>
+                    {connector.connected ? "Connecté" : connector.status === "DISABLED" ? "Désactivé" : "À connecter"}
+                  </span>
+                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"}</span>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>{connector.description}</p>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                  {connector.capabilities.map((cap) => (
+                    <span key={cap} className="badge">{capabilityLabel(cap)}</span>
+                  ))}
+                </div>
+              </div>
+              {canConnect ? (
+                <button
+                  className="btn btn-secondary"
+                  disabled={!enabled || busy === busyKey}
+                  onClick={() => onConnect(connector.key, connector.scope)}
+                  style={{ flexShrink: 0 }}
+                >
+                  <Icon name="external" size={15} /> {busy === busyKey ? "Ouverture…" : connector.connected ? "Reconnecter" : "Connecter"}
+                </button>
+              ) : null}
+            </div>
+          </Card>
+        );
+      })}
+    </section>
+  );
+}
+
 // ── Avancé ────────────────────────────────────────────────────────
 function AvanceTab({ role, orgName }: { role: string; orgName: string }) {
   const isOwner = role === "OWNER";
@@ -475,6 +617,16 @@ function AvanceTab({ role, orgName }: { role: string; orgName: string }) {
       </Card>
     </div>
   );
+}
+
+function capabilityLabel(capability: ConnectorCapability) {
+  const labels: Record<ConnectorCapability, string> = {
+    calendar_read: "Agenda",
+    document_read: "Recherche fichiers",
+    document_import: "Import fichier",
+    email_draft: "Brouillon email",
+  };
+  return labels[capability];
 }
 
 // ── Primitives ────────────────────────────────────────────────────

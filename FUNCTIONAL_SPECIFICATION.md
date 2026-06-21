@@ -34,6 +34,7 @@ Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orienta
 - Lot 6 : qualité complète, portails et notifications.
 - Marketplace : `/marketplace` (catalogue cross-centres + filtres q/catégorie/modalité/niveau/ville), fiche centre `(public)/[orgSlug]`, profil formateur public `(public)/formateur/[trainerId]`. Alimentée automatiquement par les formations `isPublic`. Upload logo/cover/photo (Supabase Storage public, fallback avatars initiales).
 - Copilote AG-UI : outils de lecture + ~26 outils d'écriture CRUD (`src/server/agent/write-tools.ts`), tous sensibles → validation humaine (human-in-the-loop). Dispatch et exécution dans `src/server/agent/runtime.ts`.
+- Connecteurs Socrate via Composio : Google Calendar et Microsoft Calendar en lecture seule ; Google Drive, OneDrive et SharePoint en recherche/import de fichiers ; Gmail et Outlook en création de brouillons uniquement, sans outil d'envoi direct. Deux périmètres UX : **Mes connexions** (utilisateur) et **Connexions du centre** (organisation). Configuration dans Paramètres → Connecteurs. Testé par `smoke:connectors`.
 - Lot 7 : **facturation Stripe** livrée — plans FREE/PRO/PREMIUM, Checkout, portail client, webhook (`/api/stripe/webhook`) qui synchronise plan/billingStatus ; fallback propre si Stripe non configuré ; UI Paramètres → Abonnement ; **quotas de plan appliqués** (`smoke:quota`).
 - Lot 8 (livré, code) : **écosystème multi-faces**.
   - **Site public Le Bon Rebond** (`src/app/(site)/`) : accueil à deux entrées, formation, bilan de compétences, bilan d’orientation, méthode Rebond Clarté, à propos, blog, contact et espace partenaires. Formulaire de contact réel (server action → email équipe + log) ; verdict d'éligibilité CPF instantané.
@@ -70,6 +71,7 @@ Les server actions protégées appellent `requireTenant()` et vérifient les rô
 - Les métriques sont calculées depuis la base, jamais codées en dur.
 - La marketplace n'expose QUE des formations publiées ; une fiche centre n'est visible que si le centre a au moins une formation publiée.
 - Le copilote n'exécute une action sensible qu'après validation humaine et dans le respect du rôle et du tenant de l'utilisateur.
+- Les connecteurs externes n'exposent aucune action d'envoi email ou d'écriture calendrier ; l'import de fichier externe et la création de brouillon email exigent une validation humaine.
 - Le persona du copilote est dérivé du rôle et de la page ; son périmètre d'outils est verrouillé côté serveur. Un visiteur sans session n'atteint aucune donnée tenant ; l'admin plateforme est en lecture seule.
 - Toute transaction financière est persistée (`Transaction`) avec sa commission ; le CA affiché provient du ledger, jamais d'une heuristique. La commission n'existe que sur les achats de formation.
 - Le bénéficiaire entre par invitation (rôle LEARNER dans le tenant du centre opérateur) ; pas d'auto-inscription publique au bilan.
@@ -93,7 +95,7 @@ Auth.js credentials, session JWT et membership tenant. Un compte doit confirmer 
 
 ## 16. CLI-testability requirements
 
-`npm run smoke:health`, `smoke:lot5`, `smoke:auth`, `smoke:registration`, `smoke:crud`, `smoke:agent`, `smoke:marketplace`, `smoke:tenant`, `smoke:password-reset`, `smoke:dedup`, `smoke:billing`, `smoke:quota`, `smoke:trainer-portal`, `smoke:beneficiary`, `smoke:platform`, `smoke:persona`, `smoke:finance`, `smoke:business`, `smoke:business-marketplace`, `smoke:all`, `npm run lint`, `npm run build`, `npm run smoke:production`. Voir `CLI_TESTABILITY_CONTRACT.md`.
+`npm run smoke:health`, `smoke:lot5`, `smoke:auth`, `smoke:registration`, `smoke:crud`, `smoke:agent`, `smoke:marketplace`, `smoke:tenant`, `smoke:password-reset`, `smoke:dedup`, `smoke:billing`, `smoke:quota`, `smoke:trainer-portal`, `smoke:beneficiary`, `smoke:platform`, `smoke:persona`, `smoke:connectors`, `smoke:finance`, `smoke:business`, `smoke:business-marketplace`, `smoke:all`, `npm run lint`, `npm run build`, `npm run smoke:production`. Voir `CLI_TESTABILITY_CONTRACT.md`.
 
 ## 17. Acceptance criteria
 

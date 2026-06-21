@@ -10,6 +10,7 @@ import { WRITE_TOOLS } from "@/server/agent/write-tools";
 import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
 import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 import { DOCUMENT_INTAKE_ROUTES, DOCUMENT_INTAKE_TARGETS, type DocumentIntakeTarget } from "@/lib/document-intake";
+import { createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments } from "@/server/connectors";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -181,6 +182,118 @@ export const AGENT_TOOLS: AgentTool[] = [
         emptyText: "Aucun créneau compatible trouvé.",
       };
       return { textForLLM: JSON.stringify(slots), uiBlock: block };
+    },
+  },
+  {
+    name: "list_external_connectors",
+    description: "Liste les connecteurs externes disponibles et leur statut pour l'utilisateur courant : Google Calendar, Google Drive, Gmail, Outlook, OneDrive, SharePoint, Microsoft Calendar.",
+    input_schema: { type: "object", properties: {} },
+    execute: async (ctx) => {
+      const statuses = await listConnectorStatuses(ctx);
+      const block: UIBlock = {
+        type: "data_table",
+        title: "Connecteurs externes",
+        columns: ["Connecteur", "Statut", "Politique"],
+        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"]),
+        emptyText: "Aucun connecteur configuré.",
+      };
+      return { textForLLM: JSON.stringify(statuses), uiBlock: block };
+    },
+  },
+  {
+    name: "list_external_calendar_events",
+    description: "Lit les événements d'un agenda externe connecté en lecture seule. connector ∈ {google_calendar, microsoft_calendar}. N'écrit jamais dans le calendrier.",
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["google_calendar", "microsoft_calendar"] },
+        scope: { type: "string", enum: ["personal", "organization"], description: "personal = compte de l'utilisateur ; organization = compte partagé du centre." },
+        from: { type: "string", description: "Date/heure ISO de début optionnelle." },
+        to: { type: "string", description: "Date/heure ISO de fin optionnelle." },
+        limit: { type: "number" },
+      },
+      required: ["connector"],
+    },
+    execute: async (ctx, args) => {
+      const result = await listExternalCalendarEvents(ctx, {
+        connector: String(args.connector) as "google_calendar" | "microsoft_calendar",
+        scope: args.scope === "organization" ? "organization" : "personal",
+        from: args.from ? String(args.from) : undefined,
+        to: args.to ? String(args.to) : undefined,
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+      });
+      return { textForLLM: JSON.stringify(result).slice(0, 4000) };
+    },
+  },
+  {
+    name: "search_external_documents",
+    description: "Recherche des fichiers dans un espace documentaire externe connecté. connector ∈ {google_drive, onedrive, sharepoint}. Lecture seule.",
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["google_drive", "onedrive", "sharepoint"] },
+        scope: { type: "string", enum: ["personal", "organization"], description: "personal = documents de l'utilisateur ; organization = documents partagés du centre. Par défaut, utiliser organization pour les documents du centre." },
+        query: { type: "string" },
+        limit: { type: "number" },
+      },
+      required: ["connector", "query"],
+    },
+    execute: async (ctx, args) => {
+      const result = await searchExternalDocuments(ctx, {
+        connector: String(args.connector) as "google_drive" | "onedrive" | "sharepoint",
+        scope: args.scope === "personal" ? "personal" : "organization",
+        query: String(args.query ?? ""),
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+      });
+      return { textForLLM: JSON.stringify(result).slice(0, 4000) };
+    },
+  },
+  {
+    name: "import_external_document",
+    description: "Importe le contenu d'un fichier externe connecté dans le contexte de Socrate pour aider à préremplir ou analyser. N'enregistre rien en base sans outil séparé.",
+    sensitive: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["google_drive", "onedrive", "sharepoint"] },
+        scope: { type: "string", enum: ["personal", "organization"], description: "Même périmètre que la recherche ayant trouvé le fichier." },
+        fileId: { type: "string" },
+      },
+      required: ["connector", "fileId"],
+    },
+    execute: async (ctx, args) => {
+      const result = await importExternalDocument(ctx, {
+        connector: String(args.connector) as "google_drive" | "onedrive" | "sharepoint",
+        scope: args.scope === "personal" ? "personal" : "organization",
+        fileId: String(args.fileId ?? ""),
+      });
+      return { textForLLM: JSON.stringify(result).slice(0, 6000) };
+    },
+  },
+  {
+    name: "create_external_email_draft",
+    description: "Crée un brouillon email dans Gmail ou Outlook. NE JAMAIS envoyer d'email : cet outil prépare uniquement un brouillon validable par l'utilisateur.",
+    sensitive: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["gmail", "outlook"] },
+        to: { type: "array", items: { type: "string" } },
+        cc: { type: "array", items: { type: "string" } },
+        subject: { type: "string" },
+        body: { type: "string" },
+      },
+      required: ["connector", "to", "subject", "body"],
+    },
+    execute: async (ctx, args) => {
+      const result = await createExternalEmailDraft(ctx, {
+        connector: String(args.connector) as "gmail" | "outlook",
+        to: Array.isArray(args.to) ? args.to.map(String) : [],
+        cc: Array.isArray(args.cc) ? args.cc.map(String) : undefined,
+        subject: String(args.subject ?? ""),
+        body: String(args.body ?? ""),
+      });
+      return { textForLLM: `Brouillon email créé. Résultat connecteur : ${JSON.stringify(result).slice(0, 2000)}` };
     },
   },
   // ---- Actions sensibles (human-in-the-loop) ----

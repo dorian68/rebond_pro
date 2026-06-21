@@ -26,6 +26,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:beneficiary` | Vérifie l'espace bénéficiaire : `Beneficiary` lié au compte, parcours/phases, accès scopé. Nettoyage. |
 | `npm run smoke:platform` | Vérifie l'admin god-mode : agrégats cross-tenant en lecture seule derrière `requirePlatformAdmin()`, batché (évite EMAXCONNSESSION). Nettoyage. |
 | `npm run smoke:persona` | **Logique pure (sans DB)** : `resolvePersona` (visitor/beneficiary/trainer/center/platform_admin) et l'allowlist d'outils (visiteur sans accès tenant, bénéficiaire sans suppression, admin sans écriture). |
+| `npm run smoke:connectors` | Vérifie le socle Composio : 7 connecteurs déclarés, Calendar en lecture seule, Drive/OneDrive/SharePoint en lecture/import, Gmail/Outlook en brouillon uniquement, aucun outil d'envoi direct, accès persona verrouillé. |
 | `npm run smoke:finance` | Vérifie le ledger : `recordTransaction` (commission auto + `payoutStatus`), idempotence par `stripeRef`, **inscription auto à l'achat** (Learner+Enrollment sur session OUVERTE, idempotente), **reversement** (`settleTransaction`), `getFinanceSummary` (brut/commission/net/pending). Nettoyage. |
 | `npm run smoke:public-purchase` | Vérifie l'achat public (sans compte) : appelable sans session, gating public/publié/prix>0, dégradation propre si Stripe non configuré. Nettoyage. |
 | `npm run smoke:business` | Vérifie les éléments de compréhension/activation/conversion (promesse landing, marketplace, onboarding, CTA public, dashboard honnête). |
