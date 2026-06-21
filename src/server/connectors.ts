@@ -11,6 +11,42 @@ const ORGANIZATION_CONNECTOR_ROLES: Role[] = ["OWNER", "ADMIN"];
 
 let composioClient: Composio | null = null;
 
+export class ConnectorAuthRequiredError extends Error {
+  connector: ConnectorKey;
+  scope: ConnectorScope;
+  label: string;
+  policy: ConnectorDefinition["writePolicy"];
+  canConnect: boolean;
+  blockedReason?: string;
+
+  constructor(input: {
+    connector: ConnectorDefinition;
+    scope: ConnectorScope;
+    canConnect: boolean;
+    message?: string;
+    blockedReason?: string;
+  }) {
+    const scopeLabel = input.scope === "organization" ? "du centre" : "personnel";
+    super(input.message ?? `${input.connector.label} ${scopeLabel} doit être connecté pour continuer.`);
+    this.name = "ConnectorAuthRequiredError";
+    this.connector = input.connector.key;
+    this.scope = input.scope;
+    this.label = input.connector.label;
+    this.policy = input.connector.writePolicy;
+    this.canConnect = input.canConnect;
+    this.blockedReason = input.blockedReason;
+  }
+}
+
+export function isConnectorAuthRequiredError(error: unknown): error is ConnectorAuthRequiredError {
+  return error instanceof ConnectorAuthRequiredError || (
+    !!error &&
+    typeof error === "object" &&
+    (error as { name?: string }).name === "ConnectorAuthRequiredError" &&
+    typeof (error as { connector?: unknown }).connector === "string"
+  );
+}
+
 function assertConnectorRole(ctx: TenantContext) {
   requireRole(ctx, CONNECTOR_ROLES);
 }
@@ -62,10 +98,28 @@ async function connectedAccountFor(ctx: TenantContext, connector: ConnectorDefin
 async function assertConnectorConnected(ctx: TenantContext, connector: ConnectorDefinition, scope: ConnectorScope) {
   if (!isComposioEnabled()) throw new Error("Connecteurs externes désactivés : COMPOSIO_API_KEY absente.");
   if (!connector.scopes.includes(scope)) throw new Error(`${connector.label} ne supporte pas ce périmètre de connexion.`);
+  const canConnect = scope === "organization" ? ORGANIZATION_CONNECTOR_ROLES.includes(ctx.role) : CONNECTOR_ROLES.includes(ctx.role);
+  if (!canConnect) {
+    throw new ConnectorAuthRequiredError({
+      connector,
+      scope,
+      canConnect: false,
+      blockedReason: scope === "organization"
+        ? "Demandez à un propriétaire ou administrateur du centre de connecter ce compte."
+        : "Votre rôle ne permet pas de connecter ce compte.",
+    });
+  }
   assertConnectorScopeRole(ctx, scope);
   const account = await connectedAccountFor(ctx, connector, scope);
   const label = scope === "organization" ? "du centre" : "personnel";
-  if (!account) throw new Error(`${connector.label} ${label} n'est pas connecté. Ouvrez Paramètres > Connecteurs pour l'autoriser.`);
+  if (!account) {
+    throw new ConnectorAuthRequiredError({
+      connector,
+      scope,
+      canConnect,
+      message: `${connector.label} ${label} n'est pas connecté. Autorisez-le pour que Socrate continue.`,
+    });
+  }
 }
 
 function clamp(value: number | undefined, fallback: number, min: number, max: number) {
@@ -120,14 +174,20 @@ function connectorStatus(connector: ConnectorDefinition, scope: ConnectorScope, 
   };
 }
 
-export async function createConnectorAuthLink(ctx: TenantContext, key: ConnectorKey, scope: ConnectorScope = "personal") {
+function safeReturnTo(returnTo?: string) {
+  if (!returnTo) return "/assistant";
+  if (!returnTo.startsWith("/") || returnTo.startsWith("//") || returnTo.includes("\\") || returnTo.includes("\n")) return "/assistant";
+  return returnTo;
+}
+
+export async function createConnectorAuthLink(ctx: TenantContext, key: ConnectorKey, scope: ConnectorScope = "personal", returnTo?: string) {
   assertConnectorRole(ctx);
   const connector = getConnector(key);
   if (!connector) return { error: "Connecteur inconnu." };
   if (!connector.scopes.includes(scope)) return { error: "Périmètre de connexion invalide pour ce connecteur." };
   assertConnectorScopeRole(ctx, scope);
   if (!isComposioEnabled()) return { error: "COMPOSIO_API_KEY absente. Configurez Composio avant de connecter un compte." };
-  const callbackUrl = `${appUrl()}/integrations/composio/callback?connector=${connector.key}&scope=${scope}`;
+  const callbackUrl = `${appUrl()}/integrations/composio/callback?connector=${connector.key}&scope=${scope}&returnTo=${encodeURIComponent(safeReturnTo(returnTo))}`;
   const session = await composio().create(connectorEntityId(ctx, scope), { manageConnections: false, toolkits: [connector.toolkit] });
   const request = await session.authorize(connector.toolkit, { callbackUrl });
   return { url: request.redirectUrl, connector: connector.key, scope };

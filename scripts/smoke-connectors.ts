@@ -68,8 +68,13 @@ for (const pattern of forbiddenSendPatterns) {
 
 assert(read("src/server/connectors.ts").includes("requireRole"), "Les connecteurs doivent vérifier les rôles serveur.");
 assert(read("src/server/connectors.ts").includes("assertConnectorConnected"), "Chaque exécution connecteur doit vérifier qu'un compte actif est connecté.");
+assert(read("src/server/connectors.ts").includes("ConnectorAuthRequiredError"), "Un connecteur absent doit produire une erreur métier structurée.");
 assert(read("src/server/connectors.ts").includes("connectorOrganizationId"), "Les connexions centre doivent utiliser une identité Composio organisation.");
 assert(read("src/server/connectors.ts").includes("ORGANIZATION_CONNECTOR_ROLES"), "Les connexions centre doivent être limitées à OWNER/ADMIN.");
+assert(read("src/server/agent/runtime.ts").includes("connector_oauth_card"), "Socrate doit émettre une carte OAuth quand une connexion est requise.");
+assert(read("src/lib/ag-ui/types.ts").includes("connector_oauth_card"), "Le bloc OAuth doit être dans l'allowlist AG-UI.");
+assert(read("src/components/agent/AgentUIBlockRenderer.tsx").includes("connectExternalConnector"), "La carte Socrate doit pouvoir lancer OAuth.");
+assert(read("src/app/(app)/integrations/composio/callback/page.tsx").includes("returnTo"), "Le callback OAuth doit permettre de revenir à Socrate.");
 assert(read("src/server/connectors.ts").includes("COMPOSIO_API_KEY absente"), "L'absence de clé Composio doit produire une erreur explicite.");
 assert(read("src/server/connectors.ts").includes("Au moins un destinataire"), "La création de brouillon doit refuser les destinataires vides.");
 assert(read("src/app/(app)/parametres/parametres-client.tsx").includes("Aucun outil d&apos;envoi direct"), "L'UI doit expliciter l'absence d'envoi direct.");

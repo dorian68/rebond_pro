@@ -11,6 +11,7 @@ import { AGENT_TOOLS, getTool, isSensitive, type ToolResult, type AgentTool } fr
 import { getDashboardMetrics } from "@/server/metrics";
 import { formatMoney } from "@/lib/utils";
 import { type Persona, PERSONA_PROMPT, isToolAllowed } from "@/lib/ag-ui/persona";
+import { isConnectorAuthRequiredError } from "@/server/connectors";
 
 type Emit = (e: AGUIEvent) => void;
 
@@ -65,6 +66,26 @@ async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCa
     if (res.custom) emit({ type: "Custom", name: res.custom.name, value: res.custom.value, timestamp: now() });
     return res.textForLLM;
   } catch (e) {
+    if (isConnectorAuthRequiredError(e)) {
+      const content = e.canConnect
+        ? `${e.label} doit être connecté pour continuer. Affiche une carte de connexion OAuth à l'utilisateur.`
+        : `${e.label} doit être connecté, mais l'utilisateur courant ne peut pas autoriser ce périmètre.`;
+      emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content, role: "tool" });
+      emit(uiBlockEvent(messageId, {
+        type: "connector_oauth_card",
+        connector: e.connector,
+        scope: e.scope,
+        label: e.label,
+        title: e.canConnect ? `Connecter ${e.label}` : `${e.label} non connecté`,
+        description: e.canConnect
+          ? "Socrate a besoin de cette autorisation OAuth pour poursuivre votre demande. Les tokens sont gérés par Composio."
+          : e.blockedReason ?? "Votre rôle ne permet pas de connecter ce compte.",
+        policy: e.policy,
+        canConnect: e.canConnect,
+        blockedReason: e.blockedReason,
+      }));
+      return content;
+    }
     const msg = e instanceof Error ? e.message : "Erreur outil.";
     emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: `Erreur: ${msg}`, role: "tool" });
     return `Erreur: ${msg}`;

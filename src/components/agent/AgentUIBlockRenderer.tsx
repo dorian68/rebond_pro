@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { isAllowedUIBlock, type UIBlock } from "@/lib/ag-ui/types";
+import { connectExternalConnector } from "@/server/connectors-actions";
+import type { ConnectorKey, ConnectorScope } from "@/lib/connectors";
 
 type Props = {
   block: UIBlock;
@@ -118,6 +121,9 @@ export function AgentUIBlockRenderer({ block, onSuggestion, onApprove, onReject 
         </div>
       );
 
+    case "connector_oauth_card":
+      return <ConnectorOAuthCard block={block} />;
+
     case "error_card":
       return (
         <div className="card" style={{ padding: 12, marginTop: 8, border: "1px solid var(--danger-border)", background: "var(--danger-bg)" }}>
@@ -129,4 +135,57 @@ export function AgentUIBlockRenderer({ block, onSuggestion, onApprove, onReject 
     default:
       return null;
   }
+}
+
+function ConnectorOAuthCard({ block }: { block: Extract<UIBlock, { type: "connector_oauth_card" }> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function connect() {
+    setBusy(true);
+    setError(null);
+    try {
+      const returnTo = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/assistant";
+      const result = await connectExternalConnector(block.connector as ConnectorKey, block.scope as ConnectorScope, returnTo);
+      if (result.url) {
+        window.location.assign(result.url);
+        return;
+      }
+      setError(result.error ?? "Connexion impossible.");
+    } catch {
+      setError("Connexion impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ padding: 14, marginTop: 8, border: "1px solid var(--border)", background: "var(--surface)" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--primary-50)", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+          <Icon name="external" size={16} />
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
+            <div style={{ fontWeight: 800, fontSize: 13.5 }}>{block.title}</div>
+            <span className="badge">{block.scope === "organization" ? "Centre" : "Personnel"}</span>
+            <span className="badge">{block.policy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"}</span>
+          </div>
+          {block.description && <div style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5 }}>{block.description}</div>}
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 6 }}>
+            Le Bon Rebond ne reçoit pas votre mot de passe. L'autorisation et les tokens sont gérés par Composio.
+          </div>
+          {error && <div style={{ fontSize: 12, color: "var(--danger-strong)", marginTop: 8 }}>{error}</div>}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
+            <Link href="/parametres" className="btn btn-ghost btn-sm">Paramètres</Link>
+            {block.canConnect ? (
+              <button className="btn btn-primary btn-sm" onClick={connect} disabled={busy}>
+                <Icon name="external" size={14} /> {busy ? "Ouverture..." : `Connecter ${block.label}`}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

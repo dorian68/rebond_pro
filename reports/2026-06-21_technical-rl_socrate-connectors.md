@@ -20,6 +20,8 @@ Implémentation locale du socle connecteurs externes via Composio, backend-first
   - `search_external_documents`
   - `import_external_document`
   - `create_external_email_draft`
+- Carte OAuth directement dans Socrate lorsqu'un connecteur requis n'est pas encore autorisé.
+- Callback OAuth avec retour vers la page courante/Socrate.
 - Garde-fous :
   - Google Calendar et Microsoft Calendar en lecture seule.
   - Drive, OneDrive et SharePoint en recherche/import.
@@ -33,6 +35,7 @@ Implémentation locale du socle connecteurs externes via Composio, backend-first
   - Connexions centre limitées aux rôles OWNER/ADMIN.
   - Validation serveur des entrées vides avant appel externe (query, fileId, destinataires, objet, corps).
   - État vide explicite pour les rôles qui ne peuvent pas utiliser les connecteurs.
+  - Erreur métier structurée `ConnectorAuthRequiredError` au lieu d'une simple erreur texte quand une autorisation OAuth est requise.
 
 ## Configuration
 
