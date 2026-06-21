@@ -144,10 +144,15 @@ function normalizeDraft(target: DocumentIntakeTarget, raw: unknown): DocumentInt
     if (!allowed.has(key) || value == null || value === "") continue;
     fields[key] = value;
   }
+  const fieldCount = Object.keys(fields).length;
+  const explicitConfidence = clampNumber(r.confidence, 0, 1);
+  const heuristicConfidence = fieldCount > 0
+    ? Math.min(0.85, 0.25 + fieldCount / Math.max(6, allowed.size))
+    : 0;
   return {
     target,
     fields,
-    confidence: clampNumber(r.confidence, 0, 1),
+    confidence: Math.max(explicitConfidence, heuristicConfidence),
     missingFields: arrayOfStrings(r.missingFields),
     warnings: arrayOfStrings(r.warnings),
     evidence: Array.isArray(r.evidence)

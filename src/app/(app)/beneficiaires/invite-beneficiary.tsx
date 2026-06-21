@@ -21,6 +21,7 @@ export function InviteBeneficiary() {
 
   const applyDraft = (fields: Record<string, unknown>) => {
     setDraft((cur) => ({ ...cur, ...fields }));
+    setOpen(true);
     setFormKey((k) => k + 1);
   };
 
@@ -33,6 +34,11 @@ export function InviteBeneficiary() {
         </div>
         <button className="btn btn-primary" onClick={() => setOpen((o) => !o)}><Icon name="plus" size={16} /> {open ? "Fermer" : "Nouveau bénéficiaire"}</button>
       </div>
+      {!open && (
+        <div style={{ marginTop: 16 }}>
+          <DocumentImportPrefill target="beneficiary" onApply={applyDraft} />
+        </div>
+      )}
       {open && (
         <form key={formKey} action={action} style={{ display: "grid", gap: 14, marginTop: 16 }}>
           <DocumentImportPrefill target="beneficiary" onApply={applyDraft} />
