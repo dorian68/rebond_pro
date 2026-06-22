@@ -242,7 +242,8 @@ export const AGENT_TOOLS: AgentTool[] = [
     execute: async (ctx, args) => {
       const result = await searchExternalDocuments(ctx, {
         connector: String(args.connector) as "google_drive" | "onedrive" | "sharepoint",
-        scope: args.scope === "personal" ? "personal" : "organization",
+        // Sans centre rattaché (ex. super-admin), seul le périmètre personnel est possible.
+        scope: !ctx.organizationId || args.scope === "personal" ? "personal" : "organization",
         query: String(args.query ?? ""),
         limit: typeof args.limit === "number" ? args.limit : undefined,
       });
@@ -265,7 +266,8 @@ export const AGENT_TOOLS: AgentTool[] = [
     execute: async (ctx, args) => {
       const result = await importExternalDocument(ctx, {
         connector: String(args.connector) as "google_drive" | "onedrive" | "sharepoint",
-        scope: args.scope === "personal" ? "personal" : "organization",
+        // Sans centre rattaché (ex. super-admin), seul le périmètre personnel est possible.
+        scope: !ctx.organizationId || args.scope === "personal" ? "personal" : "organization",
         fileId: String(args.fileId ?? ""),
       });
       return { textForLLM: JSON.stringify(result).slice(0, 6000) };

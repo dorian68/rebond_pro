@@ -54,7 +54,9 @@ assert(!isSensitive("preflight_document_generation"), "Le préflight documentair
 assert(isToolAllowed("center", "preflight_document_generation"), "Le persona centre doit pouvoir analyser une génération documentaire.");
 assert(isToolAllowed("center", "generate_document"), "Le persona centre doit pouvoir demander une génération documentaire validée.");
 assert(!isToolAllowed("visitor", "generate_document"), "Le persona visiteur ne doit pas générer de document centre.");
-assert(!isToolAllowed("platform_admin", "create_external_email_draft"), "Le persona platform_admin ne doit pas avoir accès aux connecteurs centre.");
+assert(isToolAllowed("platform_admin", "create_external_email_draft"), "Le persona platform_admin doit pouvoir utiliser ses connecteurs personnels (brouillon email).");
+assert(isToolAllowed("platform_admin", "list_external_calendar_events"), "Le persona platform_admin doit pouvoir lire son agenda personnel connecté.");
+assert(!isToolAllowed("platform_admin", "generate_document"), "Le persona platform_admin ne doit pas générer de documents centre.");
 assert(!isToolAllowed("visitor", "search_external_documents"), "Le persona visiteur ne doit pas avoir accès aux documents externes.");
 
 const envExample = read(".env.example");
