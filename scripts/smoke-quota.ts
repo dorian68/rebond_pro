@@ -1,7 +1,7 @@
 import "./_env";
 import { prisma } from "../src/lib/prisma";
 import { createTestTenant, step, assert, runner } from "./_tenant";
-import { quotaUsage, enforceQuota } from "../src/server/quota";
+import { quotaUsage, enforceQuota, arePlanLimitsDisabled } from "../src/server/quota";
 
 runner("quota_smoke", async () => {
   const t = await createTestTenant("quota"); // plan FREE par défaut
@@ -14,6 +14,7 @@ runner("quota_smoke", async () => {
     assert(sessions0.limit === 5, `Limite sessions FREE attendue 5, obtenu ${sessions0.limit}.`);
     assert(ai0.limit === 50, `Limite IA FREE attendue 50, obtenu ${ai0.limit}.`);
     step("free_limits", { trainers: trainers0.limit, sessions: sessions0.limit, ai: ai0.limit });
+    assert(!arePlanLimitsDisabled(), "Le bypass quotas ne doit pas être actif par défaut pendant ce smoke.");
 
     // 2. Sous la limite → enforce ne lève pas
     await enforceQuota(t, "trainers");
@@ -35,7 +36,18 @@ runner("quota_smoke", async () => {
     const upgraded = await quotaUsage(t, "trainers");
     assert(upgraded.limit > 1000, "Le plan PRO doit lever la limite formateurs.");
     step("upgrade_lifts_limit", { limit: upgraded.limit });
+
+    // 5. Bypass temporaire d'exploitation : toutes les limites deviennent non bloquantes.
+    process.env.CENTER_PLAN_LIMITS_DISABLED = "true";
+    await prisma.organization.update({ where: { id: t.organizationId }, data: { plan: "FREE" } });
+    const bypassed = await quotaUsage(t, "trainers");
+    assert(arePlanLimitsDisabled(), "Le bypass quotas doit être actif avec CENTER_PLAN_LIMITS_DISABLED=true.");
+    assert(bypassed.limit >= 1_000_000, `Limite bypass attendue >= 1_000_000, obtenu ${bypassed.limit}.`);
+    await enforceQuota(t, "trainers");
+    step("temporary_bypass_lifts_limits", { limit: bypassed.limit });
+    delete process.env.CENTER_PLAN_LIMITS_DISABLED;
   } finally {
+    delete process.env.CENTER_PLAN_LIMITS_DISABLED;
     await t.cleanup();
     step("tenant_cleanup");
   }
