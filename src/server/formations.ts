@@ -53,6 +53,10 @@ export async function getFormation(ctx: TenantContext, id: string) {
     where: { id, organizationId: ctx.organizationId, deletedAt: null },
     include: {
       eligibleTrainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true, initials: true, color: true, specialities: true } } } },
+      modules: {
+        orderBy: { position: "asc" },
+        include: { trainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true, initials: true, color: true, specialities: true } } } } },
+      },
       sessions: {
         where: { deletedAt: null },
         orderBy: { startDate: "asc" },

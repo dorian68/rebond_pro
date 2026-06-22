@@ -70,6 +70,13 @@ export async function extractFileContent(file: File): Promise<ExtractionResult> 
   ) {
     return routeDocx(file);
   }
+  if (
+    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    file.type === "text/csv" ||
+    /\.(xlsx|csv)$/i.test(file.name)
+  ) {
+    return routeSpreadsheet(file);
+  }
   if (file.type.startsWith("image/")) {
     return routeImage(file);
   }
@@ -104,6 +111,87 @@ async function routeDocx(file: File): Promise<ExtractionResult> {
     charCount: fullText.length,
     routingReason: `[A] DOCX — ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
   };
+}
+
+// ── Route tableurs (XLSX/XLS/CSV) ───────────────────────────────────────────
+
+async function routeSpreadsheet(file: File): Promise<ExtractionResult> {
+  if (file.type === "text/csv" || /\.csv$/i.test(file.name)) {
+    const fullText = await file.text();
+    const text = truncateExtracted(fullText, "CSV");
+    return {
+      mode: "text",
+      filename: file.name,
+      mimeType: file.type || "text/csv",
+      extractedText: text,
+      charCount: fullText.length,
+      routingReason: `[A] CSV — ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
+    };
+  }
+
+  if (!/\.xlsx$/i.test(file.name) && file.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+    throw new Error("Seuls les tableurs .xlsx et .csv sont supportés pour l'extraction directe.");
+  }
+
+  const PizZip = (await import("pizzip")).default;
+  const zip = new PizZip(await file.arrayBuffer());
+  const sharedStrings = extractSharedStrings(zip);
+  const parser = new DOMParser();
+  const sheetNames = Object.keys(zip.files)
+    .filter((name) => /^xl\/worksheets\/sheet\d+\.xml$/.test(name))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .slice(0, 8);
+  const chunks = sheetNames.map((name, index) => {
+    const xml = zip.file(name)?.asText();
+    if (!xml) return "";
+    const doc = parser.parseFromString(xml, "application/xml");
+    const rows = Array.from(doc.getElementsByTagName("row")).slice(0, 500).map((row) => {
+      const cells = Array.from(row.getElementsByTagName("c"));
+      return cells.map((cell) => readXlsxCell(cell, sharedStrings)).join(",");
+    }).filter(Boolean);
+    return rows.length ? `--- Feuille ${index + 1} ---\n${rows.join("\n")}` : "";
+  }).filter(Boolean);
+  const fullText = chunks.join("\n\n").trim();
+  const text = truncateExtracted(fullText, "Tableur");
+  return {
+    mode: "text",
+    filename: file.name,
+    mimeType: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    extractedText: text,
+    charCount: fullText.length,
+    routingReason: `[A] XLSX — ${sheetNames.length} feuille(s), ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
+  };
+}
+
+function extractSharedStrings(zip: InstanceType<typeof import("pizzip").default>) {
+  const xml = zip.file("xl/sharedStrings.xml")?.asText();
+  if (!xml) return [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, "application/xml");
+  return Array.from(doc.getElementsByTagName("si")).map((si) =>
+    Array.from(si.getElementsByTagName("t")).map((node) => node.textContent ?? "").join("")
+  );
+}
+
+function readXlsxCell(cell: Element, sharedStrings: string[]) {
+  const type = cell.getAttribute("t");
+  if (type === "inlineStr") {
+    return csvEscape(Array.from(cell.getElementsByTagName("t")).map((node) => node.textContent ?? "").join(""));
+  }
+  const value = cell.getElementsByTagName("v")[0]?.textContent ?? "";
+  if (type === "s") return csvEscape(sharedStrings[Number(value)] ?? "");
+  return csvEscape(value);
+}
+
+function csvEscape(value: string) {
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
+function truncateExtracted(fullText: string, label: string) {
+  return fullText.length > MAX_CHARS
+    ? fullText.slice(0, MAX_CHARS) + `\n\n⚠️ [${label} tronqué — ${fullText.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
+    : fullText;
 }
 
 // ── Route PDF ────────────────────────────────────────────────────────────────

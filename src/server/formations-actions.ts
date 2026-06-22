@@ -31,6 +31,15 @@ const formationSchema = z.object({
   color: z.string().optional(),
 });
 
+const moduleItemSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(2, "Le titre du module est requis."),
+  description: z.string().optional(),
+  durationDays: z.coerce.number().int().min(0).optional(),
+  durationHours: z.coerce.number().int().min(0).optional(),
+  trainerIds: z.array(z.string()).optional(),
+});
+
 function parse(formData: FormData) {
   return formationSchema.safeParse({
     title: formData.get("title"),
@@ -49,6 +58,20 @@ function parse(formData: FormData) {
     status: formData.get("status"),
     color: formData.get("color") || undefined,
   });
+}
+
+function parseModules(formData: FormData) {
+  try {
+    const raw = JSON.parse(String(formData.get("modulesJson") || "[]")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .slice(0, 40)
+      .map((item) => moduleItemSchema.safeParse(item))
+      .filter((parsed): parsed is z.ZodSafeParseSuccess<z.infer<typeof moduleItemSchema>> => parsed.success)
+      .map((parsed, index) => ({ ...parsed.data, position: index }));
+  } catch {
+    return [];
+  }
 }
 
 async function uniqueSlug(orgId: string, base: string, exceptId?: string): Promise<string> {
@@ -71,12 +94,43 @@ async function uniquePublicSlug(base: string, exceptId?: string): Promise<string
   }
 }
 
+async function replaceFormationModules(formationId: string, orgId: string, rawModules: ReturnType<typeof parseModules>) {
+  await prisma.formationModule.deleteMany({ where: { formationId } });
+  if (rawModules.length === 0) return;
+  const trainerIds = Array.from(new Set(rawModules.flatMap((m) => m.trainerIds ?? [])));
+  const validTrainers = trainerIds.length
+    ? await prisma.trainer.findMany({ where: { id: { in: trainerIds }, organizationId: orgId, deletedAt: null }, select: { id: true } })
+    : [];
+  const validTrainerIds = new Set(validTrainers.map((t) => t.id));
+  for (const item of rawModules) {
+    const created = await prisma.formationModule.create({
+      data: {
+        organizationId: orgId,
+        formationId,
+        title: item.title,
+        description: item.description || null,
+        durationDays: item.durationDays ?? null,
+        durationHours: item.durationHours ?? null,
+        position: item.position,
+      },
+    });
+    const moduleTrainerIds = Array.from(new Set((item.trainerIds ?? []).filter((id) => validTrainerIds.has(id))));
+    if (moduleTrainerIds.length) {
+      await prisma.formationModuleTrainer.createMany({
+        data: moduleTrainerIds.map((trainerId) => ({ moduleId: created.id, trainerId })),
+        skipDuplicates: true,
+      });
+    }
+  }
+}
+
 export async function createFormation(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const ctx = await requireTenant();
   requireRole(ctx, [...EDITORS]);
   const parsed = parse(formData);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
   const d = parsed.data;
+  const modules = parseModules(formData);
 
   const slug = await uniqueSlug(ctx.organizationId, d.title);
   const created = await prisma.formation.create({
@@ -100,6 +154,7 @@ export async function createFormation(_prev: FormActionState, formData: FormData
       color: d.color,
     },
   });
+  await replaceFormationModules(created.id, ctx.organizationId, modules);
   revalidatePath("/formations");
   redirect(`/formations/${created.id}`);
 }
@@ -113,6 +168,7 @@ export async function updateFormation(id: string, _prev: FormActionState, formDa
   const parsed = parse(formData);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
   const d = parsed.data;
+  const modules = parseModules(formData);
 
   const slug = d.title !== existing.title ? await uniqueSlug(ctx.organizationId, d.title, id) : existing.slug;
   await prisma.formation.update({
@@ -124,6 +180,7 @@ export async function updateFormation(id: string, _prev: FormActionState, formDa
       modality: d.modality, level: d.level, status: d.status, color: d.color,
     },
   });
+  await replaceFormationModules(id, ctx.organizationId, modules);
   revalidatePath("/formations");
   revalidatePath(`/formations/${id}`);
   revalidateMarketplace(); // si la formation est publiée, le cache public reflète l'édition

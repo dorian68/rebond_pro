@@ -40,6 +40,7 @@ function createTemplate(): Buffer {
 
 runner("documents_engine_smoke", async () => {
   const t = await createTestTenant("documents-engine");
+  let globalTemplateId: string | null = null;
   try {
     const templateBuffer = createTemplate();
     const key = `document-templates/${t.organizationId}/smoke-template.docx`;
@@ -83,6 +84,28 @@ runner("documents_engine_smoke", async () => {
     assert(preflight.completionStatus !== "COMPLETE", "Le statut devrait indiquer un document incomplet.");
     step("preflight_detects_missing", { status: preflight.completionStatus, score: preflight.completionScore, missing: preflight.missingVariables.length, unknown: preflight.unknownVariables.length });
 
+    const globalKey = `document-templates/global/smoke-platform-template.docx`;
+    await saveFile(globalKey, templateBuffer);
+    const global = await prisma.documentTemplate.create({
+      data: {
+        organizationId: null,
+        type: "CONVOCATION",
+        name: "Smoke plateforme",
+        contentTemplate: "DOCX platform smoke",
+        engine: "DOCX",
+        sourceFileUrl: globalKey,
+        sourceFileName: "smoke-platform-template.docx",
+        sourceMimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        variables: ["org_name", "formation_title"],
+        variablesDetected: { recognized: ["org_name", "formation_title"], unknown: [], total: 2 },
+        isDefault: true,
+      },
+    });
+    globalTemplateId = global.id;
+    const automaticPreflight = await getDocumentGenerationPreflight({ ctx: t, type: "CONVOCATION", sessionId: session.id, enrollmentId: enrollment.id });
+    assert(automaticPreflight.template.id === template.id, "Le template tenant par défaut doit être prioritaire sur le template plateforme.");
+    step("tenant_template_overrides_platform", { tenantTemplateId: template.id, platformTemplateId: global.id });
+
     const values = { ...preflight.values, funding_organization: "[À compléter : Financeur]", unknown_custom_var: "{unknown_custom_var}" };
     const rendered = renderDocxTemplate(templateBuffer, {
       type: "CONVOCATION",
@@ -97,6 +120,7 @@ runner("documents_engine_smoke", async () => {
     assert(xml.includes("Alice Doc"), "Les valeurs CRM ne sont pas rendues.");
     step("docx_renders_readable_missing", { bytes: rendered.length });
   } finally {
+    if (globalTemplateId) await prisma.documentTemplate.delete({ where: { id: globalTemplateId } }).catch(() => undefined);
     await t.cleanup();
     step("tenant_cleanup");
   }

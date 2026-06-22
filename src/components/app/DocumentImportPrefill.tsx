@@ -68,7 +68,7 @@ export function DocumentImportPrefill({ target, context, onApply, onApplyMany }:
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => inputRef.current?.click()} disabled={pending}>
           <Icon name="paperclip" size={15} /> {pending ? "Analyse…" : "Importer un document"}
         </button>
-        <input ref={inputRef} type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,image/jpeg,image/png,image/webp,image/gif" onChange={onFileChange} style={{ display: "none" }} />
+        <input ref={inputRef} type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,.docx,.xlsx,.csv,image/jpeg,image/png,image/webp,image/gif" onChange={onFileChange} style={{ display: "none" }} />
       </div>
 
       {routing && <div className="muted-3" style={{ fontSize: 11.5, marginTop: 10 }}>{routing}</div>}

@@ -83,6 +83,35 @@ export default async function FormationDetailPage({ params }: { params: Promise<
             )}
           </Card>
 
+          {f.modules.length > 0 && (
+            <Card style={{ marginBottom: 16 }}>
+              <div className="spread" style={{ marginBottom: 14, gap: 10 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800 }}>Modules ({f.modules.length})</h3>
+                {canEdit && <Link href={`/formations/${f.id}/edit`} className="btn btn-secondary btn-sm"><Icon name="edit" size={15} /> Ajuster</Link>}
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {f.modules.map((module, index) => (
+                  <div key={module.id} style={{ padding: 12, borderRadius: 10, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                    <div className="spread" style={{ gap: 10 }}>
+                      <strong style={{ fontSize: 13.5 }}>{index + 1}. {module.title}</strong>
+                      <span className="muted-3" style={{ fontSize: 12 }}>
+                        {module.durationDays ? `${module.durationDays} j` : module.durationHours ? `${module.durationHours} h` : "Durée non précisée"}
+                      </span>
+                    </div>
+                    {module.description && <p className="muted-3" style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 6 }}>{module.description}</p>}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                      {module.trainers.length === 0 ? (
+                        <span className="badge badge-warn">Aucun formateur dédié</span>
+                      ) : module.trainers.map(({ trainer }) => (
+                        <span key={trainer.id} className="badge badge-neutral">{trainer.firstName} {trainer.lastName}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card>
             <div className="spread" style={{ marginBottom: 14 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800 }}>Sessions ({f.sessions.length})</h3>

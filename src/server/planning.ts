@@ -109,13 +109,30 @@ export async function getWeekPlanning(ctx: TenantContext, weekStartISO?: string)
   };
 }
 
-export type SlotSuggestion = { date: string; endDate: string; trainerId: string; trainerName: string; roomId: string | null; roomName: string | null; score: number; reason: string; conflict: boolean };
+export type SlotSuggestion = {
+  date: string;
+  endDate: string;
+  trainerId: string;
+  trainerName: string;
+  roomId: string | null;
+  roomName: string | null;
+  score: number;
+  reason: string;
+  conflict: boolean;
+  modulePlan?: { moduleId: string; moduleTitle: string; trainerId: string; trainerName: string }[];
+};
 
 /** Moteur « Trouver les meilleurs créneaux » : propose des créneaux scorés. */
 export async function findBestSlots(ctx: TenantContext, formationId: string, horizonDays = 28): Promise<SlotSuggestion[]> {
   const formation = await prisma.formation.findFirst({
     where: { id: formationId, organizationId: ctx.organizationId },
-    include: { eligibleTrainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true, active: true } } } } },
+    include: {
+      eligibleTrainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true, active: true } } } },
+      modules: {
+        orderBy: { position: "asc" },
+        include: { trainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true, active: true } } } } },
+      },
+    },
   });
   if (!formation) return [];
 
@@ -158,6 +175,43 @@ export async function findBestSlots(ctx: TenantContext, formationId: string, hor
     const span = spanDays(candidate);
     const spanSet = new Set(span);
     const endDate = new Date(span[span.length - 1] + "T17:00:00Z");
+
+    if (formation.modules.length > 0) {
+      const modulePlan: NonNullable<SlotSuggestion["modulePlan"]> = [];
+      for (const formationModule of formation.modules) {
+        const moduleTrainers = formationModule.trainers.map((item) => item.trainer).filter((trainer) => trainer.active);
+        const candidates = moduleTrainers.length > 0 ? moduleTrainers : trainers;
+        const selected = candidates.find((trainer) => trainerAvailableForSpan(trainer.id, span, spanSet, sessions, unavailSet));
+        if (!selected) {
+          modulePlan.length = 0;
+          break;
+        }
+        modulePlan.push({ moduleId: formationModule.id, moduleTitle: formationModule.title, trainerId: selected.id, trainerName: `${selected.firstName} ${selected.lastName}` });
+      }
+      if (modulePlan.length !== formation.modules.length) continue;
+
+      const freeRoom = rooms.find((r) => !sessions.some((s) => s.roomId === r.id && rangeHits(s.startDate, s.endDate, spanSet)));
+      const roomConflict = rooms.length > 0 && !freeRoom;
+      let score = 96 - i * 1.5;
+      if (roomConflict) score -= 25;
+      if (dow === 1 || dow === 2) score += 4;
+      score = Math.max(40, Math.min(99, Math.round(score)));
+      const lead = modulePlan[0];
+      const trainerNames = Array.from(new Set(modulePlan.map((item) => item.trainerName)));
+      suggestions.push({
+        date: span[0],
+        endDate: dayKey(endDate),
+        trainerId: lead.trainerId,
+        trainerName: trainerNames.length === 1 ? trainerNames[0] : `${trainerNames.length} formateurs modules`,
+        roomId: freeRoom?.id ?? null,
+        roomName: freeRoom?.name ?? null,
+        score,
+        reason: roomConflict ? "Modules couverts, mais aucune salle libre" : `Modules couverts par ${trainerNames.length} formateur${trainerNames.length > 1 ? "s" : ""}`,
+        conflict: roomConflict,
+        modulePlan,
+      });
+      continue;
+    }
 
     for (const t of trainers) {
       // indispo formateur sur la plage ?
@@ -202,6 +256,17 @@ export async function findBestSlots(ctx: TenantContext, formationId: string, hor
     if (top.length >= 6) break;
   }
   return top;
+}
+
+function trainerAvailableForSpan(
+  trainerId: string,
+  span: string[],
+  spanSet: Set<string>,
+  sessions: { trainerId: string | null; startDate: Date; endDate: Date }[],
+  unavailSet: Set<string>,
+) {
+  if (span.some((dk) => unavailSet.has(`${trainerId}|${dk}`))) return false;
+  return !sessions.some((s) => s.trainerId === trainerId && rangeHits(s.startDate, s.endDate, spanSet));
 }
 
 function rangeHits(start: Date, end: Date, spanSet: Set<string>): boolean {

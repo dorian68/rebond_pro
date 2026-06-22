@@ -51,3 +51,11 @@ export async function getTrainer(ctx: TenantContext, id: string) {
     },
   });
 }
+
+export async function trainerOptions(ctx: TenantContext) {
+  return prisma.trainer.findMany({
+    where: { organizationId: ctx.organizationId, deletedAt: null, active: true },
+    select: { id: true, firstName: true, lastName: true },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+}

@@ -1,4 +1,4 @@
-export const DOCUMENT_INTAKE_TARGETS = ["formation", "session", "prospect", "learner", "beneficiary", "trainer"] as const;
+export const DOCUMENT_INTAKE_TARGETS = ["formation", "session", "prospect", "learner", "beneficiary", "trainer", "availability"] as const;
 export type DocumentIntakeTarget = (typeof DOCUMENT_INTAKE_TARGETS)[number];
 
 export type DocumentIntakeDraft = {
@@ -18,6 +18,7 @@ export const DOCUMENT_INTAKE_ROUTES: Record<DocumentIntakeTarget, string> = {
   learner: "/apprenants/new",
   beneficiary: "/admin/beneficiaires",
   trainer: "/formateurs/new",
+  availability: "/formateurs/disponibilites",
 };
 
 export const DOCUMENT_INTAKE_LABELS: Record<DocumentIntakeTarget, string> = {
@@ -27,6 +28,7 @@ export const DOCUMENT_INTAKE_LABELS: Record<DocumentIntakeTarget, string> = {
   learner: "apprenant",
   beneficiary: "bénéficiaire",
   trainer: "formateur",
+  availability: "disponibilités formateurs",
 };
 
 const STORAGE_PREFIX = "lbr.document-intake.";

@@ -31,13 +31,14 @@ type IntakeRequest = z.infer<typeof documentIntakeRequestSchema>;
 const FIELD_CONTRACTS: Record<DocumentIntakeTarget, string[]> = {
   formation: [
     "title", "category", "shortDescription", "longDescription", "objectives", "targetAudience",
-    "prerequisites", "program", "durationDays", "durationHours", "priceEuros", "modality", "level", "status",
+    "prerequisites", "program", "durationDays", "durationHours", "priceEuros", "modality", "level", "status", "modules",
   ],
   session: ["formationId", "trainerId", "roomId", "startDate", "endDate", "slots", "capacity", "priceEuros", "breakEvenSeats", "status", "trainerConfirmed"],
   prospect: ["name", "contactName", "type", "email", "phone", "formationOfInterestId", "source", "stage", "potentialEuros", "nextAction", "nextFollowUpDate", "isHot", "notes"],
   learner: ["firstName", "lastName", "email", "phone", "company", "sessionId"],
   beneficiary: ["firstName", "lastName", "email", "phone", "objective"],
   trainer: ["firstName", "lastName", "email", "phone", "specialities", "bio", "yearsExperience", "active", "formationIds"],
+  availability: ["trainerId", "trainerName", "date", "slot", "type", "note"],
 };
 
 const ENUM_HINTS = {
@@ -49,6 +50,7 @@ const ENUM_HINTS = {
   prospectType: ["PARTICULIER", "ENTREPRISE", "ORGANISME"],
   prospectSource: ["LINKEDIN", "SITE_WEB", "APPEL", "RECOMMANDATION", "SALON", "CAMPAGNE_EMAIL", "PAGE_PUBLIQUE", "AUTRE"],
   prospectStage: ["NOUVEAU", "CONTACTE", "DEVIS", "RELANCE", "GAGNE", "PERDU"],
+  availabilityType: ["DISPONIBLE", "INDISPONIBLE", "TENTATIVE"],
 };
 
 let anthropic: Anthropic | null = null;
@@ -76,7 +78,9 @@ async function generateWithAi(req: IntakeRequest): Promise<unknown> {
 Tu ne crées rien. Tu ne dois renvoyer QUE du JSON valide.
 Respecte strictement ce format:
 {"target":"...","fields":{},"items":[],"confidence":0.0,"missingFields":[],"warnings":[],"evidence":[{"field":"...","quote":"..."}]}
-Si le document contient plusieurs personnes, entreprises, apprenants, bénéficiaires, prospects ou formateurs, remplis items avec une entrée par unité détectée. fields doit alors reprendre la première entrée exploitable.
+Si le document contient plusieurs personnes, entreprises, apprenants, bénéficiaires, prospects, formateurs ou créneaux de disponibilité, remplis items avec une entrée par unité détectée. fields doit alors reprendre la première entrée exploitable.
+Pour availability: préfère trainerId si fourni dans le contexte; sinon renseigne trainerName pour rapprochement humain. slot vaut MATIN, APRES_MIDI, JOURNEE ou SOIR. type vaut DISPONIBLE, INDISPONIBLE ou TENTATIVE.
+Pour formation.modules: renvoie un tableau [{title,description,durationDays,durationHours,trainerIds}]. Utilise trainerIds seulement si les IDs sont fournis dans le contexte.
 N'invente pas d'identifiants. Si un champ doit référencer une entité existante, utilise seulement les IDs fournis dans le contexte.
 Dates au format YYYY-MM-DD. Prix en euros numériques. Enumérations exactes.`;
   const prompt = buildPrompt(req);

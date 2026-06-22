@@ -9,6 +9,7 @@ import type { UIBlock } from "@/lib/ag-ui/types";
 import { WRITE_TOOLS } from "@/server/agent/write-tools";
 import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
 import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
+import { DOCUMENT_CATALOG_BY_TYPE } from "@/lib/document-catalog";
 import { DOCUMENT_INTAKE_ROUTES, DOCUMENT_INTAKE_TARGETS, type DocumentIntakeTarget } from "@/lib/document-intake";
 import { createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments } from "@/server/connectors";
 
@@ -304,22 +305,67 @@ export const AGENT_TOOLS: AgentTool[] = [
     execute: async (ctx) => {
       const templates = await prisma.documentTemplate.findMany({
         where: { OR: [{ organizationId: ctx.organizationId }, { organizationId: null }] },
-        orderBy: [{ organizationId: "desc" }, { type: "asc" }],
-        select: { id: true, type: true, name: true, engine: true, sourceFileName: true, variables: true },
+        orderBy: [{ type: "asc" }, { organizationId: "desc" }, { isDefault: "desc" }, { updatedAt: "desc" }],
+        select: { id: true, organizationId: true, type: true, name: true, engine: true, sourceFileName: true, variables: true, isDefault: true, status: true },
       });
+      const mapped = templates.map((t) => ({
+        ...t,
+        label: DOC_LABELS[t.type] ?? t.type,
+        scope: DOCUMENT_CATALOG_BY_TYPE[t.type]?.scope ?? "SESSION",
+        contexts: DOCUMENT_CATALOG_BY_TYPE[t.type]?.contexts ?? [],
+        origin: t.organizationId ? "tenant" : "platform_default",
+      }));
       const block: UIBlock = {
         type: "data_table",
         title: "Modèles de documents",
-        columns: ["Type", "Nom", "Moteur", "Fichier"],
-        rows: templates.map((t) => [DOC_LABELS[t.type] ?? t.type, t.name, t.engine, t.sourceFileName ?? "—"]),
+        columns: ["Type", "Nom", "Origine", "Contexte"],
+        rows: mapped.map((t) => [t.label, `${t.name}${t.isDefault ? " · défaut" : ""}`, t.origin === "tenant" ? "Centre" : "Plateforme", t.contexts.join(", ") || t.scope]),
         emptyText: "Aucun modèle importé.",
       };
-      return { textForLLM: JSON.stringify(templates), uiBlock: block };
+      return { textForLLM: JSON.stringify(mapped), uiBlock: block };
+    },
+  },
+  {
+    name: "preflight_document_generation",
+    description: "Analyse le modèle qui serait utilisé pour un type de document et liste les variables remplies/manquantes avant génération. Utiliser avant generate_document.",
+    input_schema: {
+      type: "object",
+      properties: {
+        type: { type: "string", enum: GENERATABLE_DOCUMENT_TYPES },
+        sessionId: { type: "string", description: "Optionnel. Requis pour les documents de session ou par apprenant." },
+        templateId: { type: "string" },
+        manualOverrides: { type: "object" },
+      },
+      required: ["type"],
+    },
+    execute: async (ctx, args) => {
+      const { getDocumentGenerationPreflight } = await import("@/server/documents/document-context");
+      const preflight = await getDocumentGenerationPreflight({
+        ctx,
+        type: String(args.type),
+        sessionId: args.sessionId ? String(args.sessionId) : undefined,
+        templateId: args.templateId ? String(args.templateId) : undefined,
+        manualOverrides: args.manualOverrides && typeof args.manualOverrides === "object" ? args.manualOverrides : undefined,
+      });
+      const catalog = DOCUMENT_CATALOG_BY_TYPE[String(args.type)];
+      const block: UIBlock = {
+        type: "data_table",
+        title: `Préflight — ${DOC_LABELS[String(args.type)] ?? String(args.type)}`,
+        columns: ["Statut", "Valeur"],
+        rows: [
+          ["Modèle", `${preflight.template.name} (${preflight.template.organizationId ? "centre" : preflight.template.isBuiltin ? "intégré" : "plateforme"})`],
+          ["Contexte", catalog?.contexts.join(", ") ?? "—"],
+          ["Complétude", `${preflight.completionStatus} · ${preflight.completionScore}%`],
+          ["Variables remplies", String(preflight.filledVariables.length)],
+          ["Variables manquantes", preflight.missingVariables.map((m) => m.label).slice(0, 8).join(", ") || "Aucune"],
+        ],
+      };
+      return { textForLLM: JSON.stringify({ catalog, preflight }).slice(0, 6000), uiBlock: block };
     },
   },
   {
     name: "generate_document",
-    description: "Génère un document officiel pour une session. Utilise le modèle DOCX du centre si disponible, sinon le PDF intégré. ACTION SENSIBLE : nécessite validation humaine.",
+    description: "Génère un document officiel. Utilise le modèle DOCX du centre si disponible, sinon le modèle plateforme, sinon le PDF intégré. ACTION SENSIBLE : nécessite validation humaine. Fournir sessionId pour les documents de session/apprenant.",
     sensitive: true,
     input_schema: {
       type: "object",
@@ -327,20 +373,23 @@ export const AGENT_TOOLS: AgentTool[] = [
         type: { type: "string", enum: GENERATABLE_DOCUMENT_TYPES },
         sessionId: { type: "string" },
         templateId: { type: "string" },
+        manualOverrides: { type: "object" },
       },
-      required: ["type", "sessionId"],
+      required: ["type"],
     },
     execute: async (ctx, args) => {
-      const { generateDocuments } = await import("@/server/documents-actions");
-      const fd = new FormData();
-      fd.set("type", String(args.type));
-      fd.set("sessionId", String(args.sessionId));
-      if (args.templateId) fd.set("templateId", String(args.templateId));
-      const result = await generateDocuments(fd);
+      const { generateDocumentFromAgent } = await import("@/server/documents-actions");
+      const result = await generateDocumentFromAgent({
+        ctx,
+        type: String(args.type),
+        sessionId: args.sessionId ? String(args.sessionId) : undefined,
+        templateId: args.templateId ? String(args.templateId) : undefined,
+        manualOverrides: args.manualOverrides && typeof args.manualOverrides === "object" ? args.manualOverrides : undefined,
+      });
       if (!result.ok) {
         return { textForLLM: `Génération impossible : ${result.error ?? "erreur inconnue"}.` };
       }
-      return { textForLLM: `Document ${args.type} généré pour la session ${args.sessionId}.`, custom: { name: "app.refresh", value: {} } };
+      return { textForLLM: `${result.message} IDs: ${(result.documentIds ?? []).join(", ")}`, custom: { name: "app.refresh", value: {} } };
     },
   },
   {

@@ -23,6 +23,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:billing` | Vérifie le catalogue de plans, le mapping priceId→plan, l'état de facturation, le handler webhook Stripe (upgrade/downgrade) et le fallback sans clé. Nettoyage. |
 | `npm run smoke:quota` | Vérifie l'application des quotas de plan (limites FREE/PRO/PREMIUM bloquantes au-delà du seuil). Nettoyage. |
 | `npm run smoke:trainer-portal` | Vérifie le portail formateur : disponibilités, planning scopé au formateur, demandes d'animation. Nettoyage. |
+| `npm run smoke:formation-modules-planning` | Vérifie le planning modulaire : formation à modules, formateurs par module, bulk disponibilités, audit/persistance et suggestions qui exigent la couverture de chaque module. Nettoyage. |
 | `npm run smoke:beneficiary` | Vérifie l'espace bénéficiaire : `Beneficiary` lié au compte, parcours/phases, accès scopé. Nettoyage. |
 | `npm run smoke:platform` | Vérifie l'admin god-mode : agrégats cross-tenant en lecture seule derrière `requirePlatformAdmin()`, batché (évite EMAXCONNSESSION). Nettoyage. |
 | `npm run smoke:persona` | **Logique pure (sans DB)** : `resolvePersona` (visitor/beneficiary/trainer/center/platform_admin) et l'allowlist d'outils (visiteur sans accès tenant, bénéficiaire sans suppression, admin sans écriture). |

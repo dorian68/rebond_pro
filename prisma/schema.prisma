@@ -123,7 +123,65 @@ enum RoomType {
 }
 
 enum DocumentType {
+  PROGRAMME_FORMATION
   PROGRAMME
+  FICHE_FORMATION_PUBLIQUE
+  OBJECTIFS_PEDAGOGIQUES
+  PREREQUIS_POSITIONNEMENT
+  DEROULE_PEDAGOGIQUE_MODULE
+  GRILLE_FORMATION_COMPETENCES
+  PLAN_INDIVIDUEL_FORMATION
+  CONVENTION_FORMATION_ENTREPRISE
+  CONTRAT_FORMATION_PARTICULIER
+  DEVIS_FORMATION
+  BON_DE_COMMANDE
+  CGV_B2B
+  CGV_B2C
+  CONVOCATION_APPRENANT
+  CONVOCATION_FORMATEUR
+  REGLEMENT_INTERIEUR
+  FEUILLE_EMARGEMENT
+  PLANNING_SESSION
+  PLANNING_FORMATEUR
+  ORDRE_MISSION_FORMATEUR
+  FICHE_INTERVENTION_FORMATEUR
+  RELEVE_ASSIDUITE
+  FICHE_INCIDENT_SESSION
+  DEMANDE_MODIFICATION_PLANNING
+  SYNTHESE_DISPONIBILITES_FORMATEURS
+  FICHE_APPRENANT
+  GRILLE_EVALUATION_INITIALE
+  GRILLE_EVALUATION_CONTINUE
+  COMPTE_RENDU_PROGRESSION
+  PLAN_ACCOMPAGNEMENT_INDIVIDUALISE
+  FICHE_ACCESSIBILITE_HANDICAP
+  BILAN_FIN_PARCOURS
+  PV_EVALUATION
+  BILAN_PEDAGOGIQUE_SESSION
+  RAPPORT_QUALITE_SESSION
+  ATTESTATION_ASSIDUITE
+  FICHE_RECLAMATION
+  ACTION_CORRECTIVE
+  REGISTRE_AMELIORATION_CONTINUE
+  AVOIR
+  RECU_PAIEMENT
+  RELANCE_PAIEMENT
+  RELEVE_FINANCEMENTS
+  DOSSIER_OPCO_FINANCEUR
+  JUSTIFICATIF_FINANCEUR
+  TABLEAU_ANNUEL_QUALITE
+  RAPPORT_ACTIVITE_CENTRE
+  CONVENTION_CONTRAT_BILAN
+  FEUILLE_ROUTE_BENEFICIAIRE
+  BILAN_PHASE_PRELIMINAIRE
+  BILAN_PHASE_INVESTIGATION
+  BILAN_PHASE_CONCLUSION
+  SYNTHESE_BILAN_COMPETENCES
+  PLAN_ACTION_3_6_MOIS
+  RESTITUTION_IKIGAI
+  CARTOGRAPHIE_COMPETENCES
+  AUTORISATION_PARTAGE_DOSSIER
+  DOSSIER_NUMERIQUE_EXPORTABLE
   CONVENTION
   CONTRAT_FORMATION
   LIVRET_ACCUEIL
@@ -240,6 +298,7 @@ model Organization {
 
   memberships       Membership[]
   formations        Formation[]
+  formationModules  FormationModule[]
   trainers          Trainer[]
   rooms             Room[]
   sessions          Session[]
@@ -365,6 +424,7 @@ model Formation {
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sessions         Session[]
   eligibleTrainers TrainerFormation[]
+  modules          FormationModule[]
   documents        Document[]
   testimonials     Testimonial[]
   faqs             Faq[]
@@ -400,6 +460,7 @@ model Trainer {
   availabilities TrainerAvailability[]
   sessions       Session[]
   formations     TrainerFormation[]
+  moduleAssignments FormationModuleTrainer[]
   changeRequests ChangeRequest[]
 
   @@index([organizationId])
@@ -415,6 +476,40 @@ model TrainerFormation {
 
   @@id([trainerId, formationId])
   @@index([formationId])
+}
+
+// Module pédagogique d'une formation. Une formation peut être structurée en
+// plusieurs modules, chacun couvert par un ou plusieurs formateurs.
+model FormationModule {
+  id              String   @id @default(cuid())
+  organizationId  String
+  formationId     String
+  title           String
+  description     String?
+  durationDays    Int?
+  durationHours   Int?
+  position        Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formation    Formation    @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  trainers     FormationModuleTrainer[]
+
+  @@index([organizationId])
+  @@index([formationId])
+}
+
+model FormationModuleTrainer {
+  moduleId  String
+  trainerId String
+
+  module  FormationModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  trainer Trainer         @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@id([moduleId, trainerId])
+  @@index([trainerId])
 }
 
 model TrainerAvailability {

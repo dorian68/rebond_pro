@@ -38,6 +38,7 @@
     "smoke:quota": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-quota.ts",
     "smoke:trainer-portal": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-trainer-portal.ts",
     "smoke:planning-stress": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-planning-stress.ts",
+    "smoke:formation-modules-planning": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-formation-modules-planning.ts",
     "smoke:documents-engine": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-documents-engine.ts",
     "smoke:document-intake": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-document-intake.ts",
     "smoke:admin-agents": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-admin-agents-sandbox.ts",

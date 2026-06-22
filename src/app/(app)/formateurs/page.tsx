@@ -15,6 +15,7 @@ export default async function FormateursPage() {
   return (
     <div className="fade-up">
       <PageHeader title="Formateurs" subtitle="Vos formateurs, leurs spécialités et leur charge.">
+        {canEdit && <Link href="/formateurs/disponibilites" className="btn btn-secondary"><Icon name="calendar" size={16} /> Disponibilités</Link>}
         <Link href="/formateurs/demandes" className="btn btn-secondary">
           <Icon name="message" size={16} /> Demandes{pendingRequests > 0 && <span className="badge badge-warn" style={{ marginLeft: 6 }}>{pendingRequests}</span>}
         </Link>

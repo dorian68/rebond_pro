@@ -47,6 +47,7 @@ Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orienta
   - **Suivi du reversement** (livré) : `Transaction.payoutStatus`/`settledAt`, action `markTransactionSettled` (god-mode), UI `/admin/finances`.
 - **Achat public** (livré, `src/server/public-purchase.ts` + `BuyFormationButton`) : un visiteur non connecté achète une formation depuis la fiche publique (checkout invité Stripe, email collecté par Stripe). Le webhook crée un `Learner` + `Enrollment` dans le centre vendeur (pas de `Beneficiary` : on préserve la distinction Learner≠Beneficiary) et envoie un email de confirmation. Bandeau de confirmation `?achat=success`. Testé `smoke:public-purchase`. **Hors scope (futur)** : portail de connexion apprenant (un acheteur public est inscrit mais n'a pas encore d'espace personnel propre).
 - Admin bilan de compétences : `/admin/beneficiaires/[id]` expose un dossier numérique page par page et par artefacts structurés (`BilanArtifact`). L'étape Ikigai utilise un canvas portable partageable au bénéficiaire avec cartes, intensités, graphe et intersections. L'étape compétences côté admin utilise une cartographie par cartes/preuves/niveaux. Les autres pages utilisent des workspaces thématiques (situation, engagement, motivations, pistes, décision, plan d'action, synthèse) plutôt qu'une unique zone de notes.
+- Planning formateurs avancé : un centre peut saisir/importer en lot des disponibilités formateurs depuis `/formateurs/disponibilites`. Les fichiers passent par le pipeline sobre d'import document : extraction fonctionnelle PDF/DOCX/image quand possible, puis IA uniquement pour structurer le brouillon, sans persistance avant validation humaine. Les formations peuvent être découpées en modules (`FormationModule`) et chaque module peut être couvert par un ou plusieurs formateurs (`FormationModuleTrainer`). L'optimisateur de créneaux doit tenir compte de la couverture des modules lorsqu'elle existe, tout en conservant l'ancien rattachement global formation ↔ formateur.
 
 ## 7. Inputs and outputs
 
@@ -121,6 +122,18 @@ Auth.js credentials, session JWT et membership tenant. Un compte doit confirmer 
 - Les pages non spécialisées enregistrent des artefacts structurés : contenu JSON, source, statut, partageabilité.
 - Les mutations restent auditées et passent par les server actions protégées.
 - Le parcours est couvert par `npm run smoke:platform-beneficiaries`.
+
+### Planning formateurs et modules
+
+- Un centre OWNER/ADMIN/ASSISTANT peut ouvrir `/formateurs/disponibilites`.
+- Le centre peut enregistrer plusieurs disponibilités en une seule validation.
+- L'import document des disponibilités ne crée rien directement : il prépare un brouillon modifiable.
+- Toute disponibilité bulk reste scopée au tenant et produit un audit log.
+- Une formation peut contenir plusieurs modules.
+- Un module peut être animé par un ou plusieurs formateurs.
+- Une formation sans module continue d'utiliser les formateurs éligibles globaux.
+- Une formation avec modules n'est proposée par l'optimisateur que si chaque module a au moins un formateur disponible sur la plage.
+- Le parcours est couvert par `npm run smoke:formation-modules-planning`.
 
 ## 18. Production readiness criteria
 

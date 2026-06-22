@@ -55,7 +55,7 @@ runner("planning_stress", async () => {
     });
     step("seed_core_entities", { formation: formation.id, trainers: 3, rooms: 2 });
 
-    const trainerUser = await prisma.user.create({ data: { email: "alice-planning-user@smoke.test", name: "Alice Trainer" } });
+    const trainerUser = await prisma.user.create({ data: { email: `alice-planning-user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@smoke.test`, name: "Alice Trainer" } });
     await prisma.trainer.update({ where: { id: trainerA.id }, data: { userId: trainerUser.id } });
     await prisma.membership.create({ data: { userId: trainerUser.id, organizationId: center.organizationId, role: "TRAINER", status: "ACTIVE" } });
     step("trainer_linked_to_portal");

@@ -54,6 +54,16 @@ export function BestSlotsPanel({ formations }: { formations: { id: string; title
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 13.5 }}>{formatDate(s.date)}{s.date !== s.endDate ? ` → ${formatDate(s.endDate)}` : ""}</div>
                       <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 2 }}>{s.trainerName} · {s.reason}</div>
+                      {s.modulePlan && s.modulePlan.length > 0 && (
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 7 }}>
+                          {s.modulePlan.slice(0, 4).map((module) => (
+                            <span key={module.moduleId} className="badge badge-neutral" style={{ fontSize: 10.5 }}>
+                              {module.moduleTitle}: {module.trainerName}
+                            </span>
+                          ))}
+                          {s.modulePlan.length > 4 && <span className="badge badge-neutral" style={{ fontSize: 10.5 }}>+{s.modulePlan.length - 4}</span>}
+                        </div>
+                      )}
                     </div>
                     <Link
                       href={`/sessions/new?formationId=${formationId}&start=${s.date}&end=${s.endDate}&trainerId=${s.trainerId}${s.roomId ? `&roomId=${s.roomId}` : ""}`}

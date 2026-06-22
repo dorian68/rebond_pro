@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { FormationForm } from "../../formation-form";
 import { updateFormation } from "@/server/formations-actions";
+import { trainerOptions } from "@/server/trainers";
 
 export default async function EditFormationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,6 +16,7 @@ export default async function EditFormationPage({ params }: { params: Promise<{ 
   }
   const f = await getFormation(ctx, id);
   if (!f) notFound();
+  const trainers = await trainerOptions(ctx);
 
   const action = updateFormation.bind(null, id);
 
@@ -30,7 +32,16 @@ export default async function EditFormationPage({ params }: { params: Promise<{ 
           title: f.title, category: f.category, shortDescription: f.shortDescription, longDescription: f.longDescription,
           objectives: f.objectives, targetAudience: f.targetAudience, prerequisites: f.prerequisites, program: f.program,
           durationDays: f.durationDays, durationHours: f.durationHours, price: f.price, modality: f.modality, level: f.level, status: f.status, color: f.color,
+          modules: f.modules.map((module) => ({
+            id: module.id,
+            title: module.title,
+            description: module.description,
+            durationDays: module.durationDays,
+            durationHours: module.durationHours,
+            trainerIds: module.trainers.map((item) => item.trainerId),
+          })),
         }}
+        trainers={trainers}
       />
     </div>
   );

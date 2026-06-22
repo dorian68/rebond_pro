@@ -40,12 +40,20 @@ for (const name of [
   "search_external_documents",
   "import_external_document",
   "create_external_email_draft",
+  "list_document_templates",
+  "preflight_document_generation",
+  "generate_document",
 ]) {
   assert(toolNames.includes(name), `Outil Socrate manquant: ${name}`);
 }
 
 assert(isSensitive("import_external_document"), "L'import de document externe doit exiger validation humaine.");
 assert(isSensitive("create_external_email_draft"), "La création de brouillon email doit exiger validation humaine.");
+assert(isSensitive("generate_document"), "La génération documentaire doit exiger validation humaine.");
+assert(!isSensitive("preflight_document_generation"), "Le préflight documentaire doit rester en lecture/analyse.");
+assert(isToolAllowed("center", "preflight_document_generation"), "Le persona centre doit pouvoir analyser une génération documentaire.");
+assert(isToolAllowed("center", "generate_document"), "Le persona centre doit pouvoir demander une génération documentaire validée.");
+assert(!isToolAllowed("visitor", "generate_document"), "Le persona visiteur ne doit pas générer de document centre.");
 assert(!isToolAllowed("platform_admin", "create_external_email_draft"), "Le persona platform_admin ne doit pas avoir accès aux connecteurs centre.");
 assert(!isToolAllowed("visitor", "search_external_documents"), "Le persona visiteur ne doit pas avoir accès aux documents externes.");
 

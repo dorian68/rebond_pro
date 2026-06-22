@@ -53,6 +53,14 @@ function baseData(org: Awaited<ReturnType<typeof orgLegal>>, type: string, s: Se
   };
 }
 
+function orgOnlyData(org: Awaited<ReturnType<typeof orgLegal>>, type: string): DocData {
+  return {
+    type,
+    org,
+    generatedAt: nowText(),
+  };
+}
+
 function withReadableMissing(preflight: DocumentPreflight): Record<string, string | number | null | undefined> {
   const values = { ...preflight.values };
   for (const missing of preflight.missingVariables) values[missing.key] = readablePlaceholder(missing.key);
@@ -268,6 +276,63 @@ export async function getDocumentGenerationPreflightAction(formData: FormData): 
 
 export async function generateDocumentsAction(_prev: DocumentActionState, formData: FormData): Promise<DocumentActionState> {
   return generateDocuments(formData);
+}
+
+export async function generateDocumentFromAgent(input: {
+  ctx: TenantContext;
+  type: string;
+  sessionId?: string | null;
+  templateId?: string | null;
+  manualOverrides?: unknown;
+}): Promise<DocumentActionState & { documentIds?: string[] }> {
+  const { ctx, type, sessionId, templateId, manualOverrides } = input;
+  requireRole(ctx, [...EDITORS]);
+  if (!type) return { error: "Type de document requis." };
+
+  const org = await orgLegal(ctx);
+  const documentIds: string[] = [];
+  try {
+    if (sessionId) {
+      const s = await loadSession(ctx, sessionId);
+      if (!s) return { error: "Session introuvable." };
+      if ((PER_LEARNER as readonly string[]).includes(type)) {
+        if (s.enrollments.length === 0) return { error: "Aucun apprenant inscrit sur cette session pour ce document individuel." };
+        for (const e of s.enrollments) {
+          const data = baseData(org, type, s);
+          data.learner = { fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company };
+          documentIds.push(await persistDoc(ctx, type, { sessionId, enrollmentId: e.id }, data, templateId, manualOverrides));
+        }
+      } else {
+        const data = baseData(org, type, s);
+        if (type === "EMARGEMENT" || type === "FEUILLE_EMARGEMENT") data.learners = s.enrollments.map((e) => ({ fullName: `${e.learner.firstName} ${e.learner.lastName}`, company: e.learner.company }));
+        documentIds.push(await persistDoc(ctx, type, { sessionId, formationId: s.formationId }, data, templateId, manualOverrides));
+      }
+    } else {
+      if ((PER_LEARNER as readonly string[]).includes(type)) {
+        return { error: "Ce type de document nécessite une session avec apprenant(s)." };
+      }
+      const data = orgOnlyData(org, type);
+      documentIds.push(await persistDoc(ctx, type, {}, data, templateId, manualOverrides));
+    }
+  } catch (e) {
+    logger.error("documents.agent_generate_failed", {
+      organizationId: ctx.organizationId,
+      type,
+      sessionId,
+      templateId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return { error: e instanceof Error ? e.message : "Génération impossible." };
+  }
+
+  revalidatePath("/documents");
+  if (sessionId) revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath("/dashboard");
+  return {
+    ok: true,
+    message: `${documentIds.length} document${documentIds.length > 1 ? "s" : ""} généré${documentIds.length > 1 ? "s" : ""}.`,
+    documentIds,
+  };
 }
 
 /** Génère un document pour une inscription précise (depuis fiche session/apprenant). */
