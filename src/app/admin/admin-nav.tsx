@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/admin/formateurs", label: "Formateurs", icon: "presentation" },
   { href: "/admin/beneficiaires", label: "Bénéficiaires", icon: "smile" },
   { href: "/admin/documents", label: "Bibliothèque docs", icon: "file-text" },
+  { href: "/admin/roadmap", label: "Roadmap", icon: "target" },
   { href: "/admin/agents", label: "Agents sandbox", icon: "sparkles" },
   { href: "/admin/finances", label: "Flux financiers", icon: "euro" },
 ];

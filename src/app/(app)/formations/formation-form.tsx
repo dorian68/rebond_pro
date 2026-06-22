@@ -131,7 +131,7 @@ export function FormationForm({
           </div>
           <div>
             <label className="field-label" htmlFor="priceEuros">Prix (€)</label>
-            <input className="input" id="priceEuros" name="priceEuros" type="number" min={0} step={10} defaultValue={draftDefaults.priceEuros != null ? draftDefaults.priceEuros : draftDefaults.price != null ? draftDefaults.price / 100 : 0} />
+            <input className="input" id="priceEuros" name="priceEuros" type="number" min={0} step="any" defaultValue={draftDefaults.priceEuros != null ? draftDefaults.priceEuros : draftDefaults.price != null ? draftDefaults.price / 100 : 0} />
           </div>
           <div>
             <label className="field-label" htmlFor="durationDays">Durée (jours)</label>

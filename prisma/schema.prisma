@@ -1077,6 +1077,37 @@ model SocrateAssessmentLog {
   @@index([createdAt])
 }
 
+/**
+ * Roadmap interne plateforme : jalons (« milestones ») partagés entre tous les
+ * super-admins. Donnée GLOBALE (non rattachée à un centre) — suivi d'avancement
+ * collaboratif. Statut/priorité en String (mêmes conventions que SocrateLeadCapture).
+ */
+model RoadmapMilestone {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  /// planned | in_progress | blocked | done
+  status         String    @default("planned")
+  /// low | medium | high
+  priority       String    @default("medium")
+  progress       Int       @default(0) // 0–100
+  deadline       DateTime?
+  category       String?
+  ownerName      String? // responsable du jalon
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  link           String? // doc, ticket ou ressource liée
+  sortOrder      Int       @default(0)
+  createdByEmail String?
+  createdByName  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([sortOrder])
+}
+
 // --------------------------- JOBS ASYNCHRONES ---------------------------
 
 enum JobStatus {

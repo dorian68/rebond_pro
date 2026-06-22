@@ -10,6 +10,24 @@ function cleanTag(raw: string) {
   return raw.replace(/^[#\/\^!@~:%]+/, "").trim();
 }
 
+const WORD_XML_RE = /^word\/(document|header\d+|footer\d+)\.xml$/;
+
+/**
+ * Normalise les délimiteurs des modèles importés : beaucoup utilisent la double
+ * accolade `{{var}}` (style Handlebars) alors que docxtemplater attend `{var}`.
+ * Sans ça, le rendu lève « Duplicate open/close tag ». On replie `{{`→`{` et
+ * `}}`→`}` directement dans le XML Word ; les modèles déjà en simple accolade
+ * (sans `{{`) ne sont jamais touchés.
+ */
+function normalizeDoubleBraceDelimiters(zip: PizZip): void {
+  for (const name of Object.keys(zip.files)) {
+    if (!WORD_XML_RE.test(name)) continue;
+    const text = zip.file(name)?.asText();
+    if (!text || (!text.includes("{{") && !text.includes("}}"))) continue;
+    zip.file(name, text.replace(/\{\{+/g, "{").replace(/\}\}+/g, "}"));
+  }
+}
+
 export function extractDocxVariables(input: Buffer): string[] {
   const zip = new PizZip(input);
   const names = Object.keys(zip.files).filter((name) =>
@@ -76,6 +94,7 @@ export function renderDocxTemplate(
   options: { values?: Record<string, unknown>; missingVariableStrategy?: MissingVariableStrategy } = {},
 ): Buffer {
   const zip = new PizZip(template);
+  normalizeDoubleBraceDelimiters(zip);
   const values = docDataToTemplateData(d, options.values);
   const missingVariableStrategy = options.missingVariableStrategy ?? "readable_placeholder";
   const doc = new Docxtemplater(zip, {

@@ -130,21 +130,29 @@ async function renderDocument(
   const values = withReadableMissing(preflight);
   const dataForRender = enrichDocData(data, values);
   if (preflight.template.engine === "DOCX" && preflight.template.sourceFileUrl) {
-    const source = await readFile(preflight.template.sourceFileUrl);
-    return {
-      buffer: renderDocxTemplate(source, dataForRender, { values, missingVariableStrategy: "readable_placeholder" }),
-      extension: "docx",
-      mimeType: DOCX_MIME,
-      templateId: preflight.template.id,
-      templateVersion: preflight.template.version,
-    };
+    try {
+      const source = await readFile(preflight.template.sourceFileUrl);
+      return {
+        buffer: renderDocxTemplate(source, dataForRender, { values, missingVariableStrategy: "readable_placeholder" }),
+        extension: "docx",
+        mimeType: DOCX_MIME,
+        templateId: preflight.template.id,
+        templateVersion: preflight.template.version,
+      };
+    } catch (e) {
+      // Filet de sécurité : un modèle DOCX corrompu ne doit jamais bloquer la génération.
+      // On bascule sur le PDF intégré (toujours fonctionnel) plutôt que d'échouer.
+      logger.error("documents.docx_render_fallback_pdf", {
+        templateId: preflight.template.id,
+        templateName: preflight.template.name,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   }
   return {
     buffer: await renderDocumentPdf(dataForRender),
     extension: "pdf",
     mimeType: "application/pdf",
-    templateId: preflight.template.id,
-    templateVersion: preflight.template.version,
   };
 }
 

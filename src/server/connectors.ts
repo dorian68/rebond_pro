@@ -134,24 +134,33 @@ function ensureNonEmpty(value: string, label: string) {
 
 export async function listConnectorStatuses(ctx: TenantContext) {
   assertConnectorRole(ctx);
-  const entityIds = [connectorUserId(ctx.userId), connectorOrganizationId(ctx.organizationId)];
   if (!isComposioEnabled()) {
     return {
       enabled: false,
       connectors: CONNECTORS.flatMap((c) => c.scopes.map((scope) => connectorStatus(c, scope, false, "DISABLED", null))),
     };
   }
-  const accounts = await composio().connectedAccounts.list({ userIds: entityIds });
-  const items = parseConnectedAccounts(accounts);
+  // La réponse Composio `connectedAccounts.list` ne contient pas l'identité utilisateur par item :
+  // on interroge donc une liste par périmètre (déjà filtrée par userId) puis on matche uniquement
+  // sur le toolkit + statut ACTIVE, exactement comme connectedAccountFor().
+  const scopes: ConnectorScope[] = ["personal", "organization"];
+  const activeByScope = new Map<ConnectorScope, Map<string, { status?: string; id?: string }>>();
+  await Promise.all(scopes.map(async (scope) => {
+    const accounts = await composio().connectedAccounts.list({ userIds: [connectorEntityId(ctx, scope)] });
+    const byToolkit = new Map<string, { status?: string; id?: string }>();
+    for (const item of parseConnectedAccounts(accounts)) {
+      const rec = item as { status?: string; toolkit?: { slug?: string }; id?: string };
+      if (rec.toolkit?.slug && rec.status === "ACTIVE" && !byToolkit.has(rec.toolkit.slug)) {
+        byToolkit.set(rec.toolkit.slug, { status: rec.status, id: rec.id });
+      }
+    }
+    activeByScope.set(scope, byToolkit);
+  }));
   return {
     enabled: true,
     connectors: CONNECTORS.flatMap((c) => c.scopes.map((scope) => {
-      const entityId = connectorEntityId(ctx, scope);
-      const match = items.find((item) => {
-        const rec = item as { status?: string; toolkit?: { slug?: string }; appName?: string; nanoid?: string; id?: string; userId?: string; user_id?: string };
-        return rec.toolkit?.slug === c.toolkit && rec.status === "ACTIVE" && (rec.userId === entityId || rec.user_id === entityId);
-      }) as { status?: string; nanoid?: string; id?: string } | undefined;
-      return connectorStatus(c, scope, !!match, match?.status ?? "NOT_CONNECTED", match?.nanoid ?? match?.id ?? null);
+      const match = activeByScope.get(scope)?.get(c.toolkit);
+      return connectorStatus(c, scope, !!match, match?.status ?? "NOT_CONNECTED", match?.id ?? null);
     })),
   };
 }

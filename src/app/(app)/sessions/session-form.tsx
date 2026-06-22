@@ -133,7 +133,7 @@ export function SessionForm({
           </div>
           <div>
             <label className="field-label" htmlFor="priceEuros">Prix par apprenant (€)</label>
-            <input className="input" id="priceEuros" name="priceEuros" type="number" min={0} step={10} value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+            <input className="input" id="priceEuros" name="priceEuros" type="number" min={0} step="any" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
           </div>
           <div>
             <label className="field-label" htmlFor="status">Statut</label>
