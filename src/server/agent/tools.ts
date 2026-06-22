@@ -171,7 +171,7 @@ export const AGENT_TOOLS: AgentTool[] = [
   },
   {
     name: "find_best_slots",
-    description: "Propose les meilleurs créneaux pour programmer une session d'une formation (croise disponibilités formateurs et salles). Argument: formationId.",
+    description: "Optimise le planning d'une formation : propose les meilleurs créneaux en croisant disponibilités et salles. Prend en compte TOUS les formateurs éligibles de la formation (et, pour les formations à modules, le vivier de formateurs capables d'animer chaque module) afin de maximiser les options et éviter les conflits — une formation peut être animée par plusieurs formateurs. Pour « optimiser le planning », appelle cet outil pour chaque formation concernée. Argument: formationId.",
     input_schema: { type: "object", properties: { formationId: { type: "string" } }, required: ["formationId"] },
     execute: async (ctx, args) => {
       const slots = await findBestSlots(ctx, String(args.formationId));
@@ -324,7 +324,14 @@ export const AGENT_TOOLS: AgentTool[] = [
         rows: mapped.map((t) => [t.label, `${t.name}${t.isDefault ? " · défaut" : ""}`, t.origin === "tenant" ? "Centre" : "Plateforme", t.contexts.join(", ") || t.scope]),
         emptyText: "Aucun modèle importé.",
       };
-      return { textForLLM: JSON.stringify(mapped), uiBlock: block };
+      // Sortie COMPACTE pour le LLM : la liste complète (~50 modèles) doit tenir sous la
+      // troncature à 4000 caractères des résultats d'outils — sinon Socrate ne « voit »
+      // que les premiers modèles et croit ne pas avoir accès aux autres.
+      const textForLLM = mapped.length === 0
+        ? "Aucun modèle de document disponible (ni centre, ni plateforme)."
+        : `${mapped.length} modèle(s) de document disponibles (centre + plateforme), utilisables par generate_document :\n`
+          + mapped.map((t) => `- ${t.type} — « ${t.name} »${t.isDefault ? " (défaut)" : ""} [${t.origin === "tenant" ? "centre" : "plateforme"}, ${t.engine}]`).join("\n");
+      return { textForLLM, uiBlock: block };
     },
   },
   {

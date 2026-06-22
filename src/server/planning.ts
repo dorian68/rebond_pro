@@ -178,14 +178,28 @@ export async function findBestSlots(ctx: TenantContext, formationId: string, hor
 
     if (formation.modules.length > 0) {
       const modulePlan: NonNullable<SlotSuggestion["modulePlan"]> = [];
+      const usedTrainerIds = new Set<string>();
       for (const formationModule of formation.modules) {
         const moduleTrainers = formationModule.trainers.map((item) => item.trainer).filter((trainer) => trainer.active);
-        const candidates = moduleTrainers.length > 0 ? moduleTrainers : trainers;
-        const selected = candidates.find((trainer) => trainerAvailableForSpan(trainer.id, span, spanSet, sessions, unavailSet));
+        // Vivier = formateurs du module EN PRIORITÉ, puis les autres formateurs éligibles de la
+        // formation. Une même formation peut être animée par plusieurs formateurs : on exploite
+        // tout le vivier pour couvrir les modules et lever les conflits, au lieu de se limiter
+        // aux seuls formateurs explicitement rattachés au module.
+        const pool: typeof trainers = [];
+        const seenPool = new Set<string>();
+        for (const trainer of [...moduleTrainers, ...trainers]) {
+          if (seenPool.has(trainer.id)) continue;
+          seenPool.add(trainer.id);
+          pool.push(trainer);
+        }
+        const available = pool.filter((trainer) => trainerAvailableForSpan(trainer.id, span, spanSet, sessions, unavailSet));
+        // Évite d'affecter le même formateur à deux modules de la même plage (réutilisation en dernier recours).
+        const selected = available.find((trainer) => !usedTrainerIds.has(trainer.id)) ?? available[0];
         if (!selected) {
           modulePlan.length = 0;
           break;
         }
+        usedTrainerIds.add(selected.id);
         modulePlan.push({ moduleId: formationModule.id, moduleTitle: formationModule.title, trainerId: selected.id, trainerName: `${selected.firstName} ${selected.lastName}` });
       }
       if (modulePlan.length !== formation.modules.length) continue;
