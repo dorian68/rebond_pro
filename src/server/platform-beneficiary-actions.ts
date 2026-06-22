@@ -9,6 +9,7 @@ import { getPlatformBeneficiaryOrganization } from "@/server/platform-beneficiar
 import type { FormActionState } from "@/server/formations-actions";
 
 const statusSchema = z.enum(["active", "completed", "archived"]);
+const stepStatusSchema = z.enum(["todo", "in_progress", "done"]);
 
 export async function updatePlatformBeneficiaryStatus(id: string, status: "active" | "completed" | "archived"): Promise<void> {
   const admin = await requirePlatformAdmin();
@@ -30,6 +31,48 @@ export async function updatePlatformBeneficiaryStatus(id: string, status: "activ
   });
   revalidatePath("/admin/beneficiaires");
   revalidatePath(`/admin/beneficiaires/${id}`);
+}
+
+export async function updatePlatformBilanStep(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const admin = await requirePlatformAdmin();
+  const parsed = z.object({
+    stepId: z.string().min(1),
+    beneficiaryId: z.string().min(1),
+    status: stepStatusSchema,
+    notes: z.string().max(8000).optional(),
+  }).safeParse({
+    stepId: formData.get("stepId"),
+    beneficiaryId: formData.get("beneficiaryId"),
+    status: formData.get("status"),
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Étape invalide." };
+  const step = await prisma.bilanStep.findFirst({
+    where: { id: parsed.data.stepId, beneficiaryId: parsed.data.beneficiaryId },
+    include: { beneficiary: { select: { organizationId: true } } },
+  });
+  if (!step) return { error: "Étape introuvable." };
+  await prisma.bilanStep.update({
+    where: { id: step.id },
+    data: {
+      status: parsed.data.status,
+      notes: parsed.data.notes,
+      completedAt: parsed.data.status === "done" ? new Date() : null,
+    },
+  });
+  await prisma.auditLog.create({
+    data: {
+      organizationId: step.beneficiary.organizationId,
+      actorId: admin.userId,
+      action: "platform.bilan_step.update",
+      entityType: "BilanStep",
+      entityId: step.id,
+      before: { status: step.status, notes: step.notes },
+      after: { status: parsed.data.status, notes: parsed.data.notes },
+    },
+  });
+  revalidatePath(`/admin/beneficiaires/${parsed.data.beneficiaryId}`);
+  return { ok: true };
 }
 
 const transferSchema = z.object({
