@@ -164,6 +164,16 @@ export type IkigaiResult = {
   paidFor: string;
   synthesis?: string;
   submittedAt?: string;
+  mode?: "canvas";
+  scores?: Record<string, number>;
+  choices?: Record<string, string[]>;
+  intersections?: {
+    passion?: string;
+    mission?: string;
+    vocation?: string;
+    profession?: string;
+    center?: string;
+  };
 };
 
 export function encodeIkigaiResult(result: IkigaiResult) {
@@ -181,6 +191,10 @@ export function decodeIkigaiResult(notes: string | null | undefined): IkigaiResu
       paidFor: String(parsed.paidFor ?? ""),
       synthesis: parsed.synthesis ? String(parsed.synthesis) : undefined,
       submittedAt: parsed.submittedAt ? String(parsed.submittedAt) : undefined,
+      mode: parsed.mode === "canvas" ? "canvas" : undefined,
+      scores: typeof parsed.scores === "object" && parsed.scores ? parsed.scores as Record<string, number> : undefined,
+      choices: typeof parsed.choices === "object" && parsed.choices ? parsed.choices as Record<string, string[]> : undefined,
+      intersections: typeof parsed.intersections === "object" && parsed.intersections ? parsed.intersections as IkigaiResult["intersections"] : undefined,
     };
   } catch {
     return null;

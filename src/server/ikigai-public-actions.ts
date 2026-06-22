@@ -2,19 +2,47 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { encodeIkigaiResult, IKIGAI_STEP_TITLE, verifyIkigaiToken } from "@/server/bilan-roadmap";
+import { encodeIkigaiResult, IKIGAI_STEP_TITLE, type IkigaiResult, verifyIkigaiToken } from "@/server/bilan-roadmap";
+
+function text(value: unknown, max = 1500) {
+  return String(value ?? "").trim().slice(0, max);
+}
+
+function parseIkigaiPayload(formData: FormData): IkigaiResult {
+  const raw = String(formData.get("ikigaiPayload") || "");
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as Partial<IkigaiResult>;
+      return {
+        mode: parsed.mode === "canvas" ? "canvas" : undefined,
+        love: text(parsed.love),
+        goodAt: text(parsed.goodAt),
+        useful: text(parsed.useful),
+        paidFor: text(parsed.paidFor),
+        synthesis: text(parsed.synthesis) || undefined,
+        choices: typeof parsed.choices === "object" && parsed.choices ? parsed.choices as Record<string, string[]> : undefined,
+        scores: typeof parsed.scores === "object" && parsed.scores ? parsed.scores as Record<string, number> : undefined,
+        intersections: typeof parsed.intersections === "object" && parsed.intersections ? parsed.intersections as IkigaiResult["intersections"] : undefined,
+        submittedAt: new Date().toISOString(),
+      };
+    } catch {
+      // Falls through to legacy fields below.
+    }
+  }
+  return {
+    love: text(formData.get("love")),
+    goodAt: text(formData.get("goodAt")),
+    useful: text(formData.get("useful")),
+    paidFor: text(formData.get("paidFor")),
+    synthesis: text(formData.get("synthesis")) || undefined,
+    submittedAt: new Date().toISOString(),
+  };
+}
 
 export async function submitIkigaiResult(token: string, formData: FormData): Promise<void> {
   const verified = verifyIkigaiToken(token);
   if (!verified) redirect("/login");
-  const result = {
-    love: String(formData.get("love") || "").trim().slice(0, 1500),
-    goodAt: String(formData.get("goodAt") || "").trim().slice(0, 1500),
-    useful: String(formData.get("useful") || "").trim().slice(0, 1500),
-    paidFor: String(formData.get("paidFor") || "").trim().slice(0, 1500),
-    synthesis: String(formData.get("synthesis") || "").trim().slice(0, 1500) || undefined,
-    submittedAt: new Date().toISOString(),
-  };
+  const result = parseIkigaiPayload(formData);
   if (!result.love || !result.goodAt || !result.useful || !result.paidFor) {
     redirect(`/bilan/ikigai/${encodeURIComponent(token)}?error=missing`);
   }
@@ -30,7 +58,7 @@ export async function submitIkigaiResult(token: string, formData: FormData): Pro
       action: "public.ikigai.submitted",
       entityType: "Beneficiary",
       entityId: beneficiary.id,
-      after: { submittedAt: result.submittedAt },
+      after: { submittedAt: result.submittedAt, mode: result.mode ?? "legacy" },
     },
   });
   redirect(`/bilan/ikigai/${encodeURIComponent(token)}?done=1`);

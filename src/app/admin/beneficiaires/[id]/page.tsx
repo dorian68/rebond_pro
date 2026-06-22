@@ -4,7 +4,7 @@ import { Card, Avatar } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { getPlatformBeneficiary, listBeneficiaryTransferCenters } from "@/server/platform";
 import { BILAN_ROADMAP, decodeIkigaiResult, ensureBilanRoadmap, ikigaiShareUrl, IKIGAI_STEP_TITLE, roadmapIndex } from "@/server/bilan-roadmap";
-import { BilanStepEditor, CopyShareLink, PlatformBeneficiaryStatus, TransferBeneficiaryForm } from "./beneficiary-admin-actions";
+import { BilanStepEditor, CompetenceCanvasEditor, CopyShareLink, PlatformBeneficiaryStatus, TransferBeneficiaryForm } from "./beneficiary-admin-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -143,18 +143,26 @@ export default async function AdminBeneficiaryDetailPage({
 
           {ikigai && active.title === IKIGAI_STEP_TITLE && (
             <div className="card" style={{ padding: 14, background: "var(--surface-2)", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Résultats Ikigai collectés</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <IkigaiBox title="Ce que j'aime" text={ikigai.love} />
-                <IkigaiBox title="Ce pour quoi je suis doué(e)" text={ikigai.goodAt} />
-                <IkigaiBox title="Ce dont les autres ont besoin" text={ikigai.useful} />
-                <IkigaiBox title="Ce qui peut être valorisé" text={ikigai.paidFor} />
+              <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Canvas Ikigai collecté</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 14, alignItems: "start" }}>
+                <AdminIkigaiGraph scores={ikigai.scores} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <IkigaiBox title="Énergie" text={ikigai.love} />
+                  <IkigaiBox title="Talents" text={ikigai.goodAt} />
+                  <IkigaiBox title="Utilité" text={ikigai.useful} />
+                  <IkigaiBox title="Valeur marché" text={ikigai.paidFor} />
+                </div>
               </div>
+              {ikigai.intersections && <IkigaiIntersections intersections={ikigai.intersections} />}
               {ikigai.synthesis && <div style={{ marginTop: 10 }}><IkigaiBox title="Synthèse personnelle" text={ikigai.synthesis} /></div>}
             </div>
           )}
 
-          <BilanStepEditor beneficiaryId={beneficiary.id} step={{ id: activeStep.id, status: activeStep.status, notes: activeStep.notes }} />
+          {active.id === "competences" ? (
+            <CompetenceCanvasEditor beneficiaryId={beneficiary.id} step={{ id: activeStep.id, status: activeStep.status, notes: activeStep.notes }} />
+          ) : (
+            <BilanStepEditor beneficiaryId={beneficiary.id} step={{ id: activeStep.id, status: activeStep.status, notes: activeStep.notes }} />
+          )}
 
           <div className="spread" style={{ marginTop: 18 }}>
             <Link className="btn btn-secondary" href={`/admin/beneficiaires/${beneficiary.id}?page=${BILAN_ROADMAP[Math.max(0, activeIndex - 1)].id}`}>
@@ -202,6 +210,45 @@ function IkigaiBox({ title, text }: { title: string; text: string }) {
     <div style={{ padding: 10, borderRadius: 9, background: "#fff", border: "1px solid var(--border-2)" }}>
       <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 5 }}>{title}</div>
       <p style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{text || "—"}</p>
+    </div>
+  );
+}
+
+function AdminIkigaiGraph({ scores }: { scores?: Record<string, number> }) {
+  const s = { love: 3, goodAt: 3, useful: 3, paidFor: 3, ...scores };
+  const total = Number(s.love) + Number(s.goodAt) + Number(s.useful) + Number(s.paidFor);
+  return (
+    <div style={{ padding: 10, borderRadius: 12, background: "#fff", border: "1px solid var(--border-2)" }}>
+      <svg viewBox="0 0 260 220" role="img" aria-label="Diagramme Ikigai bénéficiaire" style={{ width: "100%", height: "auto" }}>
+        <circle cx="105" cy="86" r={30 + Number(s.love) * 7} fill="#f28c5233" stroke="#f28c52" strokeWidth="2" />
+        <circle cx="155" cy="86" r={30 + Number(s.goodAt) * 7} fill="#2469a633" stroke="#2469a6" strokeWidth="2" />
+        <circle cx="105" cy="136" r={30 + Number(s.useful) * 7} fill="#2f948833" stroke="#2f9488" strokeWidth="2" />
+        <circle cx="155" cy="136" r={30 + Number(s.paidFor) * 7} fill="#8b5cf633" stroke="#8b5cf6" strokeWidth="2" />
+        <circle cx="130" cy="111" r={Math.max(14, total * 1.8)} fill="#15314c" opacity=".82" />
+        <text x="130" y="108" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">Zone</text>
+        <text x="130" y="121" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">projet</text>
+      </svg>
+    </div>
+  );
+}
+
+function IkigaiIntersections({ intersections }: { intersections: NonNullable<ReturnType<typeof decodeIkigaiResult>>["intersections"] }) {
+  if (!intersections) return null;
+  const rows = [
+    ["Passion", intersections.passion],
+    ["Mission", intersections.mission],
+    ["Vocation", intersections.vocation],
+    ["Profession", intersections.profession],
+    ["Centre projet", intersections.center],
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginTop: 12 }}>
+      {rows.map(([label, value]) => (
+        <div key={label} style={{ padding: 10, borderRadius: 10, background: "#fff", border: "1px solid var(--border-2)" }}>
+          <div style={{ fontSize: 11.5, fontWeight: 850, marginBottom: 5 }}>{label}</div>
+          <div className="muted-3" style={{ fontSize: 11.5, lineHeight: 1.4 }}>{value || "—"}</div>
+        </div>
+      ))}
     </div>
   );
 }

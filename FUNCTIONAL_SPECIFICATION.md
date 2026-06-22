@@ -45,7 +45,8 @@ Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orienta
   - **Flux financiers** (`src/server/finance.ts`, modèle `Transaction`) : commissions (achats formation), abonnements, bilans ; `recordTransaction` idempotent ; `getFinanceSummary` (brut, commissions, net à reverser). Webhook branché (FORMATION_PURCHASE/BILAN/SUBSCRIPTION/invoice.paid). Testé `smoke:finance`. **Table `Transaction` à migrer** (route `/api/migrate-finance`).
   - **Inscription auto à l'achat** (livré, `src/server/enrollment-from-purchase.ts`) : un achat FORMATION_PURCHASE crée/retrouve un `Learner` et l'inscrit (`Enrollment`) à la prochaine session OUVERTE ; idempotent ; lien `Transaction.enrollmentId`.
   - **Suivi du reversement** (livré) : `Transaction.payoutStatus`/`settledAt`, action `markTransactionSettled` (god-mode), UI `/admin/finances`.
-  - **Achat public** (livré, `src/server/public-purchase.ts` + `BuyFormationButton`) : un visiteur non connecté achète une formation depuis la fiche publique (checkout invité Stripe, email collecté par Stripe). Le webhook crée un `Learner` + `Enrollment` dans le centre vendeur (pas de `Beneficiary` : on préserve la distinction Learner≠Beneficiary) et envoie un email de confirmation. Bandeau de confirmation `?achat=success`. Testé `smoke:public-purchase`. **Hors scope (futur)** : portail de connexion apprenant (un acheteur public est inscrit mais n'a pas encore d'espace personnel propre).
+- **Achat public** (livré, `src/server/public-purchase.ts` + `BuyFormationButton`) : un visiteur non connecté achète une formation depuis la fiche publique (checkout invité Stripe, email collecté par Stripe). Le webhook crée un `Learner` + `Enrollment` dans le centre vendeur (pas de `Beneficiary` : on préserve la distinction Learner≠Beneficiary) et envoie un email de confirmation. Bandeau de confirmation `?achat=success`. Testé `smoke:public-purchase`. **Hors scope (futur)** : portail de connexion apprenant (un acheteur public est inscrit mais n'a pas encore d'espace personnel propre).
+- Admin bilan de compétences : `/admin/beneficiaires/[id]` expose un dossier numérique page par page. L'étape Ikigai utilise un canvas portable partageable au bénéficiaire avec cartes, intensités, graphe et intersections. L'étape compétences côté admin utilise une cartographie par cartes/preuves/niveaux, enregistrée dans le dossier sans créer de seconde source de vérité.
 
 ## 7. Inputs and outputs
 
@@ -109,6 +110,16 @@ Auth.js credentials, session JWT et membership tenant. Un compte doit confirmer 
 - La page `/{orgSlug}/f/{publicSlug}` est SSR et inaccessible si dépubliée.
 - Le CTA public crée ou met à jour un prospect dans le bon tenant.
 - Le parcours public est vérifiable depuis la CLI.
+
+### Admin bilan de compétences
+
+- Un admin plateforme peut ouvrir le dossier d'un bénéficiaire depuis `/admin/beneficiaires/[id]`.
+- Le dossier présente une progression page par page, pas seulement une liste de formulaires.
+- Le lien Ikigai portable est signé, partageable et ne donne accès qu'au canvas du bénéficiaire concerné.
+- Le canvas Ikigai collecte les quatre zones, les choix, les intensités et les convergences, puis remonte dans le dossier admin.
+- La page compétences permet une cartographie par cartes, preuves concrètes, énergie et maîtrise.
+- Les mutations restent auditées et passent par les server actions protégées.
+- Le parcours est couvert par `npm run smoke:platform-beneficiaries`.
 
 ## 18. Production readiness criteria
 
