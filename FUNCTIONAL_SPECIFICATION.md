@@ -46,7 +46,7 @@ Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orienta
   - **Inscription auto à l'achat** (livré, `src/server/enrollment-from-purchase.ts`) : un achat FORMATION_PURCHASE crée/retrouve un `Learner` et l'inscrit (`Enrollment`) à la prochaine session OUVERTE ; idempotent ; lien `Transaction.enrollmentId`.
   - **Suivi du reversement** (livré) : `Transaction.payoutStatus`/`settledAt`, action `markTransactionSettled` (god-mode), UI `/admin/finances`.
 - **Achat public** (livré, `src/server/public-purchase.ts` + `BuyFormationButton`) : un visiteur non connecté achète une formation depuis la fiche publique (checkout invité Stripe, email collecté par Stripe). Le webhook crée un `Learner` + `Enrollment` dans le centre vendeur (pas de `Beneficiary` : on préserve la distinction Learner≠Beneficiary) et envoie un email de confirmation. Bandeau de confirmation `?achat=success`. Testé `smoke:public-purchase`. **Hors scope (futur)** : portail de connexion apprenant (un acheteur public est inscrit mais n'a pas encore d'espace personnel propre).
-- Admin bilan de compétences : `/admin/beneficiaires/[id]` expose un dossier numérique page par page. L'étape Ikigai utilise un canvas portable partageable au bénéficiaire avec cartes, intensités, graphe et intersections. L'étape compétences côté admin utilise une cartographie par cartes/preuves/niveaux, enregistrée dans le dossier sans créer de seconde source de vérité.
+- Admin bilan de compétences : `/admin/beneficiaires/[id]` expose un dossier numérique page par page et par artefacts structurés (`BilanArtifact`). L'étape Ikigai utilise un canvas portable partageable au bénéficiaire avec cartes, intensités, graphe et intersections. L'étape compétences côté admin utilise une cartographie par cartes/preuves/niveaux. Les autres pages utilisent des workspaces thématiques (situation, engagement, motivations, pistes, décision, plan d'action, synthèse) plutôt qu'une unique zone de notes.
 
 ## 7. Inputs and outputs
 
@@ -118,6 +118,7 @@ Auth.js credentials, session JWT et membership tenant. Un compte doit confirmer 
 - Le lien Ikigai portable est signé, partageable et ne donne accès qu'au canvas du bénéficiaire concerné.
 - Le canvas Ikigai collecte les quatre zones, les choix, les intensités et les convergences, puis remonte dans le dossier admin.
 - La page compétences permet une cartographie par cartes, preuves concrètes, énergie et maîtrise.
+- Les pages non spécialisées enregistrent des artefacts structurés : contenu JSON, source, statut, partageabilité.
 - Les mutations restent auditées et passent par les server actions protégées.
 - Le parcours est couvert par `npm run smoke:platform-beneficiaries`.
 

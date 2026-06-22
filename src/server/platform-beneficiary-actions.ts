@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { createBeneficiaryInternal } from "@/server/beneficiary-actions";
 import { getPlatformBeneficiaryOrganization } from "@/server/platform-beneficiary-org";
 import type { FormActionState } from "@/server/formations-actions";
+import type { Prisma } from "@prisma/client";
 
 const statusSchema = z.enum(["active", "completed", "archived"]);
 const stepStatusSchema = z.enum(["todo", "in_progress", "done"]);
@@ -69,6 +70,99 @@ export async function updatePlatformBilanStep(_prev: FormActionState, formData: 
       entityId: step.id,
       before: { status: step.status, notes: step.notes },
       after: { status: parsed.data.status, notes: parsed.data.notes },
+    },
+  });
+  revalidatePath(`/admin/beneficiaires/${parsed.data.beneficiaryId}`);
+  return { ok: true };
+}
+
+const artifactStatusSchema = z.enum(["draft", "validated", "shareable", "archived"]);
+
+export async function savePlatformBilanArtifact(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const admin = await requirePlatformAdmin();
+  const parsed = z.object({
+    beneficiaryId: z.string().min(1),
+    stepId: z.string().min(1),
+    key: z.string().min(1).max(80),
+    kind: z.string().min(1).max(40),
+    title: z.string().min(1).max(140),
+    status: artifactStatusSchema.default("draft"),
+    shareable: z.boolean().default(false),
+    content: z.string().min(2).max(20000),
+    notes: z.string().max(8000).optional(),
+  }).safeParse({
+    beneficiaryId: formData.get("beneficiaryId"),
+    stepId: formData.get("stepId"),
+    key: formData.get("key"),
+    kind: formData.get("kind"),
+    title: formData.get("title"),
+    status: formData.get("status") || "draft",
+    shareable: formData.get("shareable") === "true",
+    content: formData.get("content"),
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Artefact invalide." };
+
+  let content: Prisma.InputJsonValue;
+  try {
+    content = JSON.parse(parsed.data.content) as Prisma.InputJsonValue;
+  } catch {
+    return { error: "Contenu JSON invalide." };
+  }
+
+  const step = await prisma.bilanStep.findFirst({
+    where: { id: parsed.data.stepId, beneficiaryId: parsed.data.beneficiaryId },
+    include: { beneficiary: { select: { organizationId: true } } },
+  });
+  if (!step) return { error: "Étape introuvable." };
+
+  const previous = await prisma.bilanArtifact.findUnique({
+    where: { beneficiaryId_key: { beneficiaryId: parsed.data.beneficiaryId, key: parsed.data.key } },
+  });
+
+  const artifact = await prisma.bilanArtifact.upsert({
+    where: { beneficiaryId_key: { beneficiaryId: parsed.data.beneficiaryId, key: parsed.data.key } },
+    create: {
+      beneficiaryId: parsed.data.beneficiaryId,
+      stepId: parsed.data.stepId,
+      key: parsed.data.key,
+      kind: parsed.data.kind,
+      title: parsed.data.title,
+      status: parsed.data.status,
+      shareable: parsed.data.shareable,
+      content,
+      source: "admin",
+    },
+    update: {
+      stepId: parsed.data.stepId,
+      kind: parsed.data.kind,
+      title: parsed.data.title,
+      status: parsed.data.status,
+      shareable: parsed.data.shareable,
+      content,
+      source: "admin",
+    },
+  });
+
+  const stepStatus = parsed.data.status === "validated" || parsed.data.status === "shareable" ? "done" : "in_progress";
+  await prisma.bilanStep.update({
+    where: { id: step.id },
+    data: {
+      status: stepStatus,
+      notes: parsed.data.notes ?? step.notes,
+      completedAt: stepStatus === "done" ? new Date() : null,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: step.beneficiary.organizationId,
+      actorId: admin.userId,
+      action: "platform.bilan_artifact.upsert",
+      entityType: "BilanArtifact",
+      entityId: artifact.id,
+      before: previous ? { status: previous.status, content: previous.content } : undefined,
+      after: { key: artifact.key, kind: artifact.kind, status: artifact.status, shareable: artifact.shareable },
     },
   });
   revalidatePath(`/admin/beneficiaires/${parsed.data.beneficiaryId}`);

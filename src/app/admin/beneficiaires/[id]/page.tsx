@@ -4,7 +4,8 @@ import { Card, Avatar } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { getPlatformBeneficiary, listBeneficiaryTransferCenters } from "@/server/platform";
 import { BILAN_ROADMAP, decodeIkigaiResult, ensureBilanRoadmap, ikigaiShareUrl, IKIGAI_STEP_TITLE, roadmapIndex } from "@/server/bilan-roadmap";
-import { BilanStepEditor, CompetenceCanvasEditor, CopyShareLink, PlatformBeneficiaryStatus, TransferBeneficiaryForm } from "./beneficiary-admin-actions";
+import { workspaceForPage } from "@/lib/bilan-workspaces";
+import { BilanStepEditor, BilanWorkspaceEditor, CompetenceCanvasEditor, CopyShareLink, PlatformBeneficiaryStatus, TransferBeneficiaryForm } from "./beneficiary-admin-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +34,11 @@ export default async function AdminBeneficiaryDetailPage({
   const activeIndex = roadmapIndex(query.page);
   const active = BILAN_ROADMAP[activeIndex];
   const stepsByTitle = new Map(beneficiary.steps.map((step) => [step.title, step]));
+  const artifactsByKey = new Map(beneficiary.artifacts.map((artifact) => [artifact.key, artifact]));
   const activeStep = stepsByTitle.get(active.title);
   if (!activeStep) notFound();
+  const activeWorkspace = workspaceForPage(active.id);
+  const activeArtifact = activeWorkspace ? artifactsByKey.get(activeWorkspace.key) ?? null : null;
 
   const total = BILAN_ROADMAP.length;
   const done = BILAN_ROADMAP.filter((item) => stepsByTitle.get(item.title)?.status === "done").length;
@@ -159,7 +163,23 @@ export default async function AdminBeneficiaryDetailPage({
           )}
 
           {active.id === "competences" ? (
-            <CompetenceCanvasEditor beneficiaryId={beneficiary.id} step={{ id: activeStep.id, status: activeStep.status, notes: activeStep.notes }} />
+            <CompetenceCanvasEditor
+              beneficiaryId={beneficiary.id}
+              step={{ id: activeStep.id, status: activeStep.status, notes: activeStep.notes }}
+              artifact={artifactsByKey.get("competence-map") ? {
+                id: artifactsByKey.get("competence-map")!.id,
+                status: artifactsByKey.get("competence-map")!.status,
+                shareable: artifactsByKey.get("competence-map")!.shareable,
+                content: artifactsByKey.get("competence-map")!.content,
+              } : null}
+            />
+          ) : activeWorkspace ? (
+            <BilanWorkspaceEditor
+              beneficiaryId={beneficiary.id}
+              step={{ id: activeStep.id, status: activeStep.status }}
+              workspace={activeWorkspace}
+              artifact={activeArtifact ? { id: activeArtifact.id, status: activeArtifact.status, shareable: activeArtifact.shareable, content: activeArtifact.content } : null}
+            />
           ) : (
             <BilanStepEditor beneficiaryId={beneficiary.id} step={{ id: activeStep.id, status: activeStep.status, notes: activeStep.notes }} />
           )}
@@ -194,6 +214,19 @@ export default async function AdminBeneficiaryDetailPage({
                       {interest.status === "requested" && <span className="badge badge-sky">Demande</span>}
                     </div>
                     <div className="muted-3" style={{ fontSize: 11.5, paddingLeft: 17 }}>{interest.formation.organization.name}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+          <Card>
+            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Données structurées ({beneficiary.artifacts.length})</h3>
+            {beneficiary.artifacts.length === 0 ? <p className="muted-3" style={{ fontSize: 13 }}>Aucun bloc enrichi pour le moment.</p> : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {beneficiary.artifacts.slice(0, 8).map((artifact) => (
+                  <div key={artifact.id} style={{ padding: 9, borderRadius: 9, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 850 }}>{artifact.title}</div>
+                    <div className="muted-3" style={{ fontSize: 11.5 }}>{artifact.status}{artifact.shareable ? " · partageable" : ""}</div>
                   </div>
                 ))}
               </div>

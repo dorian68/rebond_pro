@@ -479,6 +479,7 @@ model Beneficiary {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   steps        BilanStep[]
+  artifacts    BilanArtifact[]
   interests    FormationInterest[]
 
   @@index([organizationId])
@@ -497,8 +498,36 @@ model BilanStep {
   completedAt   DateTime?
 
   beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  artifacts   BilanArtifact[]
 
   @@index([beneficiaryId])
+}
+
+// Donnée structurée du dossier numérique de bilan.
+// Sert à agréger les apports admin, bénéficiaire, Socrate, import document ou voix
+// sans perdre la compatibilité avec les notes historiques de BilanStep.
+model BilanArtifact {
+  id            String   @id @default(cuid())
+  beneficiaryId String
+  stepId        String?
+  key           String
+  kind          String
+  title         String
+  content       Json
+  source        String   @default("admin") // admin | beneficiary | socrate | document | voice
+  status        String   @default("draft") // draft | validated | shareable | archived
+  shareable     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  step        BilanStep?  @relation(fields: [stepId], references: [id], onDelete: SetNull)
+
+  @@unique([beneficiaryId, key])
+  @@index([beneficiaryId])
+  @@index([stepId])
+  @@index([kind])
+  @@index([status])
 }
 
 // Transaction financière de la plateforme (source de vérité du CA et des commissions).

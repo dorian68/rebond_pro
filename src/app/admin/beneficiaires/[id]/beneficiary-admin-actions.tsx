@@ -3,8 +3,9 @@
 import { useMemo, useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { transferBeneficiaryToCenter, updatePlatformBeneficiaryStatus, updatePlatformBilanStep } from "@/server/platform-beneficiary-actions";
+import { transferBeneficiaryToCenter, updatePlatformBeneficiaryStatus, updatePlatformBilanStep, savePlatformBilanArtifact } from "@/server/platform-beneficiary-actions";
 import type { FormActionState } from "@/server/formations-actions";
+import type { BilanWorkspace } from "@/lib/bilan-workspaces";
 
 export function PlatformBeneficiaryStatus({ id, status }: { id: string; status: string }) {
   const router = useRouter();
@@ -98,6 +99,187 @@ export function BilanStepEditor({
   );
 }
 
+type ArtifactPayload = {
+  id: string;
+  status: string;
+  shareable: boolean;
+  content: unknown;
+} | null;
+
+function parseInitialContent(artifact: ArtifactPayload): Record<string, unknown> {
+  if (!artifact || typeof artifact.content !== "object" || artifact.content === null) return {};
+  return artifact.content as Record<string, unknown>;
+}
+
+function summarizeWorkspace(workspace: BilanWorkspace, values: Record<string, unknown>) {
+  const lines = [`${workspace.title}::`];
+  for (const section of workspace.sections) {
+    lines.push("", section.title);
+    for (const field of section.fields) {
+      const raw = values[field.name];
+      const value = Array.isArray(raw) ? raw.join(", ") : String(raw ?? "").trim();
+      if (value) lines.push(`- ${field.label}: ${value}`);
+    }
+  }
+  return lines.join("\n").slice(0, 8000);
+}
+
+export function BilanWorkspaceEditor({
+  beneficiaryId,
+  step,
+  workspace,
+  artifact,
+}: {
+  beneficiaryId: string;
+  step: { id: string; status: string };
+  workspace: BilanWorkspace;
+  artifact: ArtifactPayload;
+}) {
+  const initial = parseInitialContent(artifact);
+  const [values, setValues] = useState<Record<string, unknown>>(initial);
+  const [status, setStatus] = useState(artifact?.status ?? "draft");
+  const [shareable, setShareable] = useState(artifact?.shareable ?? false);
+  const [state, action, pending] = useActionState<FormActionState, FormData>(savePlatformBilanArtifact, undefined);
+  const router = useRouter();
+
+  const notes = useMemo(() => summarizeWorkspace(workspace, values), [values, workspace]);
+  const filled = useMemo(() => Object.values(values).filter((value) => Array.isArray(value) ? value.length > 0 : String(value ?? "").trim().length > 0).length, [values]);
+  const total = workspace.sections.reduce((sum, section) => sum + section.fields.length, 0);
+  const percent = total ? Math.round((filled / total) * 100) : 0;
+
+  function toggle(name: string, option: string) {
+    setValues((current) => {
+      const items = Array.isArray(current[name]) ? current[name] as string[] : [];
+      return { ...current, [name]: items.includes(option) ? items.filter((item) => item !== option) : [...items, option] };
+    });
+  }
+
+  function setValue(name: string, value: unknown) {
+    setValues((current) => ({ ...current, [name]: value }));
+  }
+
+  return (
+    <form action={async (formData) => {
+      await action(formData);
+      router.refresh();
+    }} style={{ display: "grid", gap: 14 }}>
+      <input type="hidden" name="beneficiaryId" value={beneficiaryId} />
+      <input type="hidden" name="stepId" value={step.id} />
+      <input type="hidden" name="key" value={workspace.key} />
+      <input type="hidden" name="kind" value={workspace.kind} />
+      <input type="hidden" name="title" value={workspace.title} />
+      <input type="hidden" name="content" value={JSON.stringify({ ...values, progress: percent, updatedAt: new Date().toISOString() })} />
+      <input type="hidden" name="notes" value={notes} />
+      <input type="hidden" name="shareable" value={shareable ? "true" : "false"} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 14, alignItems: "start", padding: 14, border: "1px solid var(--border)", borderRadius: 14, background: "linear-gradient(180deg,#fff,#f8fafc)" }}>
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 850 }}>{workspace.title}</h3>
+          <p className="muted" style={{ fontSize: 13, lineHeight: 1.55 }}>{workspace.promise}</p>
+        </div>
+        <div style={{ display: "grid", gap: 8, minWidth: 150 }}>
+          <span className="badge badge-primary" style={{ justifySelf: "end" }}>{percent}% documenté</span>
+          <div style={{ height: 7, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
+            <div style={{ width: `${percent}%`, height: "100%", background: "linear-gradient(90deg,#2f9488,#2469a6)" }} />
+          </div>
+        </div>
+      </div>
+
+      {workspace.sections.map((section) => (
+        <section key={section.title} style={{ border: "1px solid var(--border)", borderRadius: 14, padding: 14, background: "#fff" }}>
+          <div style={{ marginBottom: 12 }}>
+            <h4 style={{ fontSize: 14.5, fontWeight: 850 }}>{section.title}</h4>
+            <p className="muted-3" style={{ fontSize: 12.5 }}>{section.intent}</p>
+          </div>
+          <div style={{ display: "grid", gap: 12 }}>
+            {section.fields.map((field) => {
+              if (field.type === "chips") {
+                const selected = Array.isArray(values[field.name]) ? values[field.name] as string[] : [];
+                return (
+                  <div key={field.name} style={{ display: "grid", gap: 8 }}>
+                    <span className="field-label">{field.label}</span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {field.options.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => toggle(field.name, option)}
+                          style={{
+                            border: selected.includes(option) ? "1px solid #2469a6" : "1px solid var(--border-2)",
+                            background: selected.includes(option) ? "rgba(36,105,166,.1)" : "var(--surface-2)",
+                            color: selected.includes(option) ? "#174d80" : "var(--ink-2)",
+                            borderRadius: 999,
+                            padding: "8px 11px",
+                            fontSize: 12.5,
+                            fontWeight: 750,
+                          }}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              if (field.type === "scale") {
+                const value = Number(values[field.name] ?? 3);
+                return (
+                  <label key={field.name} style={{ display: "grid", gap: 7 }}>
+                    <span className="field-label">{field.label} : {value}/5</span>
+                    <input type="range" min={1} max={5} value={value} onChange={(event) => setValue(field.name, Number(event.target.value))} />
+                    <div className="spread muted-3" style={{ fontSize: 11.5 }}><span>{field.minLabel}</span><span>{field.maxLabel}</span></div>
+                  </label>
+                );
+              }
+              if (field.type === "textarea") {
+                return (
+                  <label key={field.name} style={{ display: "grid", gap: 7 }}>
+                    <span className="field-label">{field.label}</span>
+                    <textarea className="input" rows={field.rows ?? 3} value={String(values[field.name] ?? "")} onChange={(event) => setValue(field.name, event.target.value)} placeholder={field.placeholder} />
+                  </label>
+                );
+              }
+              return (
+                <label key={field.name} style={{ display: "grid", gap: 7 }}>
+                  <span className="field-label">{field.label}</span>
+                  <input className="input" value={String(values[field.name] ?? "")} onChange={(event) => setValue(field.name, event.target.value)} placeholder={field.placeholder} />
+                </label>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 170px 160px", gap: 10, alignItems: "end" }}>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span className="field-label">Statut dossier</span>
+          <select className="select" name="status" value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="draft">Brouillon</option>
+            <option value="validated">Validé conseiller</option>
+            <option value="shareable">Partageable</option>
+            <option value="archived">Archivé</option>
+          </select>
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 12px", border: "1px solid var(--border)", borderRadius: 10 }}>
+          <input type="checkbox" checked={shareable} onChange={(event) => setShareable(event.target.checked)} />
+          <span style={{ fontSize: 12.5, fontWeight: 750 }}>Partager</span>
+        </label>
+        <button type="submit" className="btn btn-primary" disabled={pending}>
+          <Icon name="check" size={15} /> {pending ? "Sauvegarde…" : "Sauvegarder"}
+        </button>
+      </div>
+
+      <div style={{ padding: 12, borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+        <div style={{ fontSize: 12, fontWeight: 850, marginBottom: 6 }}>Synthèse automatique</div>
+        <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5 }}>{notes.replace(`${workspace.title}::\n`, "")}</pre>
+      </div>
+
+      {state?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>Bloc de dossier enregistré.</span>}
+      {state?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</span>}
+    </form>
+  );
+}
+
 const COMPETENCE_CARDS = [
   "Analyser une situation",
   "Communiquer clairement",
@@ -116,15 +298,18 @@ const COMPETENCE_CARDS = [
 export function CompetenceCanvasEditor({
   beneficiaryId,
   step,
+  artifact,
 }: {
   beneficiaryId: string;
   step: { id: string; status: string; notes: string | null };
+  artifact: ArtifactPayload;
 }) {
-  const [selected, setSelected] = useState<string[]>([]);
-  const [proofs, setProofs] = useState("");
-  const [energy, setEnergy] = useState(3);
-  const [mastery, setMastery] = useState(3);
-  const [state, action, pending] = useActionState<FormActionState, FormData>(updatePlatformBilanStep, undefined);
+  const initial = parseInitialContent(artifact);
+  const [selected, setSelected] = useState<string[]>(Array.isArray(initial.selected) ? initial.selected as string[] : []);
+  const [proofs, setProofs] = useState(String(initial.proofs ?? ""));
+  const [energy, setEnergy] = useState(Number(initial.energy ?? 3));
+  const [mastery, setMastery] = useState(Number(initial.mastery ?? 3));
+  const [state, action, pending] = useActionState<FormActionState, FormData>(savePlatformBilanArtifact, undefined);
   const router = useRouter();
   const synthesizedNotes = useMemo(() => {
     const lines = [
@@ -152,8 +337,13 @@ export function CompetenceCanvasEditor({
     }} style={{ display: "grid", gap: 14 }}>
       <input type="hidden" name="beneficiaryId" value={beneficiaryId} />
       <input type="hidden" name="stepId" value={step.id} />
-      <input type="hidden" name="status" value={selected.length > 0 || proofs ? "in_progress" : step.status} />
+      <input type="hidden" name="key" value="competence-map" />
+      <input type="hidden" name="kind" value="competence_canvas" />
+      <input type="hidden" name="title" value="Cartographie compétences et talents" />
+      <input type="hidden" name="status" value={selected.length > 0 || proofs ? "validated" : "draft"} />
+      <input type="hidden" name="content" value={JSON.stringify({ selected, proofs, energy, mastery, updatedAt: new Date().toISOString() })} />
       <input type="hidden" name="notes" value={synthesizedNotes} />
+      <input type="hidden" name="shareable" value="true" />
 
       <div style={{ border: "1px solid var(--border)", borderRadius: 14, padding: 14, background: "linear-gradient(180deg,#fff,#f8fafc)" }}>
         <div className="spread" style={{ gap: 12, marginBottom: 12 }}>

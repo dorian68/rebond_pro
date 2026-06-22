@@ -133,6 +133,7 @@ export async function getPlatformBeneficiary(id: string) {
       organization: { select: { id: true, name: true, slug: true } },
       user: { select: { id: true, email: true, lastLoginAt: true, emailVerified: true } },
       steps: { orderBy: { order: "asc" } },
+      artifacts: { orderBy: { updatedAt: "desc" } },
       interests: {
         include: { formation: { select: { id: true, title: true, color: true, organizationId: true, organization: { select: { id: true, name: true, slug: true } } } } },
         orderBy: { createdAt: "desc" },
