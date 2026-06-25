@@ -96,10 +96,18 @@ async function loadContextData(ctx: TenantContext, sessionId?: string, enrollmen
     sessionId ? prisma.session.findFirst({
       where: { id: sessionId, organizationId: ctx.organizationId },
       include: {
-        formation: true,
+        formation: {
+          include: {
+            modules: {
+              orderBy: { position: "asc" },
+              include: { trainers: { include: { trainer: { select: { firstName: true, lastName: true } } } } },
+            },
+          },
+        },
         trainer: { select: { firstName: true, lastName: true, email: true } },
         room: { select: { name: true, location: true, url: true } },
         enrollments: { include: { learner: true } },
+        moduleAssignments: { include: { trainer: { select: { firstName: true, lastName: true } } } },
       },
     }) : null,
     enrollmentId ? prisma.enrollment.findFirst({
@@ -127,6 +135,27 @@ export async function buildDocumentGenerationContext(input: {
   const dateRange = session ? formatDateRange(session.startDate, session.endDate) : undefined;
   const currency = org?.currency ?? "EUR";
   const overrides = asOverrides(input.manualOverrides);
+
+  // Modules de la formation + affectation formateur propre à la session (si présente).
+  const moduleList = formation?.modules ?? [];
+  const assignedTrainerByModule = new Map<string, string>();
+  for (const assignment of session?.moduleAssignments ?? []) {
+    if (assignment.trainer) assignedTrainerByModule.set(assignment.moduleId, `${assignment.trainer.firstName} ${assignment.trainer.lastName}`);
+  }
+  const moduleDuration = (m: { durationHours: number | null; durationDays: number | null }) =>
+    m.durationHours ? `${m.durationHours} h` : m.durationDays ? `${m.durationDays} j` : "";
+  const moduleTrainers = (m: { id: string; trainers: { trainer: { firstName: string; lastName: string } }[] }) =>
+    assignedTrainerByModule.get(m.id) ?? m.trainers.map((t) => `${t.trainer.firstName} ${t.trainer.lastName}`).join(", ");
+  const modulesListe = moduleList.length
+    ? moduleList
+        .map((m, i) => {
+          const dur = moduleDuration(m);
+          const tr = moduleTrainers(m);
+          return `${i + 1}. ${m.title}${dur ? ` (${dur})` : ""}${tr ? ` — ${tr}` : ""}${m.description ? ` : ${m.description}` : ""}`;
+        })
+        .join("\n")
+    : undefined;
+  const firstModule = moduleList[0];
 
   const base: Record<string, string | number | null | undefined> = {
     org_name: org?.name,
@@ -156,6 +185,11 @@ export async function buildDocumentGenerationContext(input: {
     formation_objectifs: formation?.objectives,
     formation_modalite: formation?.modality ? MODALITY_LABELS[formation.modality] ?? formation.modality : undefined,
     formation_tarif: session ? formatMoney(session.pricePerLearner, currency) : undefined,
+    modules_liste: modulesListe,
+    module_titre: firstModule?.title,
+    module_duree: firstModule ? moduleDuration(firstModule) || undefined : undefined,
+    module_objectifs: firstModule?.description ?? undefined,
+    module_formateurs: firstModule ? moduleTrainers(firstModule) || undefined : undefined,
     session_date: dateRange,
     session_dates: dateRange,
     session_date_range: dateRange,

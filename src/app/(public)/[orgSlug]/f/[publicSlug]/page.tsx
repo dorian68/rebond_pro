@@ -109,6 +109,36 @@ export default async function PublicFormationPage({ params, searchParams }: { pa
         <div className="public-main-content">
           <TextBlock title="Objectifs pédagogiques" value={formation.objectives} />
           <TextBlock title="Programme" value={formation.program} />
+
+          {formation.modules.length > 0 && (
+            <section className="public-content-block">
+              <h2>Programme détaillé</h2>
+              <div style={{ display: "grid", gap: 12, marginTop: 6 }}>
+                {formation.modules.map((module, index) => {
+                  const moduleDuration = module.durationDays
+                    ? `${module.durationDays} j`
+                    : module.durationHours
+                      ? `${module.durationHours} h`
+                      : null;
+                  return (
+                    <div key={module.id} style={{ padding: 16, borderRadius: 14, background: "var(--surface-3)" }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                        <strong style={{ fontSize: 15 }}>Module {index + 1} — {module.title}</strong>
+                        {moduleDuration && <span className="badge badge-neutral">{moduleDuration}</span>}
+                      </div>
+                      {module.description && <p style={{ fontSize: 13.5, color: "var(--ink-2)", marginTop: 8, lineHeight: 1.55 }}>{module.description}</p>}
+                      {module.trainers.length > 0 && (
+                        <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 8 }}>
+                          Animé par {module.trainers.map(({ trainer }) => `${trainer.firstName} ${trainer.lastName}`).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           <TextBlock title="Public concerné" value={formation.targetAudience} />
           <TextBlock title="Prérequis" value={formation.prerequisites} />
           <TextBlock title="À propos de cette formation" value={formation.longDescription} />

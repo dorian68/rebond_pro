@@ -54,13 +54,22 @@ export async function getSession(ctx: TenantContext, id: string) {
   return prisma.session.findFirst({
     where: { id, organizationId: ctx.organizationId, deletedAt: null },
     include: {
-      formation: { select: { id: true, title: true, color: true } },
+      formation: {
+        select: {
+          id: true, title: true, color: true,
+          modules: {
+            orderBy: { position: "asc" },
+            include: { trainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true } } } } },
+          },
+        },
+      },
       trainer: { select: { id: true, firstName: true, lastName: true, initials: true, color: true } },
       room: true,
       enrollments: {
         include: { learner: { select: { id: true, firstName: true, lastName: true, company: true, email: true } } },
         orderBy: { createdAt: "asc" },
       },
+      moduleAssignments: true,
     },
   });
 }

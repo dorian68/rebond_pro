@@ -5,8 +5,26 @@ import { requireRole } from "@/lib/tenant";
 import { enforceQuota } from "@/server/quota";
 import { assertSessionSchedulable } from "@/server/scheduling-constraints";
 import { slugify } from "@/lib/utils";
+import { parseModulesInput, replaceFormationModules } from "@/server/formation-modules";
 import type { Role } from "@prisma/client";
 import type { AgentTool, ToolResult } from "@/server/agent/tools";
+
+// Schéma JSON d'un découpage en modules (réutilisé par create/update_formation).
+const MODULE_INPUT_SCHEMA = {
+  type: "array",
+  description: "Découpage en modules. Chaque module : { title, description?, durationDays?, durationHours?, trainerIds? }. trainerIds = IDs de formateurs existants (récupérés via search_entities/read_entity) capables d'animer ce module. Fournir ce tableau REMPLACE l'intégralité des modules de la formation.",
+  items: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      description: { type: "string" },
+      durationDays: { type: "number" },
+      durationHours: { type: "number" },
+      trainerIds: { type: "array", items: { type: "string" } },
+    },
+    required: ["title"],
+  },
+} as const;
 
 // Rôles autorisés par domaine (alignés sur les server actions)
 const ADMINS: Role[] = ["OWNER", "ADMIN"];
@@ -68,6 +86,7 @@ export const WRITE_TOOLS: AgentTool[] = [
         modality: { type: "string", enum: MODALITIES },
         level: { type: "string", enum: LEVELS },
         status: { type: "string", enum: FORMATION_STATUS, description: "BROUILLON par défaut" },
+        modules: MODULE_INPUT_SCHEMA,
       },
       required: ["title"],
     },
@@ -88,7 +107,9 @@ export const WRITE_TOOLS: AgentTool[] = [
           status: (a.status ? enumOf(a.status, FORMATION_STATUS, "status") : "BROUILLON") as never,
         },
       });
-      return refresh(`Formation « ${f.title} » créée (id ${f.id}). Fiche : /formations/${f.id}`);
+      const modules = a.modules != null ? parseModulesInput(a.modules) : [];
+      if (modules.length) await replaceFormationModules(f.id, ctx.organizationId, modules);
+      return refresh(`Formation « ${f.title} » créée (id ${f.id})${modules.length ? ` avec ${modules.length} module(s)` : ""}. Fiche : /formations/${f.id}`);
     },
   },
   {
@@ -103,6 +124,7 @@ export const WRITE_TOOLS: AgentTool[] = [
         objectives: { type: "string" }, targetAudience: { type: "string" }, prerequisites: { type: "string" }, program: { type: "string" },
         durationDays: { type: "number" }, durationHours: { type: "number" }, priceEuros: { type: "number" },
         modality: { type: "string", enum: MODALITIES }, level: { type: "string", enum: LEVELS }, status: { type: "string", enum: FORMATION_STATUS },
+        modules: MODULE_INPUT_SCHEMA,
       },
       required: ["id"],
     },
@@ -127,7 +149,13 @@ export const WRITE_TOOLS: AgentTool[] = [
       if (a.level != null) data.level = enumOf(a.level, LEVELS, "level");
       if (a.status != null) data.status = enumOf(a.status, FORMATION_STATUS, "status");
       await prisma.formation.update({ where: { id }, data });
-      return refresh(`Formation « ${existing.title} » mise à jour.`);
+      let moduleNote = "";
+      if (a.modules != null) {
+        const modules = parseModulesInput(a.modules);
+        await replaceFormationModules(id, ctx.organizationId, modules);
+        moduleNote = ` ${modules.length} module(s) enregistré(s).`;
+      }
+      return refresh(`Formation « ${existing.title} » mise à jour.${moduleNote}`);
     },
   },
   {

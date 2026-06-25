@@ -7,11 +7,19 @@ export async function getTrainerSessions(ctx: TenantContext, trainerId: string) 
   const now = new Date();
   const [upcoming, past] = await Promise.all([
     prisma.session.findMany({
-      where: { organizationId: ctx.organizationId, trainerId, deletedAt: null, endDate: { gte: now }, status: { not: "ANNULEE" } },
+      where: {
+        organizationId: ctx.organizationId,
+        deletedAt: null,
+        endDate: { gte: now },
+        status: { not: "ANNULEE" },
+        // Formateur principal OU formateur affecté à un module de la session.
+        OR: [{ trainerId }, { moduleAssignments: { some: { trainerId } } }],
+      },
       include: {
         formation: { select: { title: true, color: true, modality: true } },
         room: { select: { name: true } },
         _count: { select: { enrollments: true } },
+        moduleAssignments: { where: { trainerId }, include: { module: { select: { title: true } } } },
       },
       orderBy: { startDate: "asc" },
     }),

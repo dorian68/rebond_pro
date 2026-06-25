@@ -16,6 +16,7 @@ type Session = {
   formation: { title: string; color: string | null; modality: string };
   room: { name: string } | null;
   _count: { enrollments: number };
+  moduleAssignments?: { module: { title: string } }[];
 };
 
 export function TrainerSessionCard({ session: s, trainerId }: { session: Session; trainerId: string }) {
@@ -36,6 +37,14 @@ export function TrainerSessionCard({ session: s, trainerId }: { session: Session
               {s.room && <span><Icon name="map-pin" size={13} /> {s.room.name}</span>}
               <span><Icon name="users" size={13} /> {s._count.enrollments}/{s.capacity} inscrits</span>
             </div>
+            {s.moduleAssignments && s.moduleAssignments.length > 0 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                <span style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600 }}>Vos modules :</span>
+                {s.moduleAssignments.map((a, i) => (
+                  <span key={i} className="badge badge-neutral" style={{ fontSize: 11 }}>{a.module.title}</span>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {s.trainerConfirmed ? (

@@ -41,6 +41,29 @@ function parse(formData: FormData) {
   return { parsed, slots: slots.length ? slots : (["JOURNEE"] as typeof SLOTS[number][]) };
 }
 
+/** Affecte (ou retire avec trainerId=null) un formateur à un module pour une session précise. */
+export async function setSessionModuleAssignment(sessionId: string, moduleId: string, trainerId: string | null): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireTenant();
+  requireRole(ctx, [...EDITORS]);
+  const session = await prisma.session.findFirst({ where: { id: sessionId, organizationId: ctx.organizationId, deletedAt: null }, select: { id: true, formationId: true } });
+  if (!session) return { ok: false, error: "Session introuvable." };
+  const moduleRow = await prisma.formationModule.findFirst({ where: { id: moduleId, formationId: session.formationId, organizationId: ctx.organizationId }, select: { id: true } });
+  if (!moduleRow) return { ok: false, error: "Module introuvable pour cette formation." };
+  let validTrainerId: string | null = null;
+  if (trainerId) {
+    const trainer = await prisma.trainer.findFirst({ where: { id: trainerId, organizationId: ctx.organizationId, deletedAt: null }, select: { id: true } });
+    if (!trainer) return { ok: false, error: "Formateur introuvable." };
+    validTrainerId = trainer.id;
+  }
+  await prisma.sessionModuleAssignment.upsert({
+    where: { sessionId_moduleId: { sessionId, moduleId } },
+    create: { organizationId: ctx.organizationId, sessionId, moduleId, trainerId: validTrainerId },
+    update: { trainerId: validTrainerId },
+  });
+  revalidatePath(`/sessions/${sessionId}`);
+  return { ok: true };
+}
+
 export async function createSession(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const ctx = await requireTenant();
   requireRole(ctx, [...EDITORS]);

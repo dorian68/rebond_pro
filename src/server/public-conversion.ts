@@ -53,6 +53,12 @@ export async function getPublicFormationUncached(orgSlug: string, publicSlug: st
           },
         },
       },
+      modules: {
+        orderBy: { position: "asc" },
+        include: {
+          trainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true } } } },
+        },
+      },
       testimonials: { orderBy: { createdAt: "desc" }, take: 6 },
       faqs: { orderBy: { position: "asc" }, take: 10 },
     },

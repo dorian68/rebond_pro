@@ -8,7 +8,8 @@ import { formatMoney, formatDateRange, clampPct } from "@/lib/utils";
 import { SLOT_LABELS } from "@/lib/labels";
 import { ConfirmTrainerButton, DeleteSessionButton } from "./session-actions";
 import { StatusSelect, UnenrollButton, EnrollPanel } from "@/components/app/EnrollmentControls";
-import { learnerOptions } from "@/server/options";
+import { SessionModulePanel } from "./session-module-panel";
+import { learnerOptions, trainerOptions } from "@/server/options";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,15 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const enrolledIds = new Set(s.enrollments.map((e) => e.learnerId));
   const allLearners = canEdit ? await learnerOptions(ctx) : [];
   const availableLearners = allLearners.filter((l) => !enrolledIds.has(l.id));
+  const orgTrainers = s.formation.modules.length > 0 ? await trainerOptions(ctx) : [];
+  const assignmentByModule = new Map(s.moduleAssignments.map((a) => [a.moduleId, a.trainerId]));
+  const moduleRows = s.formation.modules.map((m) => ({
+    id: m.id,
+    title: m.title,
+    position: m.position,
+    eligible: m.trainers.map((t) => t.trainer),
+    assignedTrainerId: assignmentByModule.get(m.id) ?? null,
+  }));
   const isFull = enrolled >= s.capacity;
   const fillRate = s.capacity > 0 ? clampPct((enrolled / s.capacity) * 100) : 0;
   const forecast = enrolled * s.pricePerLearner;
@@ -100,6 +110,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           </div>
         </Card>
       </div>
+
+      {moduleRows.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <SessionModulePanel sessionId={s.id} modules={moduleRows} trainers={orgTrainers} canEdit={canEdit} />
+        </div>
+      )}
     </div>
   );
 }

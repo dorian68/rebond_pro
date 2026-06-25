@@ -143,8 +143,24 @@ export const AGENT_TOOLS: AgentTool[] = [
       let summary = "";
 
       if (entityType === "formation") {
-        const f = await prisma.formation.findFirst({ where: w });
-        if (f) { block = { type: "entity_card", entityType, title: f.title, subtitle: MODALITY_LABELS[f.modality], href: `/formations/${f.id}`, color: f.color ?? undefined, fields: [{ label: "Prix", value: formatMoney(f.price) }, { label: "Durée", value: f.durationDays ? `${f.durationDays} j` : "—" }] }; summary = f.title; }
+        const f = await prisma.formation.findFirst({
+          where: w,
+          include: {
+            eligibleTrainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true } } } },
+            modules: { orderBy: { position: "asc" }, include: { trainers: { include: { trainer: { select: { id: true, firstName: true, lastName: true } } } } } },
+          },
+        });
+        if (f) {
+          block = { type: "entity_card", entityType, title: f.title, subtitle: MODALITY_LABELS[f.modality], href: `/formations/${f.id}`, color: f.color ?? undefined, fields: [{ label: "Prix", value: formatMoney(f.price) }, { label: "Durée", value: f.durationDays ? `${f.durationDays} j` : "—" }, { label: "Modules", value: String(f.modules.length) }] };
+          const detail = {
+            found: true, id: f.id, title: f.title, status: f.status, modality: f.modality, level: f.level, price: f.price,
+            durationDays: f.durationDays, durationHours: f.durationHours,
+            objectives: f.objectives, program: f.program, targetAudience: f.targetAudience, prerequisites: f.prerequisites,
+            eligibleTrainers: f.eligibleTrainers.map((e) => ({ id: e.trainer.id, name: `${e.trainer.firstName} ${e.trainer.lastName}` })),
+            modules: f.modules.map((m) => ({ id: m.id, title: m.title, description: m.description, durationDays: m.durationDays, durationHours: m.durationHours, trainers: m.trainers.map((t) => ({ id: t.trainer.id, name: `${t.trainer.firstName} ${t.trainer.lastName}` })) })),
+          };
+          return { textForLLM: JSON.stringify(detail).slice(0, 4000), uiBlock: block };
+        }
       } else if (entityType === "prospect") {
         const p = await prisma.prospect.findFirst({ where: w, include: { formationOfInterest: { select: { title: true } } } });
         if (p) { block = { type: "entity_card", entityType, title: p.name, subtitle: PROSPECT_STAGE_LABELS[p.stage], href: `/prospects/${p.id}`, fields: [{ label: "Contact", value: p.contactName ?? "—" }, { label: "Montant", value: formatMoney(p.potentialAmount) }, { label: "Formation", value: p.formationOfInterest?.title ?? "—" }] }; summary = p.name; }

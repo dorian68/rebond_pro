@@ -8,6 +8,7 @@ import { requireTenant, requireRole } from "@/lib/tenant";
 import { revalidateMarketplace } from "@/server/marketplace";
 import { slugify } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { parseModulesInput, replaceFormationModules } from "@/server/formation-modules";
 
 export type FormActionState = { error?: string; ok?: boolean } | undefined;
 
@@ -31,15 +32,6 @@ const formationSchema = z.object({
   color: z.string().optional(),
 });
 
-const moduleItemSchema = z.object({
-  id: z.string().optional(),
-  title: z.string().min(2, "Le titre du module est requis."),
-  description: z.string().optional(),
-  durationDays: z.coerce.number().int().min(0).optional(),
-  durationHours: z.coerce.number().int().min(0).optional(),
-  trainerIds: z.array(z.string()).optional(),
-});
-
 function parse(formData: FormData) {
   return formationSchema.safeParse({
     title: formData.get("title"),
@@ -61,17 +53,7 @@ function parse(formData: FormData) {
 }
 
 function parseModules(formData: FormData) {
-  try {
-    const raw = JSON.parse(String(formData.get("modulesJson") || "[]")) as unknown;
-    if (!Array.isArray(raw)) return [];
-    return raw
-      .slice(0, 40)
-      .map((item) => moduleItemSchema.safeParse(item))
-      .filter((parsed): parsed is z.ZodSafeParseSuccess<z.infer<typeof moduleItemSchema>> => parsed.success)
-      .map((parsed, index) => ({ ...parsed.data, position: index }));
-  } catch {
-    return [];
-  }
+  return parseModulesInput(formData.get("modulesJson"));
 }
 
 async function uniqueSlug(orgId: string, base: string, exceptId?: string): Promise<string> {
@@ -91,36 +73,6 @@ async function uniquePublicSlug(base: string, exceptId?: string): Promise<string
     const found = await prisma.formation.findFirst({ where: { publicSlug: slug, NOT: exceptId ? { id: exceptId } : undefined } });
     if (!found) return slug;
     slug = `${root}-${i}`;
-  }
-}
-
-async function replaceFormationModules(formationId: string, orgId: string, rawModules: ReturnType<typeof parseModules>) {
-  await prisma.formationModule.deleteMany({ where: { formationId } });
-  if (rawModules.length === 0) return;
-  const trainerIds = Array.from(new Set(rawModules.flatMap((m) => m.trainerIds ?? [])));
-  const validTrainers = trainerIds.length
-    ? await prisma.trainer.findMany({ where: { id: { in: trainerIds }, organizationId: orgId, deletedAt: null }, select: { id: true } })
-    : [];
-  const validTrainerIds = new Set(validTrainers.map((t) => t.id));
-  for (const item of rawModules) {
-    const created = await prisma.formationModule.create({
-      data: {
-        organizationId: orgId,
-        formationId,
-        title: item.title,
-        description: item.description || null,
-        durationDays: item.durationDays ?? null,
-        durationHours: item.durationHours ?? null,
-        position: item.position,
-      },
-    });
-    const moduleTrainerIds = Array.from(new Set((item.trainerIds ?? []).filter((id) => validTrainerIds.has(id))));
-    if (moduleTrainerIds.length) {
-      await prisma.formationModuleTrainer.createMany({
-        data: moduleTrainerIds.map((trainerId) => ({ moduleId: created.id, trainerId })),
-        skipDuplicates: true,
-      });
-    }
   }
 }
 
