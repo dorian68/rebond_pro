@@ -39,9 +39,11 @@ function formationHref(f: MarketplaceFormation) {
 function FormationCard({ f }: { f: MarketplaceFormation }) {
   const c = f.color || "#2469a6";
   const duration = f.durationDays ? `${f.durationDays} j` : f.durationHours ? `${f.durationHours} h` : null;
+  // Visuel de la card : image propre à la formation, sinon photo du centre, sinon dégradé.
+  const coverImage = f.coverImageUrl || f.organization.coverImageUrl;
   return (
     <Link href={formationHref(f)} className="mkt-card">
-      <div className="mkt-card-cover" style={{ background: f.coverImageUrl ? `url(${f.coverImageUrl}) center/cover` : `linear-gradient(135deg, ${c}, ${c}aa)` }}>
+      <div className="mkt-card-cover" style={{ background: coverImage ? `url(${coverImage}) center/cover` : `linear-gradient(135deg, ${c}, ${c}aa)` }}>
         {f.category && <span className="badge">{f.category}</span>}
       </div>
       <div className="mkt-card-body">

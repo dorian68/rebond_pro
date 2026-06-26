@@ -58,7 +58,7 @@ export async function getMarketplaceFormationsUncached(filters: MarketplaceFilte
       id: true, title: true, publicSlug: true, slug: true, category: true, shortDescription: true,
       durationDays: true, durationHours: true, price: true, modality: true, level: true,
       color: true, coverImageUrl: true,
-      organization: { select: { name: true, slug: true, logoUrl: true, city: true } },
+      organization: { select: { name: true, slug: true, logoUrl: true, coverImageUrl: true, city: true } },
       eligibleTrainers: {
         take: 4,
         select: { trainer: { select: { id: true, firstName: true, lastName: true, initials: true, color: true, photoUrl: true } } },
@@ -105,7 +105,7 @@ export async function getMarketplaceFormationsPaginatedUncached(filters: Marketp
       id: true, title: true, publicSlug: true, slug: true, category: true, shortDescription: true,
       durationDays: true, durationHours: true, price: true, modality: true, level: true,
       color: true, coverImageUrl: true,
-      organization: { select: { name: true, slug: true, logoUrl: true, city: true } },
+      organization: { select: { name: true, slug: true, logoUrl: true, coverImageUrl: true, city: true } },
       eligibleTrainers: {
         take: 4,
         select: { trainer: { select: { id: true, firstName: true, lastName: true, initials: true, color: true, photoUrl: true } } },
