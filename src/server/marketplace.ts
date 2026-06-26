@@ -77,6 +77,54 @@ export const getMarketplaceFormations = unstable_cache(
 
 export type MarketplaceFormation = Awaited<ReturnType<typeof getMarketplaceFormations>>[number];
 
+export const FORMATIONS_PAGE_SIZE = 12;
+export const CENTERS_PREVIEW = 6;
+
+export async function getMarketplaceFormationsPaginatedUncached(filters: MarketplaceFilters & { page?: number } = {}) {
+  const q = filters.q?.trim();
+  const page = Math.max(1, filters.page ?? 1);
+  const raw = await prisma.formation.findMany({
+    where: {
+      ...PUBLIC_FORMATION_WHERE,
+      ...(filters.category ? { category: filters.category } : {}),
+      ...(filters.modality ? { modality: filters.modality } : {}),
+      ...(filters.level ? { level: filters.level } : {}),
+      organization: { ...APPROVED_ORG, ...(filters.city ? { city: filters.city } : {}) },
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" } },
+              { shortDescription: { contains: q, mode: "insensitive" } },
+              { category: { contains: q, mode: "insensitive" } },
+              { organization: { name: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
+    select: {
+      id: true, title: true, publicSlug: true, slug: true, category: true, shortDescription: true,
+      durationDays: true, durationHours: true, price: true, modality: true, level: true,
+      color: true, coverImageUrl: true,
+      organization: { select: { name: true, slug: true, logoUrl: true, city: true } },
+      eligibleTrainers: {
+        take: 4,
+        select: { trainer: { select: { id: true, firstName: true, lastName: true, initials: true, color: true, photoUrl: true } } },
+      },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+    skip: (page - 1) * FORMATIONS_PAGE_SIZE,
+    take: FORMATIONS_PAGE_SIZE + 1,
+  });
+  const hasMore = raw.length > FORMATIONS_PAGE_SIZE;
+  return { formations: raw.slice(0, FORMATIONS_PAGE_SIZE), hasMore, page };
+}
+
+export const getMarketplaceFormationsPaginated = unstable_cache(
+  getMarketplaceFormationsPaginatedUncached,
+  ["mkt-formations-paged"],
+  { revalidate: 60, tags: [MARKETPLACE_TAG] },
+);
+
 /** Facettes (catégories, villes) pour les filtres, calculées sur les formations publiques. */
 export async function getMarketplaceFacetsUncached() {
   const formations = await prisma.formation.findMany({

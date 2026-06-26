@@ -3,7 +3,14 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar } from "@/components/public/Avatar";
 import { PublicHeader } from "@/components/public/PublicHeader";
-import { getMarketplaceFormations, getMarketplaceFacets, getMarketplaceCenters, type MarketplaceFormation } from "@/server/marketplace";
+import {
+  getMarketplaceFormationsPaginated,
+  getMarketplaceFacets,
+  getMarketplaceCenters,
+  type MarketplaceFormation,
+  FORMATIONS_PAGE_SIZE,
+  CENTERS_PREVIEW,
+} from "@/server/marketplace";
 import { formatMoney } from "@/lib/utils";
 import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
 import type { Modality, Level } from "@prisma/client";
@@ -15,7 +22,15 @@ export const metadata: Metadata = {
   description: "Trouvez la formation adaptée à votre projet et entrez en relation avec un centre partenaire.",
 };
 
-type SP = Promise<{ q?: string; category?: string; modality?: string; level?: string; city?: string }>;
+type SP = Promise<{
+  q?: string;
+  category?: string;
+  modality?: string;
+  level?: string;
+  city?: string;
+  page?: string;
+  allCenters?: string;
+}>;
 
 function formationHref(f: MarketplaceFormation) {
   return `/${f.organization.slug}/f/${f.publicSlug ?? f.slug}`;
@@ -56,19 +71,47 @@ function FormationCard({ f }: { f: MarketplaceFormation }) {
 
 export default async function MarketplacePage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
+
+  const page = Math.max(1, parseInt(sp.page ?? "1") || 1);
+  const showAllCenters = sp.allCenters === "1";
+
   const filters = {
     q: sp.q || undefined,
     category: sp.category || undefined,
     modality: (sp.modality as Modality) || undefined,
     level: (sp.level as Level) || undefined,
     city: sp.city || undefined,
+    page,
   };
 
-  const [formations, facets, centers] = await Promise.all([
-    getMarketplaceFormations(filters),
+  const [{ formations, hasMore }, facets, centers] = await Promise.all([
+    getMarketplaceFormationsPaginated(filters),
     getMarketplaceFacets(),
     getMarketplaceCenters(),
   ]);
+
+  const visibleCenters = showAllCenters ? centers : centers.slice(0, CENTERS_PREVIEW);
+  const hiddenCentersCount = centers.length - CENTERS_PREVIEW;
+
+  // Build URLs preserving active filters
+  function buildUrl(overrides: Record<string, string | undefined>) {
+    const params = new URLSearchParams();
+    if (filters.q) params.set("q", filters.q);
+    if (filters.category) params.set("category", filters.category);
+    if (filters.modality) params.set("modality", filters.modality);
+    if (filters.level) params.set("level", filters.level);
+    if (filters.city) params.set("city", filters.city);
+    if (showAllCenters) params.set("allCenters", "1");
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v) params.set(k, v); else params.delete(k);
+    }
+    const str = params.toString();
+    return str ? `/marketplace?${str}` : "/marketplace";
+  }
+
+  const prevPageUrl = page > 1 ? buildUrl({ page: String(page - 1) }) + "#formations" : null;
+  const nextPageUrl = hasMore ? buildUrl({ page: String(page + 1) }) + "#formations" : null;
+  const allCentersUrl = buildUrl({ allCenters: "1", page: undefined }) + "#centres";
 
   return (
     <main className="public-page">
@@ -76,9 +119,9 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
       <section className="mkt-hero">
         <div className="marketing-container">
-          <span className="eyebrow">Trouvez la bonne formation, pas n’importe laquelle</span>
+          <span className="eyebrow">Trouvez la bonne formation, pas n'importe laquelle</span>
           <h1>Trouvez la formation qui correspond à votre avenir</h1>
-          <p>Explorez les formations proposées par les centres partenaires Le Bon Rebond, comparez les offres et passez à l’action.</p>
+          <p>Explorez les formations proposées par les centres partenaires Le Bon Rebond, comparez les offres et passez à l'action.</p>
 
           <form className="mkt-searchbar" method="get">
             <input type="search" name="q" placeholder="Rechercher une formation, un centre, un thème…" defaultValue={filters.q} />
@@ -105,6 +148,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         </div>
       </section>
 
+      {/* ─── Centres ─── */}
       <section className="mkt-section" id="centres" style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
         <div className="marketing-container">
           <div className="mkt-section-head">
@@ -112,7 +156,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
             <span className="mkt-count">{centers.length} centre{centers.length > 1 ? "s" : ""}</span>
           </div>
           <div className="mkt-grid-2">
-            {centers.map((org) => (
+            {visibleCenters.map((org) => (
               <Link key={org.id} href={`/${org.slug}`} className="mkt-center-card">
                 <Avatar name={org.name} photoUrl={org.logoUrl} color="#2469a6" size={62} rounded="lg" />
                 <div>
@@ -130,20 +174,54 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
               </Link>
             ))}
           </div>
+
+          {!showAllCenters && hiddenCentersCount > 0 && (
+            <div style={{ textAlign: "center", marginTop: 32 }}>
+              <Link href={allCentersUrl} className="btn btn-secondary">
+                Voir les {hiddenCentersCount} autre{hiddenCentersCount > 1 ? "s" : ""} centre{hiddenCentersCount > 1 ? "s" : ""} →
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="mkt-section">
+      {/* ─── Formations ─── */}
+      <section className="mkt-section" id="formations">
         <div className="marketing-container">
           <div className="mkt-section-head">
             <h2>Formations</h2>
-            <span className="mkt-count">{formations.length} formation{formations.length > 1 ? "s" : ""}</span>
+            <span className="mkt-count">
+              {formations.length === 0
+                ? "0 formation"
+                : page === 1 && !hasMore
+                ? `${formations.length} formation${formations.length > 1 ? "s" : ""}`
+                : `Page ${page} · ${formations.length} par page`}
+            </span>
           </div>
+
           {formations.length === 0 ? (
             <p style={{ color: "var(--ink-3)", padding: "30px 0" }}>Aucune formation ne correspond à votre recherche. Essayez d&apos;élargir les filtres.</p>
           ) : (
             <div className="mkt-grid">
               {formations.map((f) => <FormationCard key={f.id} f={f} />)}
+            </div>
+          )}
+
+          {(prevPageUrl || nextPageUrl) && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 48 }}>
+              {prevPageUrl ? (
+                <Link href={prevPageUrl} className="btn btn-secondary">← Précédent</Link>
+              ) : (
+                <span />
+              )}
+              <span style={{ fontSize: ".9rem", color: "var(--ink-3)", fontWeight: 600, padding: "0 8px" }}>
+                Page {page}
+              </span>
+              {nextPageUrl ? (
+                <Link href={nextPageUrl} className="btn btn-primary">Suivant →</Link>
+              ) : (
+                <span />
+              )}
             </div>
           )}
         </div>
