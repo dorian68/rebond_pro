@@ -95,10 +95,10 @@ export const getMarketplaceFacets = unstable_cache(
   { revalidate: 60, tags: [MARKETPLACE_TAG] },
 );
 
-/** Annuaire des centres ayant au moins une formation publiée. */
+/** Annuaire des centres approuvés (avec ou sans formation publiée). */
 export async function getMarketplaceCentersUncached() {
   const orgs = await prisma.organization.findMany({
-    where: { deletedAt: null, marketplaceStatus: "APPROVED", formations: { some: PUBLIC_FORMATION_WHERE } },
+    where: { deletedAt: null, marketplaceStatus: "APPROVED" },
     select: {
       id: true, name: true, slug: true, logoUrl: true, tagline: true, description: true, city: true,
       _count: { select: { formations: { where: PUBLIC_FORMATION_WHERE }, trainers: { where: { active: true, deletedAt: null } } } },
