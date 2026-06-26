@@ -105,22 +105,6 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         </div>
       </section>
 
-      <section className="mkt-section">
-        <div className="marketing-container">
-          <div className="mkt-section-head">
-            <h2>Formations</h2>
-            <span className="mkt-count">{formations.length} formation{formations.length > 1 ? "s" : ""}</span>
-          </div>
-          {formations.length === 0 ? (
-            <p style={{ color: "var(--ink-3)", padding: "30px 0" }}>Aucune formation ne correspond à votre recherche. Essayez d&apos;élargir les filtres.</p>
-          ) : (
-            <div className="mkt-grid">
-              {formations.map((f) => <FormationCard key={f.id} f={f} />)}
-            </div>
-          )}
-        </div>
-      </section>
-
       <section className="mkt-section" id="centres" style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
         <div className="marketing-container">
           <div className="mkt-section-head">
@@ -146,6 +130,22 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mkt-section">
+        <div className="marketing-container">
+          <div className="mkt-section-head">
+            <h2>Formations</h2>
+            <span className="mkt-count">{formations.length} formation{formations.length > 1 ? "s" : ""}</span>
+          </div>
+          {formations.length === 0 ? (
+            <p style={{ color: "var(--ink-3)", padding: "30px 0" }}>Aucune formation ne correspond à votre recherche. Essayez d&apos;élargir les filtres.</p>
+          ) : (
+            <div className="mkt-grid">
+              {formations.map((f) => <FormationCard key={f.id} f={f} />)}
+            </div>
+          )}
         </div>
       </section>
 
