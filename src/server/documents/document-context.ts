@@ -76,7 +76,22 @@ function statusFrom(missing: MissingVariable[], total: number): Pick<DocumentGen
   return { completionScore, completionStatus };
 }
 
+// Champs destinés à être renseignés à la main (signés en présentiel, remplis en séance,
+// ou calculés après la session) : on les rend VIDES plutôt que "[À compléter]" pour ne pas
+// faire paraître incomplet un document qui ne PEUT pas hériter cette donnée du contexte.
+const BLANK_BY_DESIGN = new Set([
+  "signature", "signatures", "signature_matin", "signature_apres_midi", "signature_apprenant",
+  "signature_centre", "signature_referent", "signature_formateur", "signature_stagiaire",
+  "signature_responsable", "cachet", "tampon",
+  "observations", "observations_commande", "observation", "commentaire", "commentaires",
+  "motif", "remarques", "note", "notes", "reponses", "reponse", "liste_questions", "support",
+  "plan_action", "actions_liste", "statuts", "statut", "responsable", "responsables",
+  "date_echeance", "echeance", "heures_realisees", "heures_realisees_jour", "attendance_hours",
+  "attendance_rate", "taux_assiduite", "taux_assiduite_pct", "absence_retard", "absences", "activite",
+]);
+
 export function readablePlaceholder(key: string): string {
+  if (BLANK_BY_DESIGN.has(key) || /^signature|^heures_realisees|^observ|^commentaire|assiduite|^reponse/.test(key)) return "";
   return `[À compléter : ${variableLabel(key)}]`;
 }
 
@@ -104,7 +119,7 @@ async function loadContextData(ctx: TenantContext, sessionId?: string, enrollmen
             },
           },
         },
-        trainer: { select: { firstName: true, lastName: true, email: true } },
+        trainer: { select: { firstName: true, lastName: true, email: true, specialities: true, phone: true, bio: true } },
         room: { select: { name: true, location: true, url: true } },
         enrollments: { include: { learner: true } },
         moduleAssignments: { include: { trainer: { select: { firstName: true, lastName: true } } } },
@@ -240,6 +255,51 @@ export async function buildDocumentGenerationContext(input: {
     signataire_nom: org?.legalRep,
     signature_nom: org?.legalRep,
     signataire_centre: org?.legalRep,
+    // --- Contextualisation étendue : variables dérivables non mappées jusqu'ici ---
+    formation_prerequis: formation?.prerequisites,
+    formation_prerequisites: formation?.prerequisites,
+    formation_public: formation?.targetAudience,
+    formation_target_audience: formation?.targetAudience,
+    formation_niveau: formation?.level,
+    niveau_attendu: formation?.level,
+    formation_resume: formation?.shortDescription,
+    competences_liste: formation?.objectives,
+    competences_visees: formation?.objectives,
+    competence_visee: formation?.objectives,
+    objectifs_pedagogiques: formation?.objectives,
+    modalites_evaluation: "Évaluation continue et évaluation finale (QCM et/ou mise en situation).",
+    modules_assignes: modulesListe,
+    session_module: firstModule?.title ?? modulesListe,
+    module_objectifs: firstModule?.description ?? undefined,
+    // Formateur
+    formateur_email: session?.trainer?.email,
+    trainer_specialities: session?.trainer?.specialities?.length ? session.trainer.specialities.join(", ") : undefined,
+    domaine_expertise: session?.trainer?.specialities?.length ? session.trainer.specialities.join(", ") : undefined,
+    referent_nom: org?.legalRep,
+    referent_handicap: org?.legalRep,
+    referent_pedagogique: trainerName,
+    contact_referent: org?.publicEmail,
+    contact_reclamation: org?.publicEmail,
+    // Lieu / horaires / période (alias singuliers utilisés par certains templates)
+    lieu: roomLabel,
+    lieux: roomLabel,
+    horaire: session ? sessionSchedule(session.slots) : undefined,
+    periode: dateRange,
+    periode_suivi: dateRange,
+    periode_evaluation: dateRange,
+    semaine: dateRange,
+    jour: session ? formatDate(session.startDate) : undefined,
+    date_entree: session ? formatDate(session.startDate) : undefined,
+    date_debut_accompagnement: session ? formatDate(session.startDate) : undefined,
+    date_fin_formation: session ? formatDate(session.endDate) : undefined,
+    // Heures prévues (les "réalisées" sont post-séance → laissées vides via readablePlaceholder)
+    heures_prevues: formation?.durationHours != null ? `${formation.durationHours} h` : undefined,
+    heures_prevues_jour: (formation?.durationHours != null && formation?.durationDays) ? `${Math.round(formation.durationHours / formation.durationDays)} h` : undefined,
+    // Défauts professionnels (sinon "[À compléter]" sur des champs à valeur standard)
+    conditions_paiement: "Paiement à 30 jours à réception de facture.",
+    payment_terms: "Paiement à 30 jours à réception de facture.",
+    tva: "TVA non applicable — art. 293 B du CGI.",
+    version_cgv: "v1.0",
   };
 
   const values = { ...base };
