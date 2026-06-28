@@ -626,6 +626,7 @@ function capabilityLabel(capability: ConnectorCapability) {
     document_read: "Recherche fichiers",
     document_import: "Import fichier",
     document_write: "Création document",
+    document_upload: "Dépôt de fichier",
     email_draft: "Brouillon email",
     email_send: "Envoi email",
   };

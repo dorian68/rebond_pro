@@ -31,6 +31,9 @@ const s = StyleSheet.create({
   td: { flexDirection: "row", padding: 6, borderBottom: "0.5pt solid #e8eaef", fontSize: 9 },
   signLine: { marginTop: 36, flexDirection: "row", justifyContent: "space-between" },
   signBox: { width: "45%", borderTop: "0.5pt solid #15181f", paddingTop: 4, fontSize: 8, color: "#5a6271" },
+  contextRow: { flexDirection: "row", gap: 10, marginBottom: 5 },
+  contextLabel: { width: "32%", color: "#5a6271" },
+  contextValue: { width: "68%", fontWeight: 700 },
 });
 
 const TYPE_LABELS: Record<string, string> = {
@@ -64,6 +67,31 @@ function durationText(f: DocData["formation"]): string {
   if (f.durationDays) parts.push(`${f.durationDays} jour${f.durationDays > 1 ? "s" : ""}`);
   if (f.durationHours) parts.push(`${f.durationHours} heures`);
   return parts.join(" — ") || "—";
+}
+
+function ContextSummary({ d }: { d: DocData }) {
+  const rows = [
+    ["Formation", d.formation?.title],
+    ["Dates", d.session?.dateRange],
+    ["Formateur", d.session?.trainerName],
+    ["Lieu / accès", d.session?.roomName],
+    ["Apprenant / client", d.learner?.fullName],
+    ["Entreprise", d.learner?.company],
+    ["Durée", durationText(d.formation)],
+    ["Montant", d.amountText],
+  ].filter((row): row is [string, string] => typeof row[1] === "string" && row[1].trim().length > 0);
+
+  if (rows.length === 0) return null;
+  return (
+    <View style={s.box}>
+      {rows.map(([label, value]) => (
+        <View key={label} style={s.contextRow}>
+          <Text style={s.contextLabel}>{label}</Text>
+          <Text style={s.contextValue}>{value}</Text>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 function Body({ d }: { d: DocData }) {
@@ -159,7 +187,14 @@ function Body({ d }: { d: DocData }) {
         </View>
       );
     default:
-      return <Text>Document.</Text>;
+      return (
+        <View>
+          <Text style={s.para}>Document généré à partir des informations actives du centre.</Text>
+          <ContextSummary d={d} />
+          {f?.objectives ? <><Text style={[s.bold, { marginBottom: 6 }]}>Objectifs</Text><Text style={s.para}>{f.objectives}</Text></> : null}
+          {f?.program ? <><Text style={[s.bold, { marginBottom: 6 }]}>Programme</Text><Text style={s.para}>{f.program}</Text></> : null}
+        </View>
+      );
   }
 }
 

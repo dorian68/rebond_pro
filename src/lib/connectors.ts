@@ -7,8 +7,8 @@ export type ConnectorKey =
   | "sharepoint"
   | "microsoft_calendar";
 
-export type ConnectorCapability = "calendar_read" | "calendar_write" | "document_read" | "document_import" | "document_write" | "email_draft" | "email_send";
-export type ConnectorToolKind = "listEvents" | "createEvent" | "searchFiles" | "getFile" | "createFile" | "createDraft" | "sendEmail";
+export type ConnectorCapability = "calendar_read" | "calendar_write" | "document_read" | "document_import" | "document_write" | "document_upload" | "email_draft" | "email_send";
+export type ConnectorToolKind = "listEvents" | "createEvent" | "searchFiles" | "getFile" | "createFile" | "uploadFile" | "createDraft" | "sendEmail";
 export type ConnectorScope = "personal" | "organization";
 
 export type ConnectorDefinition = {
@@ -45,12 +45,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "googledrive",
     priority: 2,
-    capabilities: ["document_read", "document_import", "document_write"],
+    capabilities: ["document_read", "document_import", "document_write", "document_upload"],
     scopes: ["organization", "personal"],
     defaultScope: "organization",
     writePolicy: "WRITE",
-    description: "Recherche, import et création de documents texte. La création déclenche une validation humaine avant exécution.",
-    envToolOverrides: { searchFiles: "COMPOSIO_TOOL_GOOGLE_DRIVE_SEARCH_FILES", getFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_GET_FILE", createFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_CREATE_FILE" },
+    description: "Recherche, import, création de documents texte et dépôt de fichiers (PDF généré). L'écriture déclenche une validation humaine avant exécution.",
+    envToolOverrides: { searchFiles: "COMPOSIO_TOOL_GOOGLE_DRIVE_SEARCH_FILES", getFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_GET_FILE", createFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_CREATE_FILE", uploadFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_UPLOAD_FILE" },
   },
   {
     key: "gmail",
@@ -121,7 +121,7 @@ export const CONNECTORS: ConnectorDefinition[] = [
 
 export const DEFAULT_COMPOSIO_TOOLS: Record<ConnectorKey, Partial<Record<ConnectorToolKind, string>>> = {
   google_calendar: { listEvents: "GOOGLECALENDAR_EVENTS_LIST", createEvent: "GOOGLECALENDAR_CREATE_EVENT" },
-  google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE", createFile: "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT" },
+  google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE", createFile: "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT", uploadFile: "GOOGLEDRIVE_UPLOAD_FILE" },
   gmail: { createDraft: "GMAIL_CREATE_EMAIL_DRAFT", sendEmail: "GMAIL_SEND_EMAIL" },
   // Le toolkit Outlook expose ses slugs avec le préfixe doublé OUTLOOK_OUTLOOK_* (vérifié via l'API Composio).
   outlook: { createDraft: "OUTLOOK_OUTLOOK_CREATE_DRAFT", sendEmail: "OUTLOOK_OUTLOOK_SEND_EMAIL" },

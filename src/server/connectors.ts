@@ -344,6 +344,35 @@ export async function createExternalCalendarEvent(ctx: TenantContext, input: { c
   return result;
 }
 
+export async function uploadExternalDocumentFile(ctx: TenantContext, input: { connector: "google_drive"; scope?: ConnectorScope; buffer: Buffer; fileName: string; mimeType: string; folderId?: string }) {
+  assertConnectorRole(ctx);
+  const connector = getConnector(input.connector);
+  if (!connector || !connector.capabilities.includes("document_upload")) throw new Error("Connecteur d'upload de fichier invalide.");
+  const scope = input.scope ?? connector.defaultScope;
+  await assertConnectorConnected(ctx, connector, scope);
+  const fileName = ensureNonEmpty(input.fileName, "Nom du fichier");
+  if (!input.buffer?.length) throw new Error("Fichier vide : rien à déposer.");
+  if (input.buffer.length > 5 * 1024 * 1024) throw new Error("Fichier trop volumineux pour Google Drive (max 5 Mo).");
+  const tool = resolveComposioTool(connector, "uploadFile");
+  if (!tool) throw new Error(`Outil de dépôt de fichier non configuré pour ${connector.label}.`);
+  // File-staging Composio : on téléverse d'abord le binaire (renvoie { name, mimetype, s3key }),
+  // puis on passe ce descripteur à l'outil — évite le flag dangerouslyAllowAutoUploadDownloadFiles.
+  const staged = await composio().files.upload({
+    file: new File([new Uint8Array(input.buffer)], fileName, { type: input.mimeType }),
+    toolSlug: tool,
+    toolkitSlug: connector.toolkit,
+  });
+  const result = await composio().tools.execute(tool, {
+    userId: connectorEntityId(ctx, scope),
+    arguments: {
+      file_to_upload: staged,
+      folder_to_upload_to: input.folderId,
+    },
+  });
+  await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_document_upload", input: `${connector.key}:${scope}:${fileName}`, output: redactResult(result) });
+  return result;
+}
+
 export async function createExternalDocument(ctx: TenantContext, input: { connector: "google_drive"; scope?: ConnectorScope; fileName: string; content: string; mimeType?: string; parentId?: string }) {
   assertConnectorRole(ctx);
   const connector = getConnector(input.connector);

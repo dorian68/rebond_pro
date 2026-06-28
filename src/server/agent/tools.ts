@@ -504,6 +504,32 @@ export const AGENT_TOOLS: AgentTool[] = [
     },
   },
   {
+    name: "upload_document_to_drive",
+    description: "Dépose un document déjà généré (PDF ou DOCX, identifié par son documentId) dans Google Drive connecté. ACTION SENSIBLE : carte de validation avant dépôt. Mets forClient=true pour retirer les instructions/notes de modèle si le fichier est destiné à un client.",
+    sensitive: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        documentId: { type: "string" },
+        scope: { type: "string", enum: ["personal", "organization"], description: "personal = Drive de l'utilisateur ; organization = Drive partagé du centre (défaut)." },
+        folderId: { type: "string", description: "ID du dossier Drive cible (optionnel)." },
+        forClient: { type: "boolean", description: "true = version nettoyée (sans instructions de modèle) pour remise client." },
+      },
+      required: ["documentId"],
+    },
+    execute: async (ctx, args) => {
+      const { uploadDocumentToDrive } = await import("@/server/documents-actions");
+      const result = await uploadDocumentToDrive({
+        ctx,
+        documentId: String(args.documentId),
+        scope: !ctx.organizationId || args.scope === "personal" ? "personal" : "organization",
+        folderId: args.folderId ? String(args.folderId) : undefined,
+        forClient: args.forClient === true,
+      });
+      return { textForLLM: result.ok ? "Document déposé dans Google Drive." : `Dépôt impossible : ${result.error ?? "erreur inconnue"}.` };
+    },
+  },
+  {
     name: "move_prospect_stage",
     description: "Déplace un prospect vers une autre étape du pipeline. ACTION SENSIBLE : nécessite validation humaine. stage ∈ {NOUVEAU, CONTACTE, DEVIS, RELANCE, GAGNE, PERDU}.",
     sensitive: true,

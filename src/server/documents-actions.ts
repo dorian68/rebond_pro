@@ -10,6 +10,9 @@ import { formatMoney, formatDateRange } from "@/lib/utils";
 import { MODALITY_LABELS } from "@/lib/labels";
 import { DOC_LABELS, PER_LEARNER_DOCUMENT_TYPES } from "@/lib/document-types";
 import { renderDocxTemplate } from "@/server/docx/template-engine";
+import { sanitizeDocxForClient, isDocxMime } from "@/server/docx/sanitize";
+import { uploadExternalDocumentFile } from "@/server/connectors";
+import type { ConnectorScope } from "@/lib/connectors";
 import { contextSnapshot, DOCX_MIME, getDocumentGenerationPreflight, type DocumentPreflight } from "@/server/documents/document-context";
 import { readablePlaceholder } from "@/server/documents/document-context";
 import { logger } from "@/lib/logger";
@@ -67,39 +70,49 @@ function withReadableMissing(preflight: DocumentPreflight): Record<string, strin
   return values;
 }
 
+function firstText(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (value === null || value === undefined) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return undefined;
+}
+
 function enrichDocData(data: DocData, values: Record<string, string | number | null | undefined>): DocData {
+  const learnerName = firstText(values.learner_name, values.apprenant_nom, values.beneficiaire_nom, values.client_nom, data.learner?.fullName);
+  const learnerCompany = firstText(values.learner_company, values.apprenant_entreprise, values.company_name, values.client_entreprise, data.learner?.company);
   return {
     ...data,
     generatedAt: String(values.generatedAt ?? data.generatedAt),
     org: {
       ...data.org,
-      name: String(values.org_name ?? data.org.name),
-      legalName: String(values.org_legal_name ?? data.org.legalName ?? ""),
-      legalAddress: String(values.org_legal_address ?? data.org.legalAddress ?? ""),
-      nda: String(values.org_nda ?? data.org.nda ?? ""),
-      legalRep: String(values.org_legal_rep ?? data.org.legalRep ?? ""),
+      name: firstText(values.org_name, values.centre_nom, data.org.name) ?? data.org.name,
+      legalName: firstText(values.org_legal_name, data.org.legalName) ?? "",
+      legalAddress: firstText(values.org_legal_address, values.centre_adresse, data.org.legalAddress) ?? "",
+      nda: firstText(values.org_nda, values.centre_nda, data.org.nda) ?? "",
+      legalRep: firstText(values.org_legal_rep, values.signataire_nom, values.referent_nom, data.org.legalRep) ?? "",
     },
     formation: data.formation ? {
       ...data.formation,
-      title: String(values.formation_title ?? data.formation.title),
+      title: firstText(values.formation_title, values.formation_titre, data.formation.title) ?? data.formation.title,
       durationDays: typeof values.formation_duration_days === "number" ? values.formation_duration_days : data.formation.durationDays,
       durationHours: typeof values.formation_duration_hours === "number" ? values.formation_duration_hours : data.formation.durationHours,
-      program: String(values.formation_program ?? data.formation.program ?? ""),
-      objectives: String(values.formation_objectives ?? data.formation.objectives ?? ""),
-      modality: String(values.formation_modality ?? data.formation.modality ?? ""),
+      program: firstText(values.formation_program, values.formation_programme, data.formation.program) ?? "",
+      objectives: firstText(values.formation_objectives, values.formation_objectifs, values.objectifs_pedagogiques, data.formation.objectives) ?? "",
+      modality: firstText(values.formation_modality, values.formation_modalite, data.formation.modality) ?? "",
     } : data.formation,
     session: data.session ? {
       ...data.session,
-      dateRange: String(values.session_date_range ?? values.session_date ?? data.session.dateRange),
-      trainerName: String(values.trainer_name ?? data.session.trainerName ?? ""),
-      roomName: String(values.room_name ?? values.session_location ?? data.session.roomName ?? ""),
+      dateRange: firstText(values.session_date_range, values.session_dates, values.session_date, data.session.dateRange) ?? data.session.dateRange,
+      trainerName: firstText(values.trainer_name, values.formateur_nom, data.session.trainerName) ?? "",
+      roomName: firstText(values.room_name, values.session_location, values.session_lieu, values.lieu, data.session.roomName) ?? "",
     } : data.session,
-    learner: data.learner ? {
-      ...data.learner,
-      fullName: String(values.learner_name ?? data.learner.fullName),
-      company: String(values.learner_company ?? data.learner.company ?? ""),
+    learner: learnerName ? {
+      fullName: learnerName,
+      company: learnerCompany ?? "",
     } : data.learner,
-    amountText: String(values.amountText ?? data.amountText ?? ""),
+    amountText: firstText(values.amountText, values.prix_total, values.montant, data.amountText) ?? "",
   };
 }
 
@@ -361,6 +374,39 @@ export async function generateForEnrollment(enrollmentId: string, type: string):
   revalidatePath(`/sessions/${s.id}`);
 }
 
+/**
+ * Dépose un document généré dans Google Drive (archive du centre).
+ * Appelé par l'agent : `forClient` sanitise le DOCX (sinon copie interne avec instructions).
+ */
+export async function uploadDocumentToDrive(input: {
+  ctx: TenantContext;
+  documentId: string;
+  scope?: ConnectorScope;
+  folderId?: string;
+  forClient?: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { ctx, documentId, scope, folderId, forClient } = input;
+  requireRole(ctx, [...EDITORS]);
+  const doc = await prisma.document.findFirst({ where: { id: documentId, organizationId: ctx.organizationId } });
+  if (!doc || !doc.fileUrl) return { ok: false, error: "Document introuvable." };
+  const raw = await readFile(doc.fileUrl);
+  const buffer = forClient && isDocxMime(doc.mimeType) ? sanitizeDocxForClient(raw) : raw;
+  try {
+    await uploadExternalDocumentFile(ctx, {
+      connector: "google_drive",
+      scope,
+      buffer,
+      fileName: doc.fileName ?? `${doc.type.toLowerCase()}.${isDocxMime(doc.mimeType) ? "docx" : "pdf"}`,
+      mimeType: doc.mimeType ?? "application/pdf",
+      folderId,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Dépôt Drive impossible." };
+  }
+  await auditDocumentEvent(ctx, "document.uploaded_drive", documentId, { type: doc.type, scope: scope ?? "organization", fileName: doc.fileName ?? "" });
+  return { ok: true };
+}
+
 /** Envoie un document généré par email (à l'apprenant si lié à une inscription). */
 export async function sendDocument(documentId: string): Promise<{ ok: boolean; error?: string }> {
   const ctx = await requireTenant();
@@ -373,7 +419,11 @@ export async function sendDocument(documentId: string): Promise<{ ok: boolean; e
   const to = doc.enrollment?.learner.email;
   if (!to) return { ok: false, error: "Aucune adresse email pour le destinataire." };
 
-  const buf = await readFile(doc.fileUrl);
+  const raw = await readFile(doc.fileUrl);
+  // Envoi au client final : on retire les instructions/notes de modèle et les marqueurs
+  // "[À compléter]" (un DOCX uniquement ; le PDF intégré est déjà propre). Le document
+  // stocké (téléchargement interne) reste inchangé.
+  const buf = isDocxMime(doc.mimeType) ? sanitizeDocxForClient(raw) : raw;
   const title = DOC_LABELS[doc.type] ?? "Votre document";
   const formationTitle = doc.session?.formation.title ?? doc.formation?.title ?? "";
   await sendEmail({
