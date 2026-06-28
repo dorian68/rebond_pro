@@ -476,7 +476,7 @@ function ConnecteursTab({ connectors, role }: { connectors: ConnectorsState; rol
           <div>
             <h3 style={{ fontWeight: 700, marginBottom: 6, fontSize: 15 }}>Connectivité Socrate</h3>
             <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.6, maxWidth: 760 }}>
-              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas et documents connectés, importer un fichier dans son contexte, et créer des brouillons email. Aucun outil d&apos;envoi direct n&apos;est exposé.
+              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas et documents connectés, importer un fichier, créer des brouillons et événements, déposer des fichiers, et envoyer des emails. Chaque action d&apos;écriture ou d&apos;envoi déclenche une validation humaine avant exécution.
             </p>
           </div>
           <span className={connectors.enabled ? "badge badge-primary" : "badge"}>
