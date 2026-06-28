@@ -28,7 +28,7 @@ const TOOLS: Record<Persona, string[] | "ALL"> = {
   platform_admin: [
     "platform_overview", "get_dashboard_metrics", "search_entities", "read_entity", "get_app_map", "get_current_user_context",
     // Connecteurs personnels du super-admin (scope "personal" : son propre agenda / Drive / Gmail).
-    "list_external_connectors", "list_external_calendar_events", "search_external_documents", "import_external_document", "create_external_email_draft", "send_external_email",
+    "list_external_connectors", "list_external_calendar_events", "search_external_documents", "import_external_document", "create_external_email_draft", "send_external_email", "create_external_calendar_event", "create_external_document",
   ],
 };
 
@@ -110,7 +110,9 @@ ${COMMON}`,
 
 CONNECTEURS PERSONNELS — tu disposes aussi d'outils connecteurs (Google & Microsoft via Composio) pour TON propre compte :
 - Lire ton agenda → list_external_calendar_events (google_calendar ou microsoft_calendar).
+- Créer un événement agenda → create_external_calendar_event : action sensible, carte de validation avant création.
 - Chercher/importer tes fichiers → search_external_documents puis import_external_document (google_drive, onedrive, sharepoint).
+- Créer un document texte dans Drive → create_external_document (google_drive uniquement) : action sensible, carte de validation avant création.
 - Préparer un email → create_external_email_draft (gmail ou outlook) : prépare un brouillon à relire.
 - Envoyer un email → send_external_email (gmail ou outlook) : envoi RÉEL. Action sensible → une carte de validation s'affiche avant l'envoi. Ne l'utilise que si l'utilisateur demande explicitement d'envoyer ; sinon prépare un brouillon.
 - État des connexions → list_external_connectors.

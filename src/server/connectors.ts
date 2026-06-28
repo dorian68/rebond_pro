@@ -300,21 +300,70 @@ export async function sendExternalEmail(ctx: TenantContext, input: { connector: 
   const body = ensureNonEmpty(input.body, "Corps de l'email");
   const tool = resolveComposioTool(connector, "sendEmail");
   if (!tool) throw new Error(`Outil d'envoi email non configuré pour ${connector.label}.`);
+  const cc = (input.cc ?? []).map((email) => email.trim()).filter(Boolean);
+  // Schémas vérifiés via l'API Composio : Gmail = recipient_email/extra_recipients/cc ;
+  // Outlook = to_email/cc_emails (slug OUTLOOK_OUTLOOK_SEND_EMAIL).
+  const sendArgs = connector.toolkit === "gmail"
+    ? { recipient_email: recipients[0], extra_recipients: recipients.slice(1), cc, subject, body, is_html: false }
+    : { to_email: recipients.join(","), cc_emails: cc, subject, body, is_html: false, save_to_sent_items: true };
   const result = await composio().tools.execute(tool, {
     userId: connectorEntityId(ctx, "personal"),
-    arguments: {
-      // Superset d'arguments : couvre les schémas Gmail (recipient_email/is_html) et Outlook (to).
-      recipient_email: recipients.join(", "),
-      to: recipients,
-      recipient: recipients.join(", "),
-      cc: input.cc ?? [],
-      subject,
-      body,
-      message: body,
-      is_html: false,
-      isHtml: false,
-    },
+    arguments: sendArgs,
   });
   await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_email_send", input: `${connector.key}:${subject}`, output: redactResult(result) });
+  return result;
+}
+
+export async function createExternalCalendarEvent(ctx: TenantContext, input: { connector: "google_calendar" | "microsoft_calendar"; scope?: ConnectorScope; title: string; start: string; end?: string; description?: string; location?: string; attendees?: string[]; timezone?: string }) {
+  assertConnectorRole(ctx);
+  const connector = getConnector(input.connector);
+  if (!connector || !connector.capabilities.includes("calendar_write")) throw new Error("Connecteur agenda en écriture invalide.");
+  const scope = input.scope ?? connector.defaultScope;
+  await assertConnectorConnected(ctx, connector, scope);
+  const title = ensureNonEmpty(input.title, "Titre de l'événement");
+  const start = ensureNonEmpty(input.start, "Date/heure de début (ISO 8601)");
+  const tool = resolveComposioTool(connector, "createEvent");
+  if (!tool) throw new Error(`Outil création d'événement non configuré pour ${connector.label}.`);
+  const timezone = input.timezone || "Europe/Paris";
+  const attendees = (input.attendees ?? []).map((email) => email.trim()).filter(Boolean);
+  const startMs = Date.parse(start);
+  const endMs = input.end ? Date.parse(input.end) : NaN;
+  const durationMin = Number.isFinite(startMs) && Number.isFinite(endMs) && endMs > startMs ? Math.round((endMs - startMs) / 60000) : 60;
+  // Schémas vérifiés via l'API Composio :
+  //  - Google : summary/start_datetime/event_duration_minutes/attendees (liste d'emails).
+  //  - Outlook : subject/start_datetime/end_datetime/time_zone requis, attendees_info = [{ email }].
+  const endIso = input.end || (Number.isFinite(startMs) ? new Date(startMs + durationMin * 60000).toISOString() : start);
+  const eventArgs = connector.toolkit === "googlecalendar"
+    ? { summary: title, description: input.description, location: input.location, start_datetime: start, event_duration_minutes: durationMin, attendees, timezone, calendar_id: "primary" }
+    : { subject: title, body: input.description ?? title, location: input.location, start_datetime: start, end_datetime: endIso, time_zone: timezone, attendees_info: attendees.map((email) => ({ email })) };
+  const result = await composio().tools.execute(tool, {
+    userId: connectorEntityId(ctx, scope),
+    arguments: eventArgs,
+  });
+  await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_calendar_create", input: `${connector.key}:${scope}:${title}`, output: redactResult(result) });
+  return result;
+}
+
+export async function createExternalDocument(ctx: TenantContext, input: { connector: "google_drive"; scope?: ConnectorScope; fileName: string; content: string; mimeType?: string; parentId?: string }) {
+  assertConnectorRole(ctx);
+  const connector = getConnector(input.connector);
+  if (!connector || !connector.capabilities.includes("document_write")) throw new Error("Connecteur d'écriture documentaire invalide.");
+  const scope = input.scope ?? connector.defaultScope;
+  await assertConnectorConnected(ctx, connector, scope);
+  const fileName = ensureNonEmpty(input.fileName, "Nom du fichier");
+  const content = ensureNonEmpty(input.content, "Contenu du document");
+  const tool = resolveComposioTool(connector, "createFile");
+  if (!tool) throw new Error(`Outil création de document non configuré pour ${connector.label}.`);
+  // Schéma vérifié : GOOGLEDRIVE_CREATE_FILE_FROM_TEXT = file_name/text_content (+ mime_type, parent_id optionnels).
+  const result = await composio().tools.execute(tool, {
+    userId: connectorEntityId(ctx, scope),
+    arguments: {
+      file_name: fileName,
+      text_content: content,
+      mime_type: input.mimeType,
+      parent_id: input.parentId,
+    },
+  });
+  await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_document_create", input: `${connector.key}:${scope}:${fileName}`, output: redactResult(result) });
   return result;
 }

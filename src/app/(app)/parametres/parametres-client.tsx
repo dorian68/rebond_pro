@@ -50,7 +50,7 @@ type ConnectorStatus = {
   scopes: ConnectorScope[];
   scope: ConnectorScope;
   defaultScope: ConnectorScope;
-  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND";
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND" | "WRITE";
   description: string;
   connected: boolean;
   status: string;
@@ -537,7 +537,7 @@ function ConnectorGroup({ title, subtitle, connectors, canConnect, busy, enabled
                   <span className={connector.connected ? "badge badge-primary" : "badge"}>
                     {connector.connected ? "Connecté" : connector.status === "DISABLED" ? "Désactivé" : "À connecter"}
                   </span>
-                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : connector.writePolicy === "SEND" ? "Brouillon + envoi" : "Brouillon uniquement"}</span>
+                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : connector.writePolicy === "SEND" ? "Brouillon + envoi" : connector.writePolicy === "WRITE" ? "Lecture + écriture" : "Brouillon uniquement"}</span>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>{connector.description}</p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
@@ -622,8 +622,10 @@ function AvanceTab({ role, orgName }: { role: string; orgName: string }) {
 function capabilityLabel(capability: ConnectorCapability) {
   const labels: Record<ConnectorCapability, string> = {
     calendar_read: "Agenda",
+    calendar_write: "Création événement",
     document_read: "Recherche fichiers",
     document_import: "Import fichier",
+    document_write: "Création document",
     email_draft: "Brouillon email",
     email_send: "Envoi email",
   };

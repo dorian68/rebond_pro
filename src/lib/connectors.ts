@@ -7,8 +7,8 @@ export type ConnectorKey =
   | "sharepoint"
   | "microsoft_calendar";
 
-export type ConnectorCapability = "calendar_read" | "document_read" | "document_import" | "email_draft" | "email_send";
-export type ConnectorToolKind = "listEvents" | "searchFiles" | "getFile" | "createDraft" | "sendEmail";
+export type ConnectorCapability = "calendar_read" | "calendar_write" | "document_read" | "document_import" | "document_write" | "email_draft" | "email_send";
+export type ConnectorToolKind = "listEvents" | "createEvent" | "searchFiles" | "getFile" | "createFile" | "createDraft" | "sendEmail";
 export type ConnectorScope = "personal" | "organization";
 
 export type ConnectorDefinition = {
@@ -20,7 +20,7 @@ export type ConnectorDefinition = {
   capabilities: ConnectorCapability[];
   scopes: ConnectorScope[];
   defaultScope: ConnectorScope;
-  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND";
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND" | "WRITE";
   description: string;
   envToolOverrides: Partial<Record<ConnectorToolKind, string>>;
 };
@@ -32,12 +32,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "googlecalendar",
     priority: 1,
-    capabilities: ["calendar_read"],
+    capabilities: ["calendar_read", "calendar_write"],
     scopes: ["personal", "organization"],
     defaultScope: "personal",
-    writePolicy: "READ_ONLY",
-    description: "Lecture des disponibilités et événements pour aider Socrate à proposer des créneaux.",
-    envToolOverrides: { listEvents: "COMPOSIO_TOOL_GOOGLE_CALENDAR_LIST_EVENTS" },
+    writePolicy: "WRITE",
+    description: "Lecture des disponibilités et création d'événements. La création déclenche une validation humaine avant exécution.",
+    envToolOverrides: { listEvents: "COMPOSIO_TOOL_GOOGLE_CALENDAR_LIST_EVENTS", createEvent: "COMPOSIO_TOOL_GOOGLE_CALENDAR_CREATE_EVENT" },
   },
   {
     key: "google_drive",
@@ -45,12 +45,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "googledrive",
     priority: 2,
-    capabilities: ["document_read", "document_import"],
+    capabilities: ["document_read", "document_import", "document_write"],
     scopes: ["organization", "personal"],
     defaultScope: "organization",
-    writePolicy: "READ_ONLY",
-    description: "Recherche et import contrôlé de documents utiles aux formulaires, modèles et sessions.",
-    envToolOverrides: { searchFiles: "COMPOSIO_TOOL_GOOGLE_DRIVE_SEARCH_FILES", getFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_GET_FILE" },
+    writePolicy: "WRITE",
+    description: "Recherche, import et création de documents texte. La création déclenche une validation humaine avant exécution.",
+    envToolOverrides: { searchFiles: "COMPOSIO_TOOL_GOOGLE_DRIVE_SEARCH_FILES", getFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_GET_FILE", createFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_CREATE_FILE" },
   },
   {
     key: "gmail",
@@ -110,23 +110,24 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "microsoft",
     toolkit: "outlook",
     priority: 7,
-    capabilities: ["calendar_read"],
+    capabilities: ["calendar_read", "calendar_write"],
     scopes: ["personal", "organization"],
     defaultScope: "personal",
-    writePolicy: "READ_ONLY",
-    description: "Lecture des événements Microsoft 365 via Outlook Calendar.",
-    envToolOverrides: { listEvents: "COMPOSIO_TOOL_MICROSOFT_CALENDAR_LIST_EVENTS" },
+    writePolicy: "WRITE",
+    description: "Lecture et création d'événements Microsoft 365 via Outlook Calendar. La création déclenche une validation humaine avant exécution.",
+    envToolOverrides: { listEvents: "COMPOSIO_TOOL_MICROSOFT_CALENDAR_LIST_EVENTS", createEvent: "COMPOSIO_TOOL_MICROSOFT_CALENDAR_CREATE_EVENT" },
   },
 ];
 
 export const DEFAULT_COMPOSIO_TOOLS: Record<ConnectorKey, Partial<Record<ConnectorToolKind, string>>> = {
-  google_calendar: { listEvents: "GOOGLECALENDAR_EVENTS_LIST" },
-  google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE" },
+  google_calendar: { listEvents: "GOOGLECALENDAR_EVENTS_LIST", createEvent: "GOOGLECALENDAR_CREATE_EVENT" },
+  google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE", createFile: "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT" },
   gmail: { createDraft: "GMAIL_CREATE_EMAIL_DRAFT", sendEmail: "GMAIL_SEND_EMAIL" },
-  outlook: { createDraft: "OUTLOOK_CREATE_EMAIL_DRAFT", sendEmail: "OUTLOOK_SEND_EMAIL" },
+  // Le toolkit Outlook expose ses slugs avec le préfixe doublé OUTLOOK_OUTLOOK_* (vérifié via l'API Composio).
+  outlook: { createDraft: "OUTLOOK_OUTLOOK_CREATE_DRAFT", sendEmail: "OUTLOOK_OUTLOOK_SEND_EMAIL" },
   onedrive: { searchFiles: "ONEDRIVE_SEARCH_FILES", getFile: "ONEDRIVE_GET_FILE" },
   sharepoint: { searchFiles: "SHAREPOINT_SEARCH_FILES", getFile: "SHAREPOINT_GET_FILE" },
-  microsoft_calendar: { listEvents: "OUTLOOK_LIST_EVENTS" },
+  microsoft_calendar: { listEvents: "OUTLOOK_LIST_EVENTS", createEvent: "OUTLOOK_OUTLOOK_CALENDAR_CREATE_EVENT" },
 };
 
 export function getConnector(key: string): ConnectorDefinition | undefined {

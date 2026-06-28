@@ -11,7 +11,7 @@ import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
 import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 import { DOCUMENT_CATALOG_BY_TYPE } from "@/lib/document-catalog";
 import { DOCUMENT_INTAKE_ROUTES, DOCUMENT_INTAKE_TARGETS, type DocumentIntakeTarget } from "@/lib/document-intake";
-import { createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments, sendExternalEmail } from "@/server/connectors";
+import { createExternalCalendarEvent, createExternalDocument, createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments, sendExternalEmail } from "@/server/connectors";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -211,7 +211,7 @@ export const AGENT_TOOLS: AgentTool[] = [
         type: "data_table",
         title: "Connecteurs externes",
         columns: ["Connecteur", "Statut", "Politique"],
-        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : c.writePolicy === "SEND" ? "Brouillon + envoi" : "Brouillon uniquement"]),
+        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : c.writePolicy === "SEND" ? "Brouillon + envoi" : c.writePolicy === "WRITE" ? "Lecture + écriture" : "Brouillon uniquement"]),
         emptyText: "Aucun connecteur configuré.",
       };
       return { textForLLM: JSON.stringify(statuses), uiBlock: block };
@@ -339,6 +339,66 @@ export const AGENT_TOOLS: AgentTool[] = [
         body: String(args.body ?? ""),
       });
       return { textForLLM: `Email envoyé. Résultat connecteur : ${JSON.stringify(result).slice(0, 2000)}` };
+    },
+  },
+  {
+    name: "create_external_calendar_event",
+    description: "Crée un événement dans un agenda externe connecté (Google Calendar ou Microsoft Calendar). ACTION SENSIBLE : déclenche une carte de validation humaine avant création. Fournir start (et idéalement end) au format ISO 8601. Si end est omis, durée par défaut 60 min.",
+    sensitive: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["google_calendar", "microsoft_calendar"] },
+        scope: { type: "string", enum: ["personal", "organization"], description: "personal = agenda de l'utilisateur ; organization = agenda partagé du centre." },
+        title: { type: "string" },
+        start: { type: "string", description: "Date/heure de début ISO 8601 (ex: 2026-07-01T10:00:00)." },
+        end: { type: "string", description: "Date/heure de fin ISO 8601 optionnelle." },
+        description: { type: "string" },
+        location: { type: "string" },
+        attendees: { type: "array", items: { type: "string" }, description: "Emails des participants." },
+        timezone: { type: "string", description: "Fuseau IANA, défaut Europe/Paris." },
+      },
+      required: ["connector", "title", "start"],
+    },
+    execute: async (ctx, args) => {
+      const result = await createExternalCalendarEvent(ctx, {
+        connector: String(args.connector) as "google_calendar" | "microsoft_calendar",
+        scope: !ctx.organizationId || args.scope === "personal" ? "personal" : args.scope === "organization" ? "organization" : undefined,
+        title: String(args.title ?? ""),
+        start: String(args.start ?? ""),
+        end: args.end ? String(args.end) : undefined,
+        description: args.description ? String(args.description) : undefined,
+        location: args.location ? String(args.location) : undefined,
+        attendees: Array.isArray(args.attendees) ? args.attendees.map(String) : undefined,
+        timezone: args.timezone ? String(args.timezone) : undefined,
+      });
+      return { textForLLM: `Événement créé. Résultat connecteur : ${JSON.stringify(result).slice(0, 2000)}` };
+    },
+  },
+  {
+    name: "create_external_document",
+    description: "Crée un document texte dans Google Drive (à partir d'un contenu textuel). ACTION SENSIBLE : déclenche une carte de validation humaine avant création. Pour déposer un fichier binaire existant (PDF généré), un autre flux est nécessaire.",
+    sensitive: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["google_drive"] },
+        scope: { type: "string", enum: ["personal", "organization"], description: "personal = Drive de l'utilisateur ; organization = Drive partagé du centre." },
+        fileName: { type: "string" },
+        content: { type: "string", description: "Contenu textuel du document." },
+        mimeType: { type: "string", description: "Type MIME optionnel (ex: text/plain, application/vnd.google-apps.document)." },
+      },
+      required: ["connector", "fileName", "content"],
+    },
+    execute: async (ctx, args) => {
+      const result = await createExternalDocument(ctx, {
+        connector: "google_drive",
+        scope: !ctx.organizationId || args.scope === "personal" ? "personal" : args.scope === "organization" ? "organization" : undefined,
+        fileName: String(args.fileName ?? ""),
+        content: String(args.content ?? ""),
+        mimeType: args.mimeType ? String(args.mimeType) : undefined,
+      });
+      return { textForLLM: `Document créé. Résultat connecteur : ${JSON.stringify(result).slice(0, 2000)}` };
     },
   },
   // ---- Actions sensibles (human-in-the-loop) ----
