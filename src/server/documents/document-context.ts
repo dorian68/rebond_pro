@@ -270,7 +270,6 @@ export async function buildDocumentGenerationContext(input: {
     modalites_evaluation: "Évaluation continue et évaluation finale (QCM et/ou mise en situation).",
     modules_assignes: modulesListe,
     session_module: firstModule?.title ?? modulesListe,
-    module_objectifs: firstModule?.description ?? undefined,
     // Formateur
     formateur_email: session?.trainer?.email,
     trainer_specialities: session?.trainer?.specialities?.length ? session.trainer.specialities.join(", ") : undefined,
