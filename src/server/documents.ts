@@ -97,25 +97,27 @@ export async function countDocumentSuggestions(ctx: TenantContext) {
 /** Suggestions « à générer » calculées à partir de l'activité. */
 export async function documentSuggestions(ctx: TenantContext) {
   const candidates = await documentSuggestionCandidates(ctx);
-  const suggestions: { sessionId: string; label: string; type: string; count: number; reason: string; dueLabel: string; completionStatus: string; completionScore: number; missingCount: number; templateName: string; engineLabel: string }[] = [];
-  for (const candidate of candidates.slice(0, 12)) {
-    const [preflight, template] = await Promise.all([
-      getDocumentGenerationPreflight({ ctx, type: candidate.type, sessionId: candidate.sessionId }),
-      resolveDocumentTemplate({ ctx, type: candidate.type }),
-    ]);
-    suggestions.push({
-      sessionId: candidate.sessionId,
-      label: `${DOC_LABELS[candidate.type] ?? candidate.type} — ${candidate.formationTitle}`,
-      type: candidate.type,
-      count: candidate.count,
-      reason: candidate.reason,
-      dueLabel: candidate.dueLabel,
-      completionStatus: preflight.completionStatus,
-      completionScore: preflight.completionScore,
-      missingCount: preflight.missingVariables.length,
-      templateName: template.name,
-      engineLabel: preflight.engineLabel,
-    });
-  }
-  return suggestions.slice(0, 12);
+  // Les preflights/templates sont indépendants entre candidats : on les calcule EN PARALLÈLE
+  // (auparavant en série, ce qui multipliait la latence DB par le nombre de candidats → page lente).
+  return Promise.all(
+    candidates.slice(0, 12).map(async (candidate) => {
+      const [preflight, template] = await Promise.all([
+        getDocumentGenerationPreflight({ ctx, type: candidate.type, sessionId: candidate.sessionId }),
+        resolveDocumentTemplate({ ctx, type: candidate.type }),
+      ]);
+      return {
+        sessionId: candidate.sessionId,
+        label: `${DOC_LABELS[candidate.type] ?? candidate.type} — ${candidate.formationTitle}`,
+        type: candidate.type,
+        count: candidate.count,
+        reason: candidate.reason,
+        dueLabel: candidate.dueLabel,
+        completionStatus: preflight.completionStatus,
+        completionScore: preflight.completionScore,
+        missingCount: preflight.missingVariables.length,
+        templateName: template.name,
+        engineLabel: preflight.engineLabel,
+      };
+    }),
+  );
 }

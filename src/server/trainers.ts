@@ -32,7 +32,8 @@ export async function listTrainers(ctx: TenantContext) {
       totalSessions: t.sessions.length,
       formationsCount: t.formations.length,
       status: !t.active ? "Inactif" : unconfirmed ? "À confirmer" : upcoming.length > 0 ? "Actif" : "Disponible",
-      statusTone: !t.active ? "badge-neutral" : unconfirmed ? "badge-warn" : "badge-positive",
+      // « Actif » (sessions à venir) = vert ; « Disponible » (libre) = bleu → on distingue les deux états sains.
+      statusTone: !t.active ? "badge-neutral" : unconfirmed ? "badge-warn" : upcoming.length > 0 ? "badge-positive" : "badge-primary",
     };
   });
 }
