@@ -16,9 +16,32 @@ const PARAGRAPH_MARKERS = [
   "variables principales détectables",
   "variables principales",
   "variable détectable",
+  // Variante « Annexe technique » (templates auto-documentés) — wording différent mais même intention.
+  // NB : on ne matche PAS « annexe technique » seul (une vraie annexe peut être légitime) ;
+  // on cible les formulations sans ambiguïté d'instruction de template.
+  "variables du template",
+  "variables du crm",
+  "peut être supprimée",
+  "peut etre supprimee",
+  "supprimée si le document",
+  "supprimee si le document",
+  "envoyé au client",
+  "envoye au client",
+  "détection automatique des variables",
+  "detection automatique des variables",
+  "tester la détection",
+  "tester la detection",
 ];
-// Une table entière est retirée si elle contient l'en-tête d'un tableau de variables.
-const TABLE_MARKERS = ["usage attendu", "exemple de valeur", "variables principales"];
+// Une table entière est retirée si elle contient l'en-tête d'un tableau de variables/usage.
+const TABLE_MARKERS = [
+  "usage attendu",
+  "exemple de valeur",
+  "variables principales",
+  "rôle attendu",
+  "role attendu",
+  "rôle de la variable",
+  "role de la variable",
+];
 
 function stripTags(xml: string): string {
   return xml.replace(/<[^>]+>/g, "").toLowerCase();
