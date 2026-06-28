@@ -177,11 +177,18 @@ export async function convertProspect(id: string, formData: FormData): Promise<v
   const learner = await prisma.learner.create({
     data: { organizationId: ctx.organizationId, firstName: firstName || p.name, lastName: rest.join(" ") || "", email: p.email, phone: p.phone, company: p.type !== "PARTICULIER" ? p.name : null },
   });
-  if (session && session._count.enrollments < session.capacity) {
-    await prisma.enrollment.create({ data: { organizationId: ctx.organizationId, learnerId: learner.id, sessionId: session.id, status: "INSCRIT" } });
+  const enrolled = !!session && session._count.enrollments < session.capacity;
+  if (enrolled) {
+    await prisma.enrollment.create({ data: { organizationId: ctx.organizationId, learnerId: learner.id, sessionId: session!.id, status: "INSCRIT" } });
   }
   await prisma.prospect.update({ where: { id }, data: { stage: "GAGNE" } });
-  await prisma.prospectActivity.create({ data: { prospectId: id, type: "conversion", content: `Converti en apprenant${session ? " et inscrit à une session" : ""}.` } });
+  // Le message reflète l'inscription RÉELLE : si la session choisie est pleine, l'apprenant est créé mais non inscrit.
+  const conversionNote = enrolled
+    ? "Converti en apprenant et inscrit à une session."
+    : session
+      ? "Converti en apprenant (session pleine : inscription non effectuée)."
+      : "Converti en apprenant.";
+  await prisma.prospectActivity.create({ data: { prospectId: id, type: "conversion", content: conversionNote } });
   revalidatePath("/prospects");
   revalidatePath("/apprenants");
   revalidatePath("/dashboard");
