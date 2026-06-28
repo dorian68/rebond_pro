@@ -68,7 +68,7 @@ export type UIBlock =
   | { type: "suggestion_chips"; id?: string; chips: { label: string; prompt: string }[] }
   | { type: "progress_steps"; id?: string; title?: string; steps: { label: string; status: "done" | "active" | "pending" }[] }
   | { type: "confirmation_card"; id?: string; approvalId: string; title: string; description?: string; riskLevel?: "low" | "medium" | "high"; tool: string; args: Record<string, unknown>; impact?: string }
-  | { type: "connector_oauth_card"; id?: string; connector: string; scope: "personal" | "organization"; label: string; title: string; description?: string; policy: "READ_ONLY" | "DRAFT_ONLY"; canConnect: boolean; blockedReason?: string }
+  | { type: "connector_oauth_card"; id?: string; connector: string; scope: "personal" | "organization"; label: string; title: string; description?: string; policy: "READ_ONLY" | "DRAFT_ONLY" | "SEND"; canConnect: boolean; blockedReason?: string }
   | { type: "error_card"; id?: string; title: string; message: string };
 
 export const ALLOWED_UI_BLOCKS = [

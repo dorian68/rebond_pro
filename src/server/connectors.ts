@@ -288,3 +288,33 @@ export async function createExternalEmailDraft(ctx: TenantContext, input: { conn
   await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_email_draft", input: `${connector.key}:${subject}`, output: redactResult(result) });
   return result;
 }
+
+export async function sendExternalEmail(ctx: TenantContext, input: { connector: "gmail" | "outlook"; to: string[]; subject: string; body: string; cc?: string[] }) {
+  assertConnectorRole(ctx);
+  const connector = getConnector(input.connector);
+  if (!connector || !connector.capabilities.includes("email_send")) throw new Error("Connecteur d'envoi email invalide.");
+  await assertConnectorConnected(ctx, connector, "personal");
+  const recipients = input.to.map((email) => email.trim()).filter(Boolean);
+  if (recipients.length === 0) throw new Error("Au moins un destinataire est obligatoire pour envoyer un email.");
+  const subject = ensureNonEmpty(input.subject, "Objet de l'email");
+  const body = ensureNonEmpty(input.body, "Corps de l'email");
+  const tool = resolveComposioTool(connector, "sendEmail");
+  if (!tool) throw new Error(`Outil d'envoi email non configuré pour ${connector.label}.`);
+  const result = await composio().tools.execute(tool, {
+    userId: connectorEntityId(ctx, "personal"),
+    arguments: {
+      // Superset d'arguments : couvre les schémas Gmail (recipient_email/is_html) et Outlook (to).
+      recipient_email: recipients.join(", "),
+      to: recipients,
+      recipient: recipients.join(", "),
+      cc: input.cc ?? [],
+      subject,
+      body,
+      message: body,
+      is_html: false,
+      isHtml: false,
+    },
+  });
+  await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_email_send", input: `${connector.key}:${subject}`, output: redactResult(result) });
+  return result;
+}

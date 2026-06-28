@@ -7,8 +7,8 @@ export type ConnectorKey =
   | "sharepoint"
   | "microsoft_calendar";
 
-export type ConnectorCapability = "calendar_read" | "document_read" | "document_import" | "email_draft";
-export type ConnectorToolKind = "listEvents" | "searchFiles" | "getFile" | "createDraft";
+export type ConnectorCapability = "calendar_read" | "document_read" | "document_import" | "email_draft" | "email_send";
+export type ConnectorToolKind = "listEvents" | "searchFiles" | "getFile" | "createDraft" | "sendEmail";
 export type ConnectorScope = "personal" | "organization";
 
 export type ConnectorDefinition = {
@@ -20,7 +20,7 @@ export type ConnectorDefinition = {
   capabilities: ConnectorCapability[];
   scopes: ConnectorScope[];
   defaultScope: ConnectorScope;
-  writePolicy: "READ_ONLY" | "DRAFT_ONLY";
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND";
   description: string;
   envToolOverrides: Partial<Record<ConnectorToolKind, string>>;
 };
@@ -58,12 +58,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "gmail",
     priority: 3,
-    capabilities: ["email_draft"],
+    capabilities: ["email_draft", "email_send"],
     scopes: ["personal"],
     defaultScope: "personal",
-    writePolicy: "DRAFT_ONLY",
-    description: "Création de brouillons email uniquement, jamais d'envoi direct.",
-    envToolOverrides: { createDraft: "COMPOSIO_TOOL_GMAIL_CREATE_DRAFT" },
+    writePolicy: "SEND",
+    description: "Création de brouillons et envoi d'emails. L'envoi déclenche une validation humaine avant exécution.",
+    envToolOverrides: { createDraft: "COMPOSIO_TOOL_GMAIL_CREATE_DRAFT", sendEmail: "COMPOSIO_TOOL_GMAIL_SEND_EMAIL" },
   },
   {
     key: "outlook",
@@ -71,12 +71,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "microsoft",
     toolkit: "outlook",
     priority: 4,
-    capabilities: ["email_draft"],
+    capabilities: ["email_draft", "email_send"],
     scopes: ["personal"],
     defaultScope: "personal",
-    writePolicy: "DRAFT_ONLY",
-    description: "Création de brouillons Outlook uniquement, jamais d'envoi direct.",
-    envToolOverrides: { createDraft: "COMPOSIO_TOOL_OUTLOOK_CREATE_DRAFT" },
+    writePolicy: "SEND",
+    description: "Création de brouillons et envoi d'emails Outlook. L'envoi déclenche une validation humaine avant exécution.",
+    envToolOverrides: { createDraft: "COMPOSIO_TOOL_OUTLOOK_CREATE_DRAFT", sendEmail: "COMPOSIO_TOOL_OUTLOOK_SEND_EMAIL" },
   },
   {
     key: "onedrive",
@@ -122,8 +122,8 @@ export const CONNECTORS: ConnectorDefinition[] = [
 export const DEFAULT_COMPOSIO_TOOLS: Record<ConnectorKey, Partial<Record<ConnectorToolKind, string>>> = {
   google_calendar: { listEvents: "GOOGLECALENDAR_EVENTS_LIST" },
   google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE" },
-  gmail: { createDraft: "GMAIL_CREATE_EMAIL_DRAFT" },
-  outlook: { createDraft: "OUTLOOK_CREATE_EMAIL_DRAFT" },
+  gmail: { createDraft: "GMAIL_CREATE_EMAIL_DRAFT", sendEmail: "GMAIL_SEND_EMAIL" },
+  outlook: { createDraft: "OUTLOOK_CREATE_EMAIL_DRAFT", sendEmail: "OUTLOOK_SEND_EMAIL" },
   onedrive: { searchFiles: "ONEDRIVE_SEARCH_FILES", getFile: "ONEDRIVE_GET_FILE" },
   sharepoint: { searchFiles: "SHAREPOINT_SEARCH_FILES", getFile: "SHAREPOINT_GET_FILE" },
   microsoft_calendar: { listEvents: "OUTLOOK_LIST_EVENTS" },

@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:real": "playwright test --config=e2e/real.config.ts",
+    "test:e2e:prod": "playwright test --config=e2e/real.config.ts",
     "dev": "next dev",
     "dev:local": "node scripts/dev-local.mjs",
     "build": "next build",
@@ -64,7 +70,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.101.0",
     "@auth/prisma-adapter": "^2.11.2",
-    "@composio/core": "^0.11.0",
+    "@composio/core": "^0.13.1",
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-slot": "^1.2.5",
     "@react-pdf/renderer": "^4.5.1",
@@ -89,14 +95,17 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "pdf-parse": "^2.4.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"

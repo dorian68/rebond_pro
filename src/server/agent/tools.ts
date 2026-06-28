@@ -11,7 +11,7 @@ import { PERSONA_TOOLS } from "@/server/agent/persona-tools";
 import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 import { DOCUMENT_CATALOG_BY_TYPE } from "@/lib/document-catalog";
 import { DOCUMENT_INTAKE_ROUTES, DOCUMENT_INTAKE_TARGETS, type DocumentIntakeTarget } from "@/lib/document-intake";
-import { createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments } from "@/server/connectors";
+import { createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments, sendExternalEmail } from "@/server/connectors";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -211,7 +211,7 @@ export const AGENT_TOOLS: AgentTool[] = [
         type: "data_table",
         title: "Connecteurs externes",
         columns: ["Connecteur", "Statut", "Politique"],
-        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"]),
+        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : c.writePolicy === "SEND" ? "Brouillon + envoi" : "Brouillon uniquement"]),
         emptyText: "Aucun connecteur configuré.",
       };
       return { textForLLM: JSON.stringify(statuses), uiBlock: block };
@@ -313,6 +313,32 @@ export const AGENT_TOOLS: AgentTool[] = [
         body: String(args.body ?? ""),
       });
       return { textForLLM: `Brouillon email créé. Résultat connecteur : ${JSON.stringify(result).slice(0, 2000)}` };
+    },
+  },
+  {
+    name: "send_external_email",
+    description: "Envoie un email via Gmail ou Outlook (envoi RÉEL, pas un brouillon). ACTION SENSIBLE : déclenche une carte de validation humaine avant l'envoi. À n'utiliser que lorsque l'utilisateur demande explicitement d'envoyer ; sinon privilégie create_external_email_draft pour qu'il relise.",
+    sensitive: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        connector: { type: "string", enum: ["gmail", "outlook"] },
+        to: { type: "array", items: { type: "string" } },
+        cc: { type: "array", items: { type: "string" } },
+        subject: { type: "string" },
+        body: { type: "string" },
+      },
+      required: ["connector", "to", "subject", "body"],
+    },
+    execute: async (ctx, args) => {
+      const result = await sendExternalEmail(ctx, {
+        connector: String(args.connector) as "gmail" | "outlook",
+        to: Array.isArray(args.to) ? args.to.map(String) : [],
+        cc: Array.isArray(args.cc) ? args.cc.map(String) : undefined,
+        subject: String(args.subject ?? ""),
+        body: String(args.body ?? ""),
+      });
+      return { textForLLM: `Email envoyé. Résultat connecteur : ${JSON.stringify(result).slice(0, 2000)}` };
     },
   },
   // ---- Actions sensibles (human-in-the-loop) ----
