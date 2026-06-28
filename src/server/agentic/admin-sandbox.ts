@@ -58,19 +58,49 @@ function metricTone(value: number, warnAt = 1): SandboxSeverity {
   return value >= warnAt ? "warning" : "ok";
 }
 
+const SANDBOX_AGENT_RUNNERS: { id: SandboxAgentId; name: string; run: () => Promise<SandboxAgentReport> }[] = [
+  { id: "center_audit", name: "Agent Audit Centre", run: runCenterAuditAgent },
+  { id: "documents_qualiopi", name: "Agent Documents & Qualiopi", run: runDocumentsQualiopiAgent },
+  { id: "planning_optimizer", name: "Agent Planning", run: runPlanningOptimizerAgent },
+  { id: "marketplace_readiness", name: "Agent Marketplace Readiness", run: runMarketplaceReadinessAgent },
+  { id: "pedagogical_designer", name: "Agent Concepteur pédagogique", run: runPedagogicalDesignerAgent },
+  { id: "crm_next_actions", name: "Agent CRM Next Actions", run: runCrmNextActionsAgent },
+  { id: "onboarding_center", name: "Agent Onboarding Centre", run: runOnboardingCenterAgent },
+  { id: "finance_network", name: "Agent Finance Réseau", run: runFinanceNetworkAgent },
+];
+
+/** Carte de repli si un agent échoue : un diagnostic indisponible ne doit pas faire planter la page. */
+function sandboxErrorReport(id: SandboxAgentId, name: string, error: unknown): SandboxAgentReport {
+  const message = (error instanceof Error ? error.message : String(error)).split("\n")[0].slice(0, 200);
+  return {
+    id,
+    name,
+    scope: "Diagnostic momentanément indisponible.",
+    mode: "SANDBOX_READ_ONLY",
+    verdict: "warning",
+    generatedAt: new Date().toISOString(),
+    summary: "Cet agent n'a pas pu produire son diagnostic (erreur de lecture des données). Les autres agents restent disponibles.",
+    metrics: [],
+    findings: [{ severity: "warning", title: "Agent indisponible", detail: message }],
+    recommendations: [{ title: "Réessayer le diagnostic", rationale: "L'erreur peut être transitoire (connexion ou charge base de données).", suggestedNextStep: "Recharger la page ; si l'erreur persiste, vérifier la connectivité de la base." }],
+    guardrails: SANDBOX_GUARDRAILS,
+  };
+}
+
 export async function runAdminSandboxAgents(): Promise<SandboxAgentReport[]> {
   await requirePlatformAdmin();
-  const [center, documents, planning, marketplace, pedagogical, crm, onboarding, finance] = await Promise.all([
-    runCenterAuditAgent(),
-    runDocumentsQualiopiAgent(),
-    runPlanningOptimizerAgent(),
-    runMarketplaceReadinessAgent(),
-    runPedagogicalDesignerAgent(),
-    runCrmNextActionsAgent(),
-    runOnboardingCenterAgent(),
-    runFinanceNetworkAgent(),
-  ]);
-  return [center, documents, planning, marketplace, pedagogical, crm, onboarding, finance];
+  // Exécution SÉQUENTIELLE + RÉSILIENTE : borne le nombre de connexions DB concurrentes
+  // (8 agents × N requêtes en parallèle saturaient le pool) et isole les échecs — un agent
+  // qui plante rend une carte « indisponible » au lieu de faire crasher toute la page.
+  const reports: SandboxAgentReport[] = [];
+  for (const agent of SANDBOX_AGENT_RUNNERS) {
+    try {
+      reports.push(await agent.run());
+    } catch (error) {
+      reports.push(sandboxErrorReport(agent.id, agent.name, error));
+    }
+  }
+  return reports;
 }
 
 async function runCenterAuditAgent(): Promise<SandboxAgentReport> {
