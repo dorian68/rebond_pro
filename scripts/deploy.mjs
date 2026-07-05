@@ -235,6 +235,15 @@ if (opts.rollback) {
   remote(`echo "${commit}" > ${CFG.remoteDir}/DEPLOYED_COMMIT`);
   // Prune des vieilles releases (garde les N dernières)
   remote(`cd ${CFG.remoteDir}/releases && ls -1t | tail -n +${CFG.keepReleases + 1} | xargs -r rm -rf`);
+  // Purge Docker — évite la saturation disque du VPS (cache de build + vieux tags de l'app).
+  // Non bloquant : une purge qui échoue ne doit JAMAIS faire échouer un déploiement.
+  // Ne cible QUE les images `${CFG.image}` : les autres applications du serveur ne sont jamais touchées.
+  step("Purge Docker (cache de build + vieilles images de l'app)");
+  const keepTags = [commit, "latest", prevCommit].filter(Boolean).join("|");
+  remote(`docker builder prune -f --keep-storage=3GB 2>/dev/null || docker builder prune -af`, { allowFail: true });
+  remote(`docker images ${CFG.image} --format '{{.Repository}}:{{.Tag}}' | grep -vE ':(${keepTags})$' | xargs -r docker rmi`, { allowFail: true });
+  const disk = remote(`df -h / | awk 'NR==2{print $5" utilisé, "$4" libre"}'`, { capture: true, allowFail: true });
+  ok(`Purge effectuée${disk ? ` — disque : ${disk.trim()}` : ""}`);
   ok(`Déploiement terminé — ${commit} en production`);
   log(`\n${C.grn}${C.bold}✓ ${CFG.healthUrl} sert maintenant ${commit}${C.reset}`);
   if (opts.dryRun) log(`\n${C.ylw}(DRY-RUN : rien n'a été exécuté. Relance avec --yes pour déployer réellement.)${C.reset}`);
