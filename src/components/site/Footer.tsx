@@ -96,9 +96,9 @@ const Footer = () => {
             </h5>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { label: "Adresse", value: "49 route de Perinet, Gosier" },
                 { label: "Téléphone", value: "+33 7 83 96 01 92" },
-                { label: "Email", value: "lebonrebond.contact@optiquant-ia.com" },
+                { label: "Email", value: "contact.lebondrebond@gmail.com" },
+                { label: "Consultations", value: "En présentiel ou en visio" },
                 { label: "Horaires", value: "Lun – Ven · 9h – 18h" },
               ].map((item) => (
                 <div key={item.label}>

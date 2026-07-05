@@ -38,8 +38,7 @@ const labelStyle: CSSProperties = {
 
 const PHONE_DISPLAY = "+33 7 83 96 01 92";
 const PHONE_WA = "33783960192";
-const CONTACT_EMAIL = "lebonrebond.contact@optiquant-ia.com";
-const LEAD_EMAILS = "dorian.labry@gmail.com,msuffrin.carra@gmail.com";
+const CONTACT_EMAIL = "contact.lebondrebond@gmail.com";
 
 const WA_MESSAGE = encodeURIComponent(
   "Bonjour, je suis intéressé(e) par vos services de reconversion professionnelle (Le Bon Rebond). Pourriez-vous me recontacter pour en discuter ? Merci !"
@@ -61,7 +60,7 @@ const channels = [
     k: "Par email",
     v: CONTACT_EMAIL,
     s: "Réponse sous 24 à 48h ouvrées.",
-    href: `mailto:${LEAD_EMAILS}?subject=${MAIL_SUBJECT}&body=${MAIL_BODY}`,
+    href: `mailto:${CONTACT_EMAIL}?subject=${MAIL_SUBJECT}&body=${MAIL_BODY}`,
   },
   {
     k: "Centres de formation",
@@ -70,10 +69,10 @@ const channels = [
     href: "/centres",
   },
   {
-    k: "Adresse",
-    v: "49 route de Perinet, Gosier",
-    s: "Guadeloupe (971) — consultations en présentiel ou en visio.",
-    href: `https://maps.google.com/?q=49+route+de+Perinet+Gosier+Guadeloupe`,
+    k: "Modalités",
+    v: "Consultations en présentiel ou en visio",
+    s: "",
+    href: undefined,
   },
 ];
 

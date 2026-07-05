@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
       { label: "Blog et actus", to: "/blog" },
     ],
   },
+  { label: "Contact", to: "/contact" },
 ];
 
 const linkStyle = (active: boolean): React.CSSProperties => ({

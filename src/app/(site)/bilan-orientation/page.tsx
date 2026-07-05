@@ -41,6 +41,20 @@ const METHOD_STEPS = [
   { n: "5", title: "Plan d'action", desc: "Les étapes : vœux, dossiers, échéances." },
 ];
 
+const STAGE_FEATURES = [
+  { title: "Cours particuliers en tête-à-tête", sub: "Un accompagnement individuel, au rythme de l'élève." },
+  { title: "Initiation à l'intelligence artificielle", sub: "Découvrir et utiliser les outils qui comptent demain." },
+  { title: "Marketing digital", sub: "Comprendre les codes du numérique et de la création." },
+  { title: "De la 4ᵉ à la Terminale", sub: "Collège, lycée, université et classes préparatoires." },
+];
+
+type StagePack = { name: string; price: string; featured?: boolean; note?: string; lines: string[] };
+const STAGE_PACKS: StagePack[] = [
+  { name: "Pack Essentiel", price: "650 €", lines: ["15 h de cours particuliers"] },
+  { name: "Pack Performance", price: "950 €", featured: true, note: "Le plus complet", lines: ["12 h de cours particuliers", "3 h d'IA & Marketing digital"] },
+  { name: "Pack Excellence", price: "1 250 €", lines: ["15 h de cours particuliers", "5 h d'IA & Marketing digital"] },
+];
+
 export default function BilanOrientationPage() {
   return (
     <>
@@ -66,8 +80,8 @@ export default function BilanOrientationPage() {
                 <Link href="/contact" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>
                   Prendre rendez-vous <span>→</span>
                 </Link>
-                <Link href="#methode" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "17px 32px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", border: "1.5px solid rgba(21,49,76,.22)", color: "#15314C", textDecoration: "none", background: "transparent", lineHeight: 1 }}>
-                  Voir la démarche
+                <Link href="#stage-intensif" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "17px 32px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", border: "1.5px solid rgba(21,49,76,.22)", color: "#15314C", textDecoration: "none", background: "transparent", lineHeight: 1 }}>
+                  Voir le stage d&apos;été
                 </Link>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 26px", marginTop: 34 }}>
@@ -185,6 +199,89 @@ export default function BilanOrientationPage() {
         </div>
       </section>
 
+      {/* ─── STAGE INTENSIF D'ÉTÉ ─── */}
+      <section style={{ padding: "100px 0" }} id="stage-intensif">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} style={{ maxWidth: 720, marginBottom: 48 }}>
+            <span style={{ display: "inline-block", background: "rgba(44,142,134,.12)", color: "#23756e", fontWeight: 700, fontSize: ".8rem", letterSpacing: ".14em", textTransform: "uppercase" as const, padding: "6px 14px", borderRadius: 100, marginBottom: 18 }}>
+              Stage intensif · Juillet &amp; Août
+            </span>
+            <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2rem,3.6vw,2.9rem)", fontWeight: 400, color: "#15314C", letterSpacing: "-.025em", margin: 0 }}>
+              Un été pour <em style={{ fontStyle: "italic", color: "#2C8E86" }}>préparer la rentrée</em>, encadré par des ingénieurs.
+            </h2>
+            <p style={{ fontSize: "1.15rem", color: "#5d6f7c", lineHeight: 1.65, marginTop: 16 }}>
+              Collégiens, lycéens et étudiants : reprenez de l&apos;avance avec des cours particuliers, une initiation à l&apos;IA et au marketing digital — de la 4ᵉ aux classes préparatoires.
+            </p>
+          </motion.div>
+
+          {/* Atouts */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 56 }} className="bo-stage-features">
+            {STAGE_FEATURES.map((f, i) => (
+              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}
+                style={{ background: "#F3E9D7", borderRadius: 16, padding: "24px 22px" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(44,142,134,.14)", color: "#2C8E86", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.2rem", marginBottom: 14 }}>
+                  {i + 1}
+                </div>
+                <div style={{ fontSize: "1rem", fontWeight: 700, color: "#15314C", lineHeight: 1.35 }}>{f.title}</div>
+                <div style={{ fontSize: ".9rem", color: "#5d6f7c", marginTop: 7, lineHeight: 1.55 }}>{f.sub}</div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Formules */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "start" }} className="bo-stage-packs">
+            {STAGE_PACKS.map((p, i) => (
+              <motion.div key={p.name} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i} variants={fadeUp}
+                style={{
+                  position: "relative",
+                  background: "#fff",
+                  border: p.featured ? "1.5px solid rgba(44,142,134,.55)" : "1px solid rgba(21,49,76,.1)",
+                  borderRadius: 22,
+                  overflow: "hidden",
+                  boxShadow: p.featured ? "0 22px 50px -34px rgba(44,142,134,.42)" : "0 4px 20px -12px rgba(14,36,56,.1)",
+                }}>
+                {/* Filet supérieur — accent teal pour la formule mise en avant, neutre sinon */}
+                <div style={{ height: 3, background: p.featured ? "#2C8E86" : "rgba(21,49,76,.12)" }} />
+                <div style={{ padding: "34px 30px 32px" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase" as const, fontSize: ".78rem", color: p.featured ? "#23756e" : "#5d6f7c" }}>
+                      {p.name}
+                    </span>
+                    {p.note && (
+                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" as const, fontSize: ".66rem", color: "#23756e", background: "rgba(44,142,134,.1)", padding: "3px 9px", borderRadius: 100 }}>
+                        {p.note}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "3rem", fontWeight: 400, color: "#15314C", lineHeight: 1 }}>{p.price}</div>
+                  <div style={{ height: 1, background: "rgba(21,49,76,.1)", margin: "24px 0" }} />
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+                    {p.lines.map((l) => (
+                      <li key={l} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                        <span aria-hidden style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(95,177,78,.14)", color: "#4a9c3c", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: ".72rem", fontWeight: 800, flexShrink: 0, marginTop: 2 }}>✓</span>
+                        <span style={{ fontSize: "1rem", color: "#1b2b38", fontWeight: 600, lineHeight: 1.45 }}>{l}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {p.featured ? (
+                    <Link href="/contact" className="btn-cta" style={{ display: "flex", justifyContent: "center", marginTop: 28, padding: "15px 24px", borderRadius: 100, fontWeight: 700, fontSize: "1rem", textDecoration: "none", lineHeight: 1 }}>
+                      Réserver ce pack
+                    </Link>
+                  ) : (
+                    <Link href="/contact" style={{ display: "flex", justifyContent: "center", marginTop: 28, padding: "15px 24px", borderRadius: 100, fontWeight: 700, fontSize: "1rem", textDecoration: "none", lineHeight: 1, background: "transparent", color: "#15314C", border: "1.5px solid rgba(21,49,76,.22)" }}>
+                      Réserver ce pack
+                    </Link>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          <p style={{ fontSize: ".92rem", color: "#5d6f7c", marginTop: 26, textAlign: "center" }}>
+            Places limitées · Sessions en juillet et août · Nous contacter pour composer un accompagnement sur mesure.
+          </p>
+        </div>
+      </section>
+
       {/* ─── BAND NAVY ─── */}
       <section style={{ position: "relative", overflow: "hidden", background: "#15314C", color: "#fff", textAlign: "center", padding: "96px 0" }}>
         <div style={{ position: "absolute", width: 780, height: 780, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,.10)", left: "50%", top: "50%", transform: "translate(-50%,-46%)", pointerEvents: "none", zIndex: 1 }} />
@@ -231,10 +328,13 @@ export default function BilanOrientationPage() {
           .bo-problem-grid      { grid-template-columns: 1fr !important; }
           .bo-method-head-grid  { grid-template-columns: 1fr !important; }
           .bo-method-row        { grid-template-columns: 1fr 1fr !important; }
+          .bo-stage-features    { grid-template-columns: 1fr 1fr !important; }
+          .bo-stage-packs       { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 640px) {
-          .bo-method-line { display: none !important; }
-          .bo-method-row  { grid-template-columns: 1fr !important; }
+          .bo-method-line     { display: none !important; }
+          .bo-method-row      { grid-template-columns: 1fr !important; }
+          .bo-stage-features  { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </>

@@ -60,8 +60,8 @@ function AgentCard({ report }: { report: SandboxAgentReport }) {
             </div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
-              {report.findings.map((finding) => (
-                <div key={`${finding.title}-${finding.detail}`} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+              {report.findings.map((finding, fi) => (
+                <div key={`${finding.title}-${finding.detail}-${fi}`} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <span className={"badge " + BADGE_CLASS[finding.severity]}>{VERDICT_LABEL[finding.severity]}</span>
                     <strong style={{ fontSize: 13.5 }}>{finding.title}</strong>
@@ -69,7 +69,7 @@ function AgentCard({ report }: { report: SandboxAgentReport }) {
                   <p className="muted-3" style={{ fontSize: 13 }}>{finding.detail}</p>
                   {finding.evidence && finding.evidence.length > 0 ? (
                     <ul style={{ marginTop: 8, paddingLeft: 18, color: "var(--ink-3)", fontSize: 12.5 }}>
-                      {finding.evidence.map((e) => <li key={e}>{e}</li>)}
+                      {finding.evidence.map((e, ei) => <li key={`${e}-${ei}`}>{e}</li>)}
                     </ul>
                   ) : null}
                 </div>
