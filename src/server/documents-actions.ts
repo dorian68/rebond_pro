@@ -136,6 +136,17 @@ async function auditDocumentEvent(ctx: TenantContext, action: string, entityId: 
   });
 }
 
+// Un document valide (zip DOCX ou PDF) pèse au minimum quelques centaines d'octets ;
+// le plus petit rendu réel observé est ~3 Ko. Ce plancher détecte les rendus vides/tronqués
+// sans jamais rejeter un document légitime.
+const MIN_DOCUMENT_BYTES = 512;
+const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]); // "PK\x03\x04"
+
+/** Un buffer commence-t-il par la signature d'un zip (conteneur DOCX) ? */
+function looksLikeDocx(buf: Buffer): boolean {
+  return buf.length >= 4 && buf.subarray(0, 4).equals(ZIP_MAGIC);
+}
+
 async function renderDocument(
   preflight: DocumentPreflight,
   data: DocData,
@@ -145,8 +156,17 @@ async function renderDocument(
   if (preflight.template.engine === "DOCX" && preflight.template.sourceFileUrl) {
     try {
       const source = await readFile(preflight.template.sourceFileUrl);
+      // Un modèle tronqué/vide (aléa storage US) doit basculer sur le PDF, jamais
+      // produire un DOCX corrompu ou de 0 octet.
+      if (!looksLikeDocx(source)) {
+        throw new Error(`Modèle DOCX invalide ou tronqué (${source.length} octets)`);
+      }
+      const buffer = renderDocxTemplate(source, dataForRender, { values, missingVariableStrategy: "readable_placeholder" });
+      if (!looksLikeDocx(buffer) || buffer.length < MIN_DOCUMENT_BYTES) {
+        throw new Error(`Rendu DOCX vide ou invalide (${buffer.length} octets)`);
+      }
       return {
-        buffer: renderDocxTemplate(source, dataForRender, { values, missingVariableStrategy: "readable_placeholder" }),
+        buffer,
         extension: "docx",
         mimeType: DOCX_MIME,
         templateId: preflight.template.id,
@@ -179,6 +199,11 @@ async function persistDoc(
 ) {
   const preflight = await getDocumentGenerationPreflight({ ctx, type, sessionId: ids.sessionId, enrollmentId: ids.enrollmentId, templateId, manualOverrides });
   const rendered = await renderDocument(preflight, data);
+  // Invariant : on ne persiste jamais un document vide/tronqué. Sans cette garde,
+  // un rendu de 0 octet était enregistré comme "GENERE" et servi tel quel au client.
+  if (!rendered.buffer || rendered.buffer.length < MIN_DOCUMENT_BYTES) {
+    throw new Error(`Document ${type} généré vide (${rendered.buffer?.length ?? 0} octets) — génération annulée.`);
+  }
   const fileId = randomUUID();
   const fileName = `${type.toLowerCase()}-${fileId}.${rendered.extension}`;
   const key = `documents/${ctx.organizationId}/${fileName}`;

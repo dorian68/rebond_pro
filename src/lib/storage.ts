@@ -82,22 +82,52 @@ export async function uploadPublicImage(key: string, data: Buffer, contentType: 
 
 // ── Supabase Storage REST helpers ─────────────────────────────────
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function supabaseUpload(key: string, data: Buffer | Uint8Array): Promise<void> {
   const url = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${key}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/octet-stream", "x-upsert": "true" },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    body: data as any,
-  });
-  if (!res.ok) throw new Error(`Supabase storage upload failed: ${res.status} ${await res.text()}`);
+  // Le storage est en région US : un aléa réseau ne doit pas produire un objet
+  // partiel/absent. On réessaie sur échec transitoire.
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/octet-stream", "x-upsert": "true" },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        body: data as any,
+      });
+      if (!res.ok) throw new Error(`Supabase storage upload failed: ${res.status} ${await res.text()}`);
+      return;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await sleep(200 * (attempt + 1));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Supabase storage upload failed");
 }
 
 async function supabaseDownload(key: string): Promise<Buffer> {
   const url = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${key}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } });
-  if (!res.ok) throw new Error(`Supabase storage download failed: ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` }, cache: "no-store" });
+      if (!res.ok) throw new Error(`Supabase storage download failed: ${res.status}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      // Garde cohérence-éventuelle : un objet fraîchement écrit peut transitoirement
+      // répondre 200 avec un corps vide. On réessaie plutôt que de servir 0 octet.
+      if (buf.length === 0 && attempt < 2) {
+        await sleep(200 * (attempt + 1));
+        continue;
+      }
+      return buf;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await sleep(200 * (attempt + 1));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Supabase storage download failed");
 }
 
 async function supabaseDelete(key: string): Promise<void> {
