@@ -206,7 +206,7 @@ export default function BilanOrientationPage() {
                 Notre méthode propriétaire
               </span>
               <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2rem,3.6vw,2.9rem)", fontWeight: 400, color: "#15314C", letterSpacing: "-.025em", margin: 0 }}>
-                La méthode <em style={{ fontStyle: "italic", color: "#2C8E86" }}>Rebond Clarté,</em>{" "}
+                La méthode <em style={{ fontStyle: "italic", color: "#2C8E86" }}>Rebond,</em>{" "}
                 version jeunes
               </h2>
             </motion.div>
