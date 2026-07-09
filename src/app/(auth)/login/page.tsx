@@ -1,11 +1,13 @@
 import { LoginForm } from "./login-form";
+import { isGoogleOAuthConfigured } from "@/server/google-oauth-core";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verified?: string; verification?: string; reset?: string; space?: string; next?: string }>;
+  searchParams: Promise<{ verified?: string; verification?: string; reset?: string; space?: string; next?: string; oauth?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const googleEnabled = isGoogleOAuthConfigured();
 
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -40,8 +42,23 @@ export default async function LoginPage({
           Lien invalide ou expiré. Renvoyez un lien depuis l&apos;écran de confirmation.
         </div>
       )}
+      {params.oauth === "email_unverified" && (
+        <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600, marginBottom: 14 }}>
+          Google n&apos;a pas confirmé cette adresse email. Utilisez une adresse vérifiée.
+        </div>
+      )}
+      {params.oauth === "admin_denied" && (
+        <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600, marginBottom: 14 }}>
+          Ce compte Google n&apos;est pas autorisé pour l&apos;administration plateforme.
+        </div>
+      )}
+      {(params.oauth === "no_membership" || params.error === "AccessDenied") && (
+        <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600, marginBottom: 14 }}>
+          Aucun espace actif n&apos;est rattaché à ce compte.
+        </div>
+      )}
 
-      <LoginForm next={params.next} />
+      <LoginForm next={params.next} googleEnabled={googleEnabled} />
     </div>
   );
 }

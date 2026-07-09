@@ -4,7 +4,7 @@ _Dernière mise à jour : 11 juin 2026 (passe Technical RL — fiabilité DB). B
 
 | Area | Verdict | Evidence / blocker |
 |---|---|---|
-| Authentication | YES (cœur) | Auth.js credentials + vérification email réelle (jeton haché). **Reset mot de passe** (jeton haché 30 min, à usage unique) et **anti-bruteforce** (verrouillage 15 min après 5 échecs) livrés et testés (`smoke:password-reset`). `DEV_AUTOLOGIN` neutralisé en production. Restant : 2FA optionnelle. |
+| Authentication | YES (cœur), PARTIAL (Google credentials) | Auth.js credentials + vérification email réelle (jeton haché). **Google OAuth livré** pour connexion et création de compte centre : email Google vérifié obligatoire, contexte d'inscription signé, pas de création silencieuse depuis login, trial centre OWNER. Testé `smoke:google-oauth` + `smoke:business-google-oauth`. **Reset mot de passe** (jeton haché 30 min, à usage unique) et **anti-bruteforce** (verrouillage 15 min après 5 échecs) livrés et testés (`smoke:password-reset`). `DEV_AUTOLOGIN` neutralisé en production. À configurer : `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` et redirect URI `/api/auth/callback/google`. Restant : 2FA optionnelle. |
 | Authorization | YES (cœur) | Rôles appliqués sur mutations (server actions + outils agent). **Isolation cross-tenant vérifiée par `smoke:tenant`** : lecture/recherche scopées, écriture et suppression cross-tenant bloquées. |
 | Secrets redaction | YES | `.env*` ignorés, exemples sans secrets, smoke sans secrets, logs sans tokens. |
 | Environment variables | YES | `env.ts` valide via **Zod** `DATABASE_URL` (format postgres) et `AUTH_SECRET` (≥16) au démarrage (throw en prod) + garde `DEV_AUTOLOGIN`. `.env.example` à jour (Supabase). |

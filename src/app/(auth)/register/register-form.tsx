@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useActionState } from "react";
 import Link from "next/link";
-import { registerAction, type ActionState } from "@/server/auth-actions";
+import { googleOAuthAction, registerAction, type ActionState } from "@/server/auth-actions";
 
 const fieldStyle: React.CSSProperties = {
   width: "100%",
@@ -46,10 +46,38 @@ const pillActive: React.CSSProperties = {
   borderColor: "#15314C",
 };
 
-export function RegisterForm() {
+const googleButtonStyle: React.CSSProperties = {
+  width: "100%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 12,
+  padding: "15px 20px",
+  borderRadius: 100,
+  border: "1.5px solid rgba(21,49,76,.18)",
+  background: "#fff",
+  color: "#15314C",
+  fontWeight: 800,
+  fontSize: "1rem",
+  cursor: "pointer",
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+};
+
+type RegisterAudience = "centre" | "particulier";
+
+export function RegisterForm({
+  googleEnabled,
+  initialAudience = "particulier",
+  oauthNotice,
+}: {
+  googleEnabled: boolean;
+  initialAudience?: RegisterAudience;
+  oauthNotice?: string | null;
+}) {
   // Défaut « particulier » (maquette) ; /register#centre pré-sélectionne le centre.
-  const [audience, setAudience] = useState<"centre" | "particulier">("particulier");
+  const [audience, setAudience] = useState<RegisterAudience>(initialAudience);
   const [state, action, pending] = useActionState<ActionState, FormData>(registerAction, undefined);
+  const [googleState, googleAction, googlePending] = useActionState<ActionState, FormData>(googleOAuthAction, undefined);
 
   useEffect(() => {
     const sync = () => {
@@ -102,6 +130,12 @@ export function RegisterForm() {
       ) : (
         /* Formulaire centre de formation */
         <form action={action} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {oauthNotice && (
+            <div style={{ background: "rgba(224,124,57,.10)", border: "1px solid rgba(224,124,57,.28)", borderRadius: 12, padding: "12px 16px", color: "#9b5526", fontSize: ".9rem", fontWeight: 600 }}>
+              {oauthNotice}
+            </div>
+          )}
+          <input type="hidden" name="intent" value="register_center" />
           <div>
             <label htmlFor="centerName" style={labelStyle}>Nom du centre de formation</label>
             <input
@@ -179,6 +213,43 @@ export function RegisterForm() {
             <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600 }}>
               {state.error}
             </div>
+          )}
+          {googleState?.error && (
+            <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600 }}>
+              {googleState.error}
+            </div>
+          )}
+
+          {googleEnabled && (
+            <>
+              <button
+                type="submit"
+                formAction={googleAction}
+                formNoValidate
+                disabled={googlePending || pending}
+                style={{ ...googleButtonStyle, cursor: googlePending || pending ? "not-allowed" : "pointer", opacity: googlePending || pending ? .72 : 1 }}
+              >
+                <span style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid rgba(21,49,76,.16)",
+                  color: "#1a73e8",
+                  fontWeight: 900,
+                  fontSize: 15,
+                  flex: "none",
+                }}>G</span>
+                {googlePending ? "Ouverture Google…" : "Créer mon compte centre avec Google"}
+              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#85939d", fontSize: ".86rem", fontWeight: 700 }}>
+                <span style={{ height: 1, flex: 1, background: "rgba(21,49,76,.12)" }} />
+                ou avec email
+                <span style={{ height: 1, flex: 1, background: "rgba(21,49,76,.12)" }} />
+              </div>
+            </>
           )}
 
           <button

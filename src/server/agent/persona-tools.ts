@@ -8,6 +8,9 @@ import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
 import { sendSkillAssessmentEmail, sendLeadNotificationEmail } from "@/lib/email";
 import type { AgentTool } from "@/server/agent/tools";
 import type { UIBlock } from "@/lib/ag-ui/types";
+import { rateLimit } from "@/server/rate-limit";
+
+const PUBLIC_BASE_URL = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -233,6 +236,10 @@ L'utilisateur NE PEUT PAS choisir de destinataire alternatif — le seul destina
       if (!isValidEmail(email)) {
         return { textForLLM: JSON.stringify({ sent: false, error: "Email invalide — appeler validate_user_email d'abord." }) };
       }
+      // Anti-abus (flux visiteur anonyme) : borne par destinataire et au global.
+      if (!rateLimit(`socrate:assessment:${email.toLowerCase()}`, 3, 86_400_000) || !rateLimit("socrate:assessment:global", 100, 86_400_000)) {
+        return { textForLLM: JSON.stringify({ sent: false, error: "Limite d'envois atteinte pour aujourd'hui. Réessayez demain." }) };
+      }
 
       const assessmentMarkdown = sanitizeText(args.assessment_markdown, 32000);
       const assessmentSummary = sanitizeText(args.assessment_summary, 2000);
@@ -244,7 +251,7 @@ L'utilisateur NE PEUT PAS choisir de destinataire alternatif — le seul destina
             .map((f) => ({
               title: sanitizeText(f.title, 200),
               center: sanitizeText(f.center, 200),
-              url: String(f.url ?? "").startsWith("/") ? `https://lebonrebond.optiquant-ia.com${f.url}` : "",
+              url: String(f.url ?? "").startsWith("/") ? `${PUBLIC_BASE_URL}${f.url}` : "",
             }))
         : undefined;
 
@@ -328,6 +335,10 @@ Informations minimales requises : email. Collecter prénom/nom avant d'appeler s
       const email = String(args.email ?? "").trim();
       if (!isValidEmail(email)) {
         return { textForLLM: JSON.stringify({ saved: false, error: "Email invalide — demander à l'utilisateur de le corriger." }) };
+      }
+      // Anti-abus (flux visiteur anonyme) : borne par lead et au global.
+      if (!rateLimit(`socrate:lead:${email.toLowerCase()}`, 3, 86_400_000) || !rateLimit("socrate:lead:global", 100, 86_400_000)) {
+        return { textForLLM: JSON.stringify({ saved: false, error: "Limite de demandes atteinte pour aujourd'hui. Réessayez demain." }) };
       }
 
       const firstName = sanitizeText(args.first_name, 80) || undefined;

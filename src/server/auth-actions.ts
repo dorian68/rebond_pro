@@ -7,6 +7,9 @@ import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { brandedEmail, sendEmail } from "@/lib/email";
 import { createRegistration, issueVerificationToken } from "@/server/registration";
+import { isGoogleOAuthConfigured } from "@/server/google-oauth-core";
+import { setGoogleOAuthContext } from "@/server/google-oauth-context";
+import { safeRelativePath } from "@/server/auth-routing";
 
 export type ActionState = { error?: string; ok?: boolean } | undefined;
 
@@ -83,6 +86,63 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
       return { error: "Identifiants incorrects." };
     }
     throw e; // NEXT_REDIRECT doit se propager
+  }
+  return { ok: true };
+}
+
+const googleOAuthSchema = z.object({
+  intent: z.enum(["login", "register_center"]),
+  centerName: z.string().optional(),
+  terms: z.string().optional(),
+  remember: z.boolean(),
+  space: z.enum(["client", "centre", "admin"]).optional(),
+  next: z.string().optional(),
+});
+
+export async function googleOAuthAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (!isGoogleOAuthConfigured()) {
+    return { error: "Connexion Google non configurée sur cet environnement." };
+  }
+
+  const parsed = googleOAuthSchema.safeParse({
+    intent: formData.get("intent"),
+    centerName: typeof formData.get("centerName") === "string" ? formData.get("centerName") : undefined,
+    terms: typeof formData.get("terms") === "string" ? formData.get("terms") : undefined,
+    remember: formData.get("remember") === "on",
+    space: formData.get("space") || undefined,
+    next: formData.get("next") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Demande Google invalide." };
+
+  const { intent, space, remember } = parsed.data;
+  const next = safeRelativePath(parsed.data.next) ?? undefined;
+  const centerName = parsed.data.centerName?.trim();
+  if (intent === "register_center") {
+    if (!centerName || centerName.length < 2) return { error: "Le nom du centre est requis pour créer le compte avec Google." };
+    if (parsed.data.terms !== "on") return { error: "Vous devez accepter les conditions d'utilisation." };
+  }
+
+  await setGoogleOAuthContext({
+    intent,
+    centerName: intent === "register_center" ? centerName : undefined,
+    space,
+    next,
+    remember,
+    issuedAt: Date.now(),
+  });
+
+  const completionParams = new URLSearchParams();
+  if (space) completionParams.set("space", space);
+  if (next) completionParams.set("next", next);
+  const redirectTo = `/oauth/complete${completionParams.size ? `?${completionParams.toString()}` : ""}`;
+
+  try {
+    await signIn("google", { redirectTo }, { prompt: "select_account" });
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return { error: "Connexion Google impossible. Vérifiez la configuration OAuth." };
+    }
+    throw e;
   }
   return { ok: true };
 }

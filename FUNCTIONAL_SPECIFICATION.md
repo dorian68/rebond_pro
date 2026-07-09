@@ -93,11 +93,11 @@ Les données de démonstration sont optionnelles, modifiables et annoncées. Auc
 
 ## 15. Authentication and permissions
 
-Auth.js credentials, session JWT et membership tenant. Un compte doit confirmer son email via un jeton haché expirant avant de pouvoir se connecter.
+Auth.js credentials + Google OAuth, session JWT et membership tenant. Un compte credentials doit confirmer son email via un jeton haché expirant avant de pouvoir se connecter. Un compte Google est accepté uniquement si Google retourne `email_verified=true`. La connexion Google ne crée pas silencieusement de centre : la création d'un nouveau compte centre par Google exige une intention d'inscription explicite, le nom du centre et l'acceptation des CGU.
 
 ## 16. CLI-testability requirements
 
-`npm run smoke:health`, `smoke:lot5`, `smoke:auth`, `smoke:registration`, `smoke:crud`, `smoke:agent`, `smoke:marketplace`, `smoke:tenant`, `smoke:password-reset`, `smoke:dedup`, `smoke:billing`, `smoke:quota`, `smoke:trainer-portal`, `smoke:beneficiary`, `smoke:platform`, `smoke:persona`, `smoke:connectors`, `smoke:finance`, `smoke:business`, `smoke:business-marketplace`, `smoke:all`, `npm run lint`, `npm run build`, `npm run smoke:production`. Voir `CLI_TESTABILITY_CONTRACT.md`.
+`npm run smoke:health`, `smoke:lot5`, `smoke:auth`, `smoke:google-oauth`, `smoke:registration`, `smoke:crud`, `smoke:agent`, `smoke:marketplace`, `smoke:tenant`, `smoke:password-reset`, `smoke:dedup`, `smoke:billing`, `smoke:quota`, `smoke:trainer-portal`, `smoke:beneficiary`, `smoke:platform`, `smoke:persona`, `smoke:connectors`, `smoke:finance`, `smoke:business`, `smoke:business-marketplace`, `smoke:business-google-oauth`, `smoke:all`, `npm run lint`, `npm run build`, `npm run smoke:production`. Voir `CLI_TESTABILITY_CONTRACT.md`.
 
 ## 17. Acceptance criteria
 

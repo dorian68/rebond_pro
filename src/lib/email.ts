@@ -1,6 +1,8 @@
 import "server-only";
 import nodemailer from "nodemailer";
 
+const PUBLIC_BASE_URL = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
 // Adapter email : SMTP (Mailpit en dev, Resend/Postmark en prod via SMTP).
 let transporter: nodemailer.Transporter | null = null;
 
@@ -107,8 +109,8 @@ export async function sendSkillAssessmentEmail(opts: {
        <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
        ${fileNote}
        <p style="margin-top:16px">Ce bilan est une première orientation. Pour un accompagnement complet et officiel, nous vous invitons à prendre rendez-vous avec l'un de nos conseillers.</p>
-       <p><a href="https://lebonrebond.optiquant-ia.com/contact" style="display:inline-block;background:linear-gradient(135deg,#2f9488,#2469a6);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">Prendre rendez-vous</a></p>
-       <p style="font-size:12px;color:#aaa;margin-top:24px">Cet email vous a été envoyé car vous avez demandé votre bilan sur lebonrebond.optiquant-ia.com. Aucun démarchage commercial.</p>`,
+       <p><a href="${PUBLIC_BASE_URL}/contact" style="display:inline-block;background:linear-gradient(135deg,#2f9488,#2469a6);color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">Prendre rendez-vous</a></p>
+       <p style="font-size:12px;color:#aaa;margin-top:24px">Cet email vous a été envoyé car vous avez demandé votre bilan sur ${PUBLIC_BASE_URL.replace(/^https?:\/\//, "")}. Aucun démarchage commercial.</p>`,
     ),
     text: [
       greeting,
@@ -119,7 +121,7 @@ export async function sendSkillAssessmentEmail(opts: {
       opts.recommendedFormations?.length
         ? "\nFormations recommandées :\n" + opts.recommendedFormations.map((f) => `- ${f.title} (${f.center})`).join("\n")
         : "",
-      "\nPour un accompagnement complet, rendez-vous sur : https://lebonrebond.optiquant-ia.com/contact",
+      `\nPour un accompagnement complet, rendez-vous sur : ${PUBLIC_BASE_URL}/contact`,
     ]
       .filter(Boolean)
       .join("\n"),

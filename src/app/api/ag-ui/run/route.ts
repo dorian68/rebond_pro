@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { getSession } from "@/lib/tenant";
+import { getSession, tenantContextFromSession } from "@/lib/tenant";
 import type { TenantContext } from "@/lib/tenant";
-import type { Role } from "@prisma/client";
 import type { AGUIEvent, RunAgentInput } from "@/lib/ag-ui/types";
 import { runAgent } from "@/server/agent/runtime";
 import { resolvePersona } from "@/lib/ag-ui/persona";
 import { isPlatformAdmin } from "@/lib/platform";
+import { rateLimit, clientIp } from "@/server/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,18 +50,31 @@ const inputSchema = z.object({
 export async function POST(req: Request) {
   const session = await getSession();
   const hasSession = Boolean(session?.user?.id);
+  const tenantCtx = hasSession ? await tenantContextFromSession(session) : null;
+  const platformAdmin = hasSession ? await isPlatformAdmin() : false;
+
+  if (hasSession && !tenantCtx && !platformAdmin) {
+    return new Response(JSON.stringify({ error: "no_active_membership", detail: "Aucun espace actif n'est rattaché à ce compte." }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Anti-abus : le flux visiteur (anonyme) déclenche des appels LLM facturés,
+  // sans quota de plan — on borne par IP (les personas connectés ont enforceQuota).
+  if (!hasSession) {
+    const ip = clientIp(req);
+    if (!rateLimit(`agui:min:${ip}`, 8, 60_000) || !rateLimit(`agui:hour:${ip}`, 40, 3_600_000)) {
+      return new Response(JSON.stringify({ error: "rate_limited", detail: "Trop de requêtes. Réessayez dans quelques minutes." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+  }
 
   // Contexte : tenant si connecté, sinon contexte PUBLIC (visiteur) sans organisation.
-  const ctx: TenantContext = hasSession
-    ? {
-        userId: session!.user.id,
-        email: session!.user.email ?? null,
-        name: session!.user.name ?? null,
-        organizationId: session!.user.organizationId ?? "",
-        organizationName: session!.user.organizationName ?? null,
-        organizationSlug: session!.user.organizationSlug ?? null,
-        role: (session!.user.role as Role) ?? "ASSISTANT",
-      }
+  const ctx: TenantContext = tenantCtx
+    ? tenantCtx
     : { userId: "", email: null, name: null, organizationId: "", organizationName: null, organizationSlug: null, role: "LEARNER" };
 
   let raw: unknown;
@@ -86,7 +99,6 @@ export async function POST(req: Request) {
   };
 
   // Persona = rôle + page courante (sécurité : périmètre d'outils côté serveur).
-  const platformAdmin = hasSession ? await isPlatformAdmin() : false;
   const persona = resolvePersona({ hasSession, role: ctx.role, pathname: input.state?.pathname, isPlatformAdmin: platformAdmin });
 
   const encoder = new TextEncoder();

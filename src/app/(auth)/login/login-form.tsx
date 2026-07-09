@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { loginAction, type ActionState } from "@/server/auth-actions";
+import { googleOAuthAction, loginAction, type ActionState } from "@/server/auth-actions";
 import { useAuthSpace, SPACE_COPY } from "../auth-space";
 
 const fieldStyle: React.CSSProperties = {
@@ -47,10 +47,42 @@ const pillActive: React.CSSProperties = {
   borderColor: "#15314C",
 };
 
-export function LoginForm({ next }: { next?: string }) {
+const googleButtonStyle: React.CSSProperties = {
+  width: "100%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 12,
+  padding: "15px 20px",
+  borderRadius: 100,
+  border: "1.5px solid rgba(21,49,76,.18)",
+  background: "#fff",
+  color: "#15314C",
+  fontWeight: 800,
+  fontSize: "1rem",
+  cursor: "pointer",
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+};
+
+const googleMarkStyle: React.CSSProperties = {
+  width: 24,
+  height: 24,
+  borderRadius: "50%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: "1px solid rgba(21,49,76,.16)",
+  color: "#1a73e8",
+  fontWeight: 900,
+  fontSize: 15,
+  flex: "none",
+};
+
+export function LoginForm({ next, googleEnabled }: { next?: string; googleEnabled: boolean }) {
   const { space, setSpace } = useAuthSpace();
   const copy = SPACE_COPY[space];
   const [state, action, pending] = useActionState<ActionState, FormData>(loginAction, undefined);
+  const [googleState, googleAction, googlePending] = useActionState<ActionState, FormData>(googleOAuthAction, undefined);
 
   return (
     <div>
@@ -70,6 +102,32 @@ export function LoginForm({ next }: { next?: string }) {
       <form action={action} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <input type="hidden" name="space" value={space} />
         <input type="hidden" name="next" value={next ?? ""} />
+        <input type="hidden" name="intent" value="login" />
+
+        {googleEnabled && (
+          <>
+            <button
+              type="submit"
+              formAction={googleAction}
+              formNoValidate
+              disabled={googlePending || pending}
+              style={{ ...googleButtonStyle, cursor: googlePending || pending ? "not-allowed" : "pointer", opacity: googlePending || pending ? .72 : 1 }}
+            >
+              <span style={googleMarkStyle}>G</span>
+              {googlePending ? "Connexion Google…" : "Continuer avec Google"}
+            </button>
+            {googleState?.error && (
+              <div style={{ background: "rgba(220,81,71,.08)", border: "1px solid rgba(220,81,71,.25)", borderRadius: 12, padding: "12px 16px", color: "#c43d34", fontSize: ".9rem", fontWeight: 600 }}>
+                {googleState.error}
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#85939d", fontSize: ".86rem", fontWeight: 700 }}>
+              <span style={{ height: 1, flex: 1, background: "rgba(21,49,76,.12)" }} />
+              ou avec email
+              <span style={{ height: 1, flex: 1, background: "rgba(21,49,76,.12)" }} />
+            </div>
+          </>
+        )}
 
         <div>
           <label htmlFor="email" style={labelStyle}>{copy.emailLabel}</label>

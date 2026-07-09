@@ -39,6 +39,7 @@
     "smoke:tenant": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-tenant.ts",
     "smoke:password-reset": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-password-reset.ts",
     "smoke:health": "tsx scripts/smoke-health.ts",
+    "smoke:google-oauth": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-google-oauth.ts",
     "smoke:dedup": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-dedup.ts",
     "smoke:billing": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-billing.ts",
     "smoke:quota": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-quota.ts",
@@ -58,10 +59,11 @@
     "smoke:public-purchase": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-public-purchase.ts",
     "smoke:business": "node scripts/smoke-business-lot5.mjs",
     "smoke:business-marketplace": "node scripts/smoke-business-marketplace.mjs",
+    "smoke:business-google-oauth": "node scripts/smoke-business-google-oauth.mjs",
     "smoke:ui": "node scripts/smoke-ui.mjs",
     "smoke:agui-e2e": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-agui-e2e.ts",
     "smoke:e2e": "npm run smoke:ui && npm run smoke:agui-e2e",
-    "smoke:all": "npm run smoke:health && npm run smoke:lot5 && npm run smoke:auth && npm run smoke:registration && npm run smoke:crud && npm run smoke:agent && npm run smoke:marketplace && npm run smoke:tenant && npm run smoke:password-reset && npm run smoke:dedup && npm run smoke:billing && npm run smoke:quota && npm run smoke:trainer-portal && npm run smoke:beneficiary && npm run smoke:platform && npm run smoke:persona && npm run smoke:finance && npm run smoke:public-purchase && npm run smoke:business && npm run smoke:business-marketplace",
+    "smoke:all": "npm run smoke:health && npm run smoke:lot5 && npm run smoke:auth && npm run smoke:google-oauth && npm run smoke:registration && npm run smoke:crud && npm run smoke:agent && npm run smoke:marketplace && npm run smoke:tenant && npm run smoke:password-reset && npm run smoke:dedup && npm run smoke:billing && npm run smoke:quota && npm run smoke:trainer-portal && npm run smoke:beneficiary && npm run smoke:platform && npm run smoke:persona && npm run smoke:finance && npm run smoke:public-purchase && npm run smoke:business && npm run smoke:business-marketplace && npm run smoke:business-google-oauth",
     "smoke:production": "npm run lint && npm run build"
   },
   "prisma": {

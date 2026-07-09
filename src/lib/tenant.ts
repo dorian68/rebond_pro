@@ -60,12 +60,50 @@ const getActiveMembershipForUser = cache(async (userId: string) => {
 
 /** Session brute (peut être null). Mémoïsée par rendu. */
 export const getSession = cache(async () => {
+  const realSession = await auth();
+  if (realSession?.user?.id) return realSession;
+
   if (process.env.DEV_AUTOLOGIN === "true") {
     const dev = await devAutoSession();
     if (dev) return dev;
   }
-  return auth();
+  return realSession;
 });
+
+export async function tenantContextFromSession(session: Session | null | undefined): Promise<TenantContext | null> {
+  const u = session?.user;
+  if (!u?.id) return null;
+
+  const membership = await getActiveMembershipForUser(u.id);
+  if (!membership) {
+    logger.warn("tenant.no_active_membership", {
+      userId: u.id,
+      tokenOrganizationId: u.organizationId ?? null,
+      tokenRole: u.role ?? null,
+    });
+    return null;
+  }
+
+  if (!u.organizationId || u.organizationId !== membership.organizationId || u.role !== membership.role) {
+    logger.warn("tenant.session_stale_resolved_from_db", {
+      userId: u.id,
+      tokenOrganizationId: u.organizationId ?? null,
+      dbOrganizationId: membership.organizationId,
+      tokenRole: u.role ?? null,
+      dbRole: membership.role,
+    });
+  }
+
+  return {
+    userId: u.id,
+    email: u.email ?? null,
+    name: u.name ?? null,
+    organizationId: membership.organizationId,
+    organizationName: membership.organization.name,
+    organizationSlug: membership.organization.slug,
+    role: membership.role,
+  };
+}
 
 /**
  * Contexte tenant obligatoire. Redirige vers /login si non authentifié,
@@ -76,40 +114,10 @@ export async function requireTenant(): Promise<TenantContext> {
   const session = await getSession();
   if (!session?.user?.id) redirect("/login");
 
-  const u = session.user;
-  const membership = await getActiveMembershipForUser(u.id);
-  if (membership) {
-    if (!u.organizationId || u.organizationId !== membership.organizationId || u.role !== membership.role) {
-      logger.warn("tenant.session_stale_resolved_from_db", {
-        userId: u.id,
-        tokenOrganizationId: u.organizationId ?? null,
-        dbOrganizationId: membership.organizationId,
-        tokenRole: u.role ?? null,
-        dbRole: membership.role,
-      });
-    }
-    return {
-      userId: u.id,
-      email: u.email ?? null,
-      name: u.name ?? null,
-      organizationId: membership.organizationId,
-      organizationName: membership.organization.name,
-      organizationSlug: membership.organization.slug,
-      role: membership.role,
-    };
-  }
+  const ctx = await tenantContextFromSession(session);
+  if (ctx) return ctx;
 
-  if (!u.organizationId) redirect("/login");
-
-  return {
-    userId: u.id,
-    email: u.email ?? null,
-    name: u.name ?? null,
-    organizationId: u.organizationId,
-    organizationName: u.organizationName,
-    organizationSlug: u.organizationSlug,
-    role: (u.role as Role) ?? "ASSISTANT",
-  };
+  redirect("/login?oauth=no_membership");
 }
 
 /** Vérifie que le rôle courant fait partie des rôles autorisés. */

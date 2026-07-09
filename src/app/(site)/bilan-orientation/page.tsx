@@ -1,6 +1,8 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 const fadeUp = {
@@ -10,14 +12,6 @@ const fadeUp = {
     transition: { delay: i * 0.09, duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 };
-
-function ImgSlot({ id, alt }: { id: string; alt: string }) {
-  return (
-    <div data-slot={id} aria-label={alt} style={{ width: "100%", height: "100%", background: "#e7ddca", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>{alt}</span>
-    </div>
-  );
-}
 
 const PAIN_ITEMS = [
   "« Je ne sais pas ce qui me plaît vraiment. »",
@@ -40,6 +34,49 @@ const METHOD_STEPS = [
   { n: "4", title: "Décider", desc: "Un choix d'orientation clair et réaliste." },
   { n: "5", title: "Plan d'action", desc: "Les étapes : vœux, dossiers, échéances." },
 ];
+
+const BILAN_ORIENTATION_PRICING = [
+  {
+    id: "essentiel",
+    tier: "Essentiel",
+    amount: "80 – 120",
+    desc: "Pour clarifier rapidement une question d'orientation.",
+    features: [
+      "Entretien ciblé avec le jeune",
+      "Premiers repères sur ses centres d'intérêt",
+      "Pistes d'études ou de métiers à explorer",
+      "Synthèse courte pour décider la suite",
+    ],
+    featured: false,
+  },
+  {
+    id: "standard",
+    tier: "Standard",
+    amount: "120 – 180",
+    desc: "L'accompagnement équilibré pour choisir avec confiance.",
+    features: [
+      "Exploration des forces et motivations",
+      "Analyse des filières adaptées au profil",
+      "Échange avec les parents si nécessaire",
+      "Plan d'action pour les prochaines démarches",
+    ],
+    featured: true,
+    flag: "Le plus choisi",
+  },
+  {
+    id: "premium",
+    tier: "Premium",
+    amount: "180 – 240",
+    desc: "Pour un accompagnement renforcé avant un choix important.",
+    features: [
+      "Tout le contenu Standard",
+      "Approfondissement des pistes prioritaires",
+      "Préparation des choix Parcoursup ou dossiers",
+      "Suivi complémentaire après la synthèse",
+    ],
+    featured: false,
+  },
+] as const;
 
 const STAGE_FEATURES = [
   { title: "Cours particuliers en tête-à-tête", sub: "Un accompagnement individuel, au rythme de l'élève." },
@@ -95,7 +132,14 @@ export default function BilanOrientationPage() {
             <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} style={{ position: "relative" }}>
               <div style={{ position: "absolute", zIndex: 1, width: "115%", height: "115%", left: "-7%", top: "-7%", borderRadius: "50%", background: "conic-gradient(from 200deg, #5FB14E, #2C8E86 40%, transparent 60%)", opacity: .15, filter: "blur(2px)", pointerEvents: "none" }} />
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 480, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-                <ImgSlot id="bo-hero" alt="Photo — un·e jeune souriant·e, lumineux·se, en pleine réflexion sur son avenir" />
+                <Image
+                  src="/photos/bilan-orientation-student.jpg"
+                  alt="Étudiant travaillant sur ordinateur dans une bibliothèque"
+                  fill
+                  priority
+                  sizes="(max-width:980px) 100vw, 48vw"
+                  style={{ objectFit: "cover", objectPosition: "50% 56%" }}
+                />
               </div>
             </motion.div>
           </div>
@@ -196,6 +240,74 @@ export default function BilanOrientationPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ─── TARIFS BILAN D'ORIENTATION ─── */}
+      <section style={{ background: "#F3E9D7", padding: "100px 0" }} id="formules-orientation">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} style={{ textAlign: "center", maxWidth: 680, margin: "0 auto 60px" }}>
+            <span className="eyebrow" style={{ justifyContent: "center" }}>Nos formules</span>
+            <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2rem,3.6vw,2.9rem)", fontWeight: 400, color: "#15314C", letterSpacing: "-.025em", marginTop: 18 }}>
+              Un format adapté à l&apos;âge, au niveau et au besoin du moment.
+            </h2>
+          </motion.div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, alignItems: "start" }} className="bo-price-grid">
+            {BILAN_ORIENTATION_PRICING.map((plan, i) => (
+              <motion.div key={plan.id} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i * 0.5} variants={fadeUp}
+                style={{
+                  position: "relative" as const,
+                  background: plan.featured ? "#15314C" : "#fff",
+                  border: plan.featured ? "none" : "1.5px solid rgba(21,49,76,.1)",
+                  borderRadius: 24,
+                  padding: plan.featured ? "36px 32px 32px" : "32px",
+                  boxShadow: plan.featured ? "0 24px 60px -20px rgba(14,36,56,.55)" : "0 8px 30px -16px rgba(14,36,56,.15)",
+                  transform: plan.featured ? "scale(1.025)" : "none",
+                } as CSSProperties}>
+                {"flag" in plan && plan.flag && (
+                  <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#E07C39", color: "#fff", fontWeight: 700, fontSize: ".78rem", letterSpacing: ".1em", textTransform: "uppercase" as const, padding: "6px 18px", borderRadius: 100, whiteSpace: "nowrap" as const }}>
+                    {plan.flag}
+                  </span>
+                )}
+                <div style={{ fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase" as const, color: plan.featured ? "#5FB14E" : "#23756e", marginBottom: 12 }}>{plan.tier}</div>
+                <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2.2rem,3.5vw,2.8rem)", fontWeight: 400, color: plan.featured ? "#fff" : "#15314C", lineHeight: 1, marginBottom: 4 }}>
+                  {plan.amount} <span style={{ fontSize: "1.2rem" }}>€</span>
+                </div>
+                <p style={{ fontSize: ".98rem", color: plan.featured ? "rgba(255,255,255,.72)" : "#5d6f7c", lineHeight: 1.55, marginBottom: 24 }}>{plan.desc}</p>
+                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 28px", display: "flex", flexDirection: "column", gap: 11 }}>
+                  {plan.features.map((f) => (
+                    <li key={f} style={{ display: "flex", gap: 12, alignItems: "flex-start", fontSize: ".94rem", color: plan.featured ? "rgba(255,255,255,.88)" : "#3d4e5a", lineHeight: 1.45 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: plan.featured ? "#5FB14E" : "#2C8E86", flexShrink: 0, marginTop: 6 }} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/contact"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "15px 24px",
+                    borderRadius: 100,
+                    fontWeight: 700,
+                    fontSize: ".96rem",
+                    textDecoration: "none",
+                    background: plan.featured ? "#E07C39" : "transparent",
+                    color: plan.featured ? "#fff" : "#15314C",
+                    border: plan.featured ? "none" : "1.5px solid rgba(21,49,76,.22)",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  } as CSSProperties}
+                >
+                  {plan.featured ? "Réserver ce bilan" : "Choisir cette formule"}
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          <p style={{ textAlign: "center", marginTop: 36, fontSize: ".9rem", color: "#85939d", fontStyle: "italic" }}>
+            Tarifs indicatifs, ajustés selon le niveau, la situation et le format d&apos;accompagnement retenu.
+          </p>
         </div>
       </section>
 
@@ -328,6 +440,7 @@ export default function BilanOrientationPage() {
           .bo-problem-grid      { grid-template-columns: 1fr !important; }
           .bo-method-head-grid  { grid-template-columns: 1fr !important; }
           .bo-method-row        { grid-template-columns: 1fr 1fr !important; }
+          .bo-price-grid        { grid-template-columns: 1fr !important; }
           .bo-stage-features    { grid-template-columns: 1fr 1fr !important; }
           .bo-stage-packs       { grid-template-columns: 1fr !important; }
         }
