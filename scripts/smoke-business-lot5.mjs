@@ -21,6 +21,7 @@ const checks = [
 const forbiddenChecks = [
   ["bilan competencies method naming", "src/app/(site)/bilan-de-competences/page.tsx", "Rebond Clarté"],
   ["orientation method naming", "src/app/(site)/bilan-orientation/page.tsx", "Rebond Clarté"],
+  ["orientation method suffix", "src/app/(site)/bilan-orientation/page.tsx", "version jeunes"],
 ];
 
 let failed = 0;
