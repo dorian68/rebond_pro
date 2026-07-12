@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Limiteur de débit en mémoire (fenêtre glissante) — adapté au déploiement
  * mono-instance (un seul conteneur app). Pas de dépendance externe.
@@ -35,6 +37,11 @@ export function rateLimit(key: string, max: number, windowMs: number): boolean {
   w.timestamps.push(now);
   buckets.set(key, w);
   return true;
+}
+
+/** Empreinte stable pour limiter et journaliser sans conserver l'identifiant brut. */
+export function rateLimitFingerprint(value: string): string {
+  return createHash("sha256").update(value.trim().toLowerCase()).digest("hex").slice(0, 24);
 }
 
 /** IP client derrière le reverse proxy (Caddy pose X-Forwarded-For). */

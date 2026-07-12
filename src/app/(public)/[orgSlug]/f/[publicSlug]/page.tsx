@@ -9,6 +9,7 @@ import { BuyFormationButton } from "@/components/public/BuyFormationButton";
 import { getPublicFormation } from "@/server/public-conversion";
 import { formatDateRange, formatMoney } from "@/lib/utils";
 import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
+import { publicFormationPaymentsEnabled } from "@/lib/payment-readiness";
 
 type Params = Promise<{ orgSlug: string; publicSlug: string }>;
 type Search = Promise<{ achat?: string }>;
@@ -46,6 +47,10 @@ export default async function PublicFormationPage({ params, searchParams }: { pa
     : formation.durationHours
       ? `${formation.durationHours} heures`
       : "À préciser";
+  const hasPurchasableSession = formation.sessions.some(
+    (session) => session.status === "OUVERTE" && session._count.enrollments < session.capacity,
+  );
+  const canPurchaseOnline = publicFormationPaymentsEnabled() && formation.price > 0 && hasPurchasableSession;
 
   return (
     <main className="public-page">
@@ -82,7 +87,7 @@ export default async function PublicFormationPage({ params, searchParams }: { pa
               <span><Icon name="euro" size={17} /> {formatMoney(formation.price)}</span>
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              {formation.price > 0 && <BuyFormationButton formationId={formation.id} price={formation.price} />}
+              {canPurchaseOnline && <BuyFormationButton formationId={formation.id} price={formation.price} />}
               <a href="#demande" className="btn btn-secondary btn-lg">Demander une inscription <Icon name="arrow-right" size={17} /></a>
             </div>
           </div>

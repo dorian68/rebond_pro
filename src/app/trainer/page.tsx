@@ -82,7 +82,7 @@ export default async function TrainerHomePage() {
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {upcoming.map((s) => (
-            <TrainerSessionCard key={s.id} session={s} trainerId={trainer.id} />
+            <TrainerSessionCard key={s.id} session={s} />
           ))}
         </div>
       </section>

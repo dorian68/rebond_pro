@@ -3,7 +3,8 @@ import { prisma } from "../src/lib/prisma";
 
 // Insère 10 centres de formation issus du catalogue CARIF/INTERCARIFOREF.
 // Idempotent : identifiés par leur slug préfixé "carif-".
-// Status APPROVED → visibles immédiatement sur la marketplace.
+// Ces fiches restent NON PUBLIQUES tant qu'un administrateur n'a pas vérifié
+// l'identité, le mandat de diffusion et les preuves commerciales du centre.
 
 const PREFIX = "carif-";
 
@@ -152,13 +153,23 @@ const CENTERS = [
 
 async function main() {
   let created = 0;
-  let skipped = 0;
+  let demoted = 0;
 
   for (const c of CENTERS) {
     const existing = await prisma.organization.findUnique({ where: { slug: c.slug } });
     if (existing) {
-      console.log(JSON.stringify({ step: "center_skip", status: "skip", details: { slug: c.slug, reason: "already_exists" } }));
-      skipped++;
+      await prisma.organization.update({
+        where: { id: existing.id },
+        data: {
+          publicProfileEnabled: false,
+          marketplaceStatus: "PENDING",
+          marketplaceReviewedAt: null,
+          marketplaceReviewedBy: null,
+          marketplaceRejectionReason: null,
+        },
+      });
+      console.log(JSON.stringify({ step: "center_demoted", status: "pass", details: { slug: c.slug, reason: "human_review_required" } }));
+      demoted++;
       continue;
     }
 
@@ -175,8 +186,8 @@ async function main() {
         specialties: c.specialties,
         modalities: c.modalities,
         certifications: c.certifications ?? [],
-        publicProfileEnabled: true,
-        marketplaceStatus: "APPROVED",
+        publicProfileEnabled: false,
+        marketplaceStatus: "PENDING",
         plan: "FREE",
       },
     });
@@ -185,7 +196,7 @@ async function main() {
     created++;
   }
 
-  console.log(JSON.stringify({ step: "seed_carif_complete", status: "pass", details: { created, skipped, total: CENTERS.length } }));
+  console.log(JSON.stringify({ step: "seed_carif_complete", status: "pass", details: { created, demoted, total: CENTERS.length } }));
 }
 
 main()

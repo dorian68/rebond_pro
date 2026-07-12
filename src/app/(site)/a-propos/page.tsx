@@ -12,14 +12,6 @@ const fadeUp = {
   }),
 };
 
-function ImgSlot({ id, alt }: { id: string; alt: string }) {
-  return (
-    <div data-slot={id} aria-label={alt} style={{ width: "100%", height: "100%", background: "#e3d7c0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>{alt}</span>
-    </div>
-  );
-}
-
 const VALEURS = [
   { vn: "i.", title: "Clarté", desc: "Parce qu'une personne qui doute a besoin d'un chemin simple, compréhensible et rassurant." },
   { vn: "ii.", title: "Utilité", desc: "Parce qu'une plateforme ne vaut que si elle répond à un vrai problème et apporte une aide concrète." },
@@ -250,7 +242,7 @@ export default function AProposPage() {
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i * 0.3} variants={fadeUp}
                 style={{ paddingTop: 24, borderTop: "2px solid #5FB14E" }}>
                 <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.2rem", color: "rgba(21,49,76,.30)", lineHeight: 1 }}>{v.vn}</span>
-                <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", fontWeight: 500, color: "#15314C", margin: "10px 0" }}>{v.title}</h4>
+                <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", fontWeight: 500, color: "#15314C", margin: "10px 0" }}>{v.title}</h3>
                 <p style={{ fontSize: "1.02rem", color: "#5d6f7c", lineHeight: 1.6, margin: 0 }}>{v.desc}</p>
               </motion.div>
             ))}

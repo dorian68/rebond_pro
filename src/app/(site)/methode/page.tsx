@@ -17,7 +17,7 @@ export default function MethodePage() {
     <>
       <section className="bg-gradient-hero py-20 lg:py-28">
         <div className="container mx-auto px-4 text-center">
-          <Badge className="mb-5 bg-accent/15 text-accent border-accent/30 rounded-full">Notre méthode propriétaire</Badge>
+          <Badge className="mb-5 bg-accent/15 text-[#8E3E17] border-accent/30 rounded-full">Notre méthode propriétaire</Badge>
           <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6">La méthode Rebond Clarté</h1>
           <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
             Une méthode de décision professionnelle en cinq étapes pour passer du doute à une direction puis à l’action.
@@ -34,7 +34,7 @@ export default function MethodePage() {
                   <phase.icon className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-accent">Étape {i + 1}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#8E3E17]">Étape {i + 1}</span>
                   <h2 className="font-display text-2xl font-bold mt-1 mb-2">{phase.title}</h2>
                   <p className="text-muted-foreground leading-relaxed">{phase.text}</p>
                 </div>

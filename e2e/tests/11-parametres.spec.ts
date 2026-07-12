@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fill, expectNoServerError } from '../helpers';
+import { expectNoServerError } from '../helpers';
 
 test.describe('Module 11 — Paramètres', () => {
   test('page loads', async ({ page }) => {

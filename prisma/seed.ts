@@ -42,8 +42,8 @@ async function main() {
       currency: "EUR",
       plan: "PRO",
       billingStatus: "active",
-      marketplaceStatus: "APPROVED",
-      marketplaceReviewedAt: new Date(),
+      publicProfileEnabled: false,
+      marketplaceStatus: "PENDING",
       nbFormationsDeclarees: 4,
       nbFormateursDeclares: 4,
       nbSessionsMois: 6,
@@ -219,8 +219,7 @@ async function main() {
   await prisma.feedback.create({ data: { organizationId: org.id, rating: 5, formationTitle: "Power BI — Tableau de bord", comment: "Excellente pédagogie, exemples concrets." } });
   await prisma.feedback.create({ data: { organizationId: org.id, rating: 4, formationTitle: "Finance d'entreprise", comment: "Très utile pour piloter ma trésorerie." } });
 
-  // --- Pages publiques : témoignages + FAQ pour Power BI ---
-  await prisma.testimonial.create({ data: { organizationId: org.id, formationId: formations.powerbi.id, author: "Sophie R.", role: "Contrôleuse de gestion", content: "J'ai construit mon premier tableau de bord dès la fin de la formation.", rating: 5 } });
+  // --- Page publique : FAQ pour Power BI ---
   await prisma.faq.create({ data: { organizationId: org.id, formationId: formations.powerbi.id, question: "Faut-il connaître Excel ?", answer: "Une pratique de base d'Excel suffit, nous partons des fondamentaux Power BI.", position: 1 } });
   await prisma.faq.create({ data: { organizationId: org.id, formationId: formations.powerbi.id, question: "La formation est-elle finançable ?", answer: "Elle peut entrer dans votre plan de développement des compétences. Contactez-nous.", position: 2 } });
 

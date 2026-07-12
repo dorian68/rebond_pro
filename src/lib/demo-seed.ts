@@ -132,15 +132,4 @@ export async function loadDemoData(organizationId: string): Promise<void> {
   await prisma.complaint.create({ data: { organizationId, subject: "Salle de formation mal climatisée", description: "Session du 12/05 — chaleur excessive, inconfort pour les participants.", status: "EN_COURS" } });
   await prisma.improvementAction.create({ data: { organizationId, title: "Vérifier la climatisation salle Alizé avant chaque session", owner: "Équipe logistique", status: "EN_COURS" } });
 
-  // Témoignages (vitrine marketplace)
-  const testimonials = [
-    { author: "Nathalie R.", role: "Responsable RH, Acme SA", content: "Une formation Excel qui a vraiment changé notre façon de travailler. Claire est une formidable pédagogue.", rating: 5, formationId: excel.id },
-    { author: "Karim B.", role: "Dirigeant, TechStart", content: "Julien a rendu l'IA concrète et applicable dès le lendemain. Bluffant.", rating: 5, formationId: ia.id },
-    { author: "Sophie L.", role: "DAF, AXA Martinique", content: "Enfin une formation finance compréhensible pour mes équipes opérationnelles. Sarah maîtrise son sujet.", rating: 5, formationId: finance.id },
-    { author: "Marc V.", role: "Chef de projet, Transdev", content: "Power BI n'a plus de secret pour nous. Des tableaux de bord pro en 3 jours.", rating: 4, formationId: powerbi.id },
-    { author: "Émilie D.", role: "Assistante de direction", content: "Centre très professionnel, accueil au top et formateurs disponibles. Je recommande.", rating: 5, formationId: null },
-  ];
-  for (const t of testimonials) {
-    await prisma.testimonial.create({ data: { organizationId, author: t.author, role: t.role, content: t.content, rating: t.rating, formationId: t.formationId } });
-  }
 }

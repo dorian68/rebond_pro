@@ -58,8 +58,6 @@ test.describe('Module 3 — Sessions CRUD + Statuts', () => {
     await page.waitForURL(/\/sessions\/(?!new)[a-z0-9-]{4,}/, { timeout: 15_000 });
     await expectNoServerError(page);
 
-    const detailUrl = page.url();
-
     const riskBadge = page.getByText(/risque|à risque/i).first();
     if (await riskBadge.isVisible({ timeout: 3_000 }).catch(() => false)) {
       console.log('✅ RISQUE badge visible as expected (no trainer assigned)');

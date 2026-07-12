@@ -8,6 +8,7 @@ import { getStripe, isStripeEnabled } from "@/lib/stripe";
 import { settleTransaction } from "@/server/finance";
 import { publicFormationCheckout, type CheckoutResult as PublicCheckoutResult } from "@/server/public-purchase";
 import { logger } from "@/lib/logger";
+import { bilanPaymentsEnabled } from "@/lib/payment-readiness";
 
 /** Action publique (sans compte) : achat d'une formation depuis la marketplace. */
 export async function createPublicFormationCheckout(formationId: string): Promise<PublicCheckoutResult> {
@@ -64,10 +65,13 @@ export async function createFormationCheckout(formationId: string): Promise<Chec
 /** Paiement du bilan de compétences par le bénéficiaire. Prix : env PLATFORM_BILAN_PRICE (centimes). */
 export async function createBilanCheckout(): Promise<CheckoutResult> {
   const ctx = await requireTenant();
+  if (!bilanPaymentsEnabled()) {
+    return { error: "Le paiement en ligne du bilan n'est pas encore activé." };
+  }
   if (!isStripeEnabled()) return { error: "Le paiement en ligne n'est pas encore activé sur cet environnement." };
   const beneficiary = await prisma.beneficiary.findFirst({ where: { userId: ctx.userId }, select: { id: true, organizationId: true } });
   if (!beneficiary) return { error: "Aucun accompagnement bilan lié à ce compte." };
-  const amount = Number(process.env.PLATFORM_BILAN_PRICE ?? "120000"); // 1 200 € par défaut (aligné sur le site /tarifs)
+  const amount = Number(process.env.PLATFORM_BILAN_PRICE ?? "120000"); // Aligné sur /bilan-de-competences#offre.
 
   try {
     const session = await getStripe().checkout.sessions.create({

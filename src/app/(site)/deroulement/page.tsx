@@ -63,7 +63,7 @@ export default function Deroulement() {
                     {step.num}
                   </div>
                   <div>
-                    <h3 className="font-display font-semibold text-lg">{step.title}</h3>
+                    <h2 className="font-display font-semibold text-lg">{step.title}</h2>
                     <span className="text-sm text-primary font-medium">{step.duration}</span>
                     <p className="text-muted-foreground text-sm mt-2 leading-relaxed">{step.desc}</p>
                   </div>

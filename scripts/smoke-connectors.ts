@@ -27,6 +27,9 @@ for (const key of expected) {
 
 assert(CONNECTORS.find((c) => c.key === "google_calendar")?.writePolicy === "READ_ONLY", "Google Calendar doit rester en lecture seule.");
 assert(CONNECTORS.find((c) => c.key === "microsoft_calendar")?.writePolicy === "READ_ONLY", "Microsoft Calendar doit rester en lecture seule.");
+assert(CONNECTORS.find((c) => c.key === "google_drive")?.writePolicy === "READ_ONLY", "Google Drive doit rester sans écriture.");
+assert(CONNECTORS.find((c) => c.key === "onedrive")?.writePolicy === "READ_ONLY", "OneDrive doit rester sans écriture.");
+assert(CONNECTORS.find((c) => c.key === "sharepoint")?.writePolicy === "READ_ONLY", "SharePoint doit rester sans écriture.");
 assert(CONNECTORS.find((c) => c.key === "gmail")?.writePolicy === "DRAFT_ONLY", "Gmail doit rester en brouillon uniquement.");
 assert(CONNECTORS.find((c) => c.key === "outlook")?.writePolicy === "DRAFT_ONLY", "Outlook doit rester en brouillon uniquement.");
 assert(CONNECTORS.find((c) => c.key === "gmail")?.scopes.join(",") === "personal", "Gmail doit être uniquement personnel.");
@@ -46,6 +49,14 @@ for (const name of [
 ]) {
   assert(toolNames.includes(name), `Outil Socrate manquant: ${name}`);
 }
+for (const name of [
+  "send_external_email",
+  "create_external_calendar_event",
+  "create_external_document",
+  "upload_document_to_drive",
+]) {
+  assert(!toolNames.includes(name), `Outil Socrate interdit détecté: ${name}`);
+}
 
 assert(isSensitive("import_external_document"), "L'import de document externe doit exiger validation humaine.");
 assert(isSensitive("create_external_email_draft"), "La création de brouillon email doit exiger validation humaine.");
@@ -62,7 +73,15 @@ assert(!isToolAllowed("visitor", "search_external_documents"), "Le persona visit
 const envExample = read(".env.example");
 assert(envExample.includes("COMPOSIO_API_KEY"), ".env.example doit documenter COMPOSIO_API_KEY.");
 
-const connectorSource = read("src/lib/connectors.ts") + read("src/server/connectors.ts") + read("src/server/agent/tools.ts");
+const connectorSource = [
+  "src/lib/connectors.ts",
+  "src/server/connectors.ts",
+  "src/server/agent/tools.ts",
+  "src/server/agent/runtime.ts",
+  "src/lib/ag-ui/persona.ts",
+  "src/app/(app)/parametres/parametres-client.tsx",
+  ".env.example",
+].map(read).join("\n");
 const forbiddenSendPatterns = [
   "GMAIL_SEND",
   "GMAIL_SEND_EMAIL",
@@ -71,6 +90,23 @@ const forbiddenSendPatterns = [
   "SEND_EMAIL",
   "SEND_MESSAGE",
   "sendExternalEmail",
+  "createExternalCalendarEvent",
+  "createExternalDocument",
+  "uploadExternalDocumentFile",
+  "send_external_email",
+  "create_external_calendar_event",
+  "create_external_document",
+  "upload_document_to_drive",
+  "calendar_write",
+  "document_write",
+  "document_upload",
+  "email_send",
+  "COMPOSIO_TOOL_GOOGLE_CALENDAR_CREATE_EVENT",
+  "COMPOSIO_TOOL_GOOGLE_DRIVE_CREATE_FILE",
+  "COMPOSIO_TOOL_GOOGLE_DRIVE_UPLOAD_FILE",
+  "COMPOSIO_TOOL_GMAIL_SEND_EMAIL",
+  "COMPOSIO_TOOL_OUTLOOK_SEND_EMAIL",
+  "COMPOSIO_TOOL_MICROSOFT_CALENDAR_CREATE_EVENT",
 ];
 for (const pattern of forbiddenSendPatterns) {
   assert(!connectorSource.includes(pattern), `Capacité d'envoi direct interdite détectée: ${pattern}`);

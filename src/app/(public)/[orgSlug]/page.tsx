@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCenterProfile } from "@/server/marketplace";
@@ -50,7 +51,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
     facts.push({ fv: `Depuis ${year}`, fl: yearsCount >= 1 ? `Plus de ${yearsCount} an${yearsCount > 1 ? "s" : ""} d'accompagnement.` : "Un nouveau centre du réseau Le Bon Rebond." });
   }
   if (org.certifications.length > 0) {
-    facts.push({ fv: org.certifications[0], fl: "Certification qualité reconnue, formations éligibles aux financements." });
+    facts.push({ fv: org.certifications[0], fl: "Certification déclarée par le centre et examinée lors de la publication." });
   }
   if (modalitiesLabel) {
     facts.push({ fv: modalitiesLabel, fl: org.city ? `À ${org.city} ou à distance, selon votre organisation.` : "Selon votre organisation et vos contraintes." });
@@ -82,8 +83,8 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
       <header style={{ position: "sticky", top: 0, zIndex: 40, background: "rgba(250,245,236,.86)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(21,49,76,.1)" }}>
         <div className="container" style={{ display: "flex", alignItems: "center", padding: "16px 32px", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 12, background: "#15314C", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", fontWeight: 500, overflow: "hidden" }}>
-              {org.logoUrl ? <img src={org.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : mark}
+            <div style={{ position: "relative", width: 46, height: 46, borderRadius: 12, background: "#15314C", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", fontWeight: 500, overflow: "hidden" }}>
+              {org.logoUrl ? <Image src={org.logoUrl} alt={`Logo de ${org.name}`} fill sizes="46px" unoptimized style={{ objectFit: "cover" }} /> : mark}
             </div>
             <div>
               <div style={{ fontWeight: 700, color: "#15314C", fontSize: "1.02rem", lineHeight: 1.2 }}>{org.name}</div>
@@ -128,7 +129,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
               </div>
               {(org.certifications.length > 0 || org.specialties.length > 0) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 26px", marginTop: 34 }}>
-                  {[...org.certifications, ...org.specialties].slice(0, 3).map((t) => (
+                  {org.specialties.slice(0, 3).map((t) => (
                     <span key={t} style={{ fontSize: ".92rem", color: "#5d6f7c", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 10 }}>
                       <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#5FB14E", flexShrink: 0 }} />{t}
                     </span>
@@ -140,7 +141,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
               <div style={{ position: "absolute", zIndex: 1, width: "115%", height: "115%", left: "-7%", top: "-7%", borderRadius: "50%", background: "conic-gradient(from 200deg, #2C8E86, #5FB14E 40%, transparent 60%)", opacity: .16, filter: "blur(2px)", pointerEvents: "none" }} />
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 460, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)", background: "#e7ddca", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {org.coverImageUrl
-                  ? <img src={org.coverImageUrl} alt={`Locaux de ${org.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ? <Image src={org.coverImageUrl} alt={`Locaux de ${org.name}`} fill sizes="(max-width: 980px) 100vw, 45vw" unoptimized preload style={{ objectFit: "cover" }} />
                   : <span style={{ fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>Photo — les locaux du centre, une salle de formation lumineuse</span>}
               </div>
             </div>
@@ -229,7 +230,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
               {org.specialties.length > 0 && <InfoCard label="Spécialités" value={org.specialties.join(" · ")} />}
               {modalitiesLabel && <InfoCard label="Modalités" value={modalitiesLabel} />}
               {org.city && <InfoCard label="Localisation" value={org.city} />}
-              {org.certifications.length > 0 && <InfoCard label="Certifications" value={org.certifications.join(" · ")} />}
+              {org.certifications.length > 0 && <InfoCard label="Certifications déclarées" value={org.certifications.join(" · ")} />}
               {org.publicEmail && <InfoCard label="Email" value={org.publicEmail} href={`mailto:${org.publicEmail}`} />}
               {org.publicPhone && <InfoCard label="Téléphone" value={org.publicPhone} />}
               {org.website && <InfoCard label="Site web" value="Visiter le site" href={org.website} external />}
@@ -258,8 +259,8 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
               {org.trainers.map((t) => (
                 <Link key={t.id} href={`/formateur/${t.id}`}
                   style={{ display: "flex", gap: 16, alignItems: "center", background: "#FDF8F1", border: "1.5px solid rgba(21,49,76,.08)", borderRadius: 18, padding: "22px 24px", textDecoration: "none", color: "inherit" }}>
-                  <div style={{ width: 58, height: 58, borderRadius: 14, background: t.color || "#2C8E86", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1.1rem", flexShrink: 0, overflow: "hidden" }}>
-                    {t.photoUrl ? <img src={t.photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (t.initials || `${t.firstName.charAt(0)}${t.lastName.charAt(0)}`)}
+                  <div style={{ position: "relative", width: 58, height: 58, borderRadius: 14, background: t.color || "#2C8E86", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1.1rem", flexShrink: 0, overflow: "hidden" }}>
+                    {t.photoUrl ? <Image src={t.photoUrl} alt={`Portrait de ${t.firstName} ${t.lastName}`} fill sizes="58px" unoptimized style={{ objectFit: "cover" }} /> : (t.initials || `${t.firstName.charAt(0)}${t.lastName.charAt(0)}`)}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: "#15314C", fontSize: "1.02rem" }}>{t.firstName} {t.lastName}</div>

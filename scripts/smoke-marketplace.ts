@@ -20,6 +20,16 @@ runner("marketplace_smoke", async () => {
       data: { organizationId: t.organizationId, title: "Formation Marketplace Smoke", slug: `f-${Date.now()}`, category: tag, shortDescription: "Visible en marketplace", price: 70000, modality: "DISTANCIEL", level: "INTERMEDIAIRE", status: "PUBLIE", isPublic: true, publicSlug: pubSlug, eligibleTrainers: { create: [{ trainerId: trainer.id }] } },
     });
 
+    // Un statut APPROVED injecté sans preuve de revue humaine ne doit rien exposer.
+    const beforeReview = await getMarketplaceFormationsUncached({ q: "Marketplace Smoke" });
+    assert(!beforeReview.some((f) => f.id === formation.id), "Un centre non revu fuit dans la marketplace.");
+    assert(await getCenterProfileUncached(t.organizationSlug!) === null, "La fiche d'un centre non revu doit rester masquée.");
+    await prisma.organization.update({
+      where: { id: t.organizationId },
+      data: { marketplaceReviewedAt: new Date(), marketplaceReviewedBy: t.userId },
+    });
+    step("human_review_required");
+
     // 1. Apparaît dans le catalogue cross-centres
     const all = await getMarketplaceFormationsUncached({});
     assert(all.some((f) => f.id === formation.id), "La formation publiée n'apparaît pas dans la marketplace.");

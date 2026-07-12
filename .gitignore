@@ -41,6 +41,7 @@ dev-server-local-error.log
 
 # local file storage (dev)
 /storage
+/tmp
 
 # vercel
 .vercel

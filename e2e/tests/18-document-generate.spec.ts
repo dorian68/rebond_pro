@@ -86,7 +86,6 @@ test.describe('Module 18 — Génération de document réelle', () => {
     await page.waitForLoadState('networkidle');
 
     // L'historique doit contenir le document généré lié à la formation E2E
-    const historySection = page.getByText(/historique/i).locator('..').locator('..');
     // Ou plus simplement : chercher dans le bas de la page un badge "Généré"
     // associé au titre de la formation
     await expect(page.getByText('Généré').first()).toBeVisible({ timeout: 10_000 });

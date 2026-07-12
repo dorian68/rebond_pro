@@ -265,7 +265,7 @@ export default function BilanOrientationPage() {
                   transform: plan.featured ? "scale(1.025)" : "none",
                 } as CSSProperties}>
                 {"flag" in plan && plan.flag && (
-                  <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#E07C39", color: "#fff", fontWeight: 700, fontSize: ".78rem", letterSpacing: ".1em", textTransform: "uppercase" as const, padding: "6px 18px", borderRadius: 100, whiteSpace: "nowrap" as const }}>
+                  <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#B85B22", color: "#fff", fontWeight: 700, fontSize: ".78rem", letterSpacing: ".1em", textTransform: "uppercase" as const, padding: "6px 18px", borderRadius: 100, whiteSpace: "nowrap" as const }}>
                     {plan.flag}
                   </span>
                 )}
@@ -294,7 +294,7 @@ export default function BilanOrientationPage() {
                     fontWeight: 700,
                     fontSize: ".96rem",
                     textDecoration: "none",
-                    background: plan.featured ? "#E07C39" : "transparent",
+                    background: plan.featured ? "#B85B22" : "transparent",
                     color: plan.featured ? "#fff" : "#15314C",
                     border: plan.featured ? "none" : "1.5px solid rgba(21,49,76,.22)",
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -305,7 +305,7 @@ export default function BilanOrientationPage() {
               </motion.div>
             ))}
           </div>
-          <p style={{ textAlign: "center", marginTop: 36, fontSize: ".9rem", color: "#85939d", fontStyle: "italic" }}>
+          <p style={{ textAlign: "center", marginTop: 36, fontSize: ".9rem", color: "#5f6977", fontStyle: "italic" }}>
             Tarifs indicatifs, ajustés selon le niveau, la situation et le format d&apos;accompagnement retenu.
           </p>
         </div>

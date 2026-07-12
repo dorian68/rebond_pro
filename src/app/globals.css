@@ -13,7 +13,7 @@
 
   --ink: #15181f;
   --ink-2: #5a6271;
-  --ink-3: #919aa8;
+  --ink-3: #5f6977;
   --ink-4: #b6bdc8;
 
   --border: #e8eaef;
@@ -479,19 +479,19 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
 .shadow-soft      { box-shadow: 0 18px 50px -28px rgba(14,36,56,.45); }
 .shadow-card      { box-shadow: 0 24px 60px -34px rgba(14,36,56,.55); }
 
-/* Orange CTA — source de vérité : --orange/#E07C39 */
+/* Orange CTA avec contraste AA sur texte blanc. */
 .btn-cta {
-  background: #E07C39;
+  background: #B85B22;
   color: #ffffff !important;
   font-weight: 700;
   border: 1.5px solid transparent;
-  box-shadow: 0 14px 30px -14px rgba(224,124,57,.8);
+  box-shadow: 0 14px 30px -14px rgba(184,91,34,.8);
   transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
 }
 .btn-cta:hover {
-  background: #C5662A;
+  background: #984218;
   transform: translateY(-2px);
-  box-shadow: 0 18px 36px -12px rgba(197,102,42,.7);
+  box-shadow: 0 18px 36px -12px rgba(152,66,24,.7);
 }
 
 /* Eyebrow (texte chapeau éditorial avec trait vert) */

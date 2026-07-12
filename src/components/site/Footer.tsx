@@ -25,9 +25,9 @@ const Footer = () => {
                 <Image
                   src="/brand/logo-le-bon-rebond.png"
                   alt="Le Bon Rebond"
-                  width={140}
+                  width={109}
                   height={44}
-                  style={{ height: 44, width: "auto", display: "block", objectFit: "contain" }}
+                  style={{ height: 44, width: 109, display: "block", objectFit: "contain" }}
                 />
               </div>
             </div>
@@ -38,9 +38,9 @@ const Footer = () => {
 
           {/* Navigation */}
           <div>
-            <h5 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#fff", fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", margin: "0 0 20px" }}>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#fff", fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", margin: "0 0 20px" }}>
               Navigation
-            </h5>
+            </h2>
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 13 }}>
               {[
                 { label: "Accueil", to: "/" },
@@ -60,9 +60,9 @@ const Footer = () => {
 
           {/* Partenaires formation */}
           <div>
-            <h5 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#fff", fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", margin: "0 0 20px" }}>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#fff", fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", margin: "0 0 20px" }}>
               Centres partenaires
-            </h5>
+            </h2>
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 13 }}>
               {[
                 { label: "Catalogue des formations", to: "/marketplace" },
@@ -77,23 +77,13 @@ const Footer = () => {
                 </li>
               ))}
             </ul>
-            <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {["Finançable CPF", "Qualiopi"].map((tag) => (
-                <span
-                  key={tag}
-                  style={{ fontSize: ".78rem", fontWeight: 700, background: "rgba(95,177,78,.18)", color: "#a8e09b", padding: "6px 12px", borderRadius: 100 }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
           </div>
 
           {/* Contact */}
           <div>
-            <h5 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#fff", fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", margin: "0 0 20px" }}>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#fff", fontSize: ".82rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", margin: "0 0 20px" }}>
               Contact
-            </h5>
+            </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
                 { label: "Téléphone", value: "+33 7 83 96 01 92" },
@@ -127,11 +117,12 @@ const Footer = () => {
             Un nouveau départ, la bonne direction.
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-            <span style={{ fontSize: ".85rem", color: "rgba(255,255,255,.45)" }}>
+            <span style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)" }}>
               © {year} Le Bon Rebond
             </span>
-            <Link href="/legal/cgu" style={{ fontSize: ".85rem", color: "rgba(255,255,255,.45)", textDecoration: "none" }}>CGU</Link>
-            <Link href="/legal/confidentialite" style={{ fontSize: ".85rem", color: "rgba(255,255,255,.45)", textDecoration: "none" }}>Confidentialité</Link>
+            <Link href="/legal/cgu" style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)", textDecoration: "none" }}>CGU</Link>
+            <Link href="/legal/mentions" style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)", textDecoration: "none" }}>Mentions légales</Link>
+            <Link href="/legal/confidentialite" style={{ fontSize: ".85rem", color: "rgba(255,255,255,.55)", textDecoration: "none" }}>Confidentialité</Link>
           </div>
         </div>
       </div>

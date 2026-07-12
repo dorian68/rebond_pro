@@ -102,7 +102,7 @@ export default function Home() {
                 initial="hidden" animate="visible" custom={4} variants={fadeUp}
                 style={{ display: "flex", flexWrap: "wrap", gap: "10px 26px", marginTop: 34 }}
               >
-                {["Accès rapide aux organismes certifiés", "Accompagnement personnalisé", "100% orienté résultat"].map((txt) => (
+                {["Centres publiés après validation", "Accompagnement personnalisé", "Décisions fondées sur votre projet"].map((txt) => (
                   <span key={txt} style={{ fontSize: ".92rem", color: "#5d6f7c", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 10 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#5FB14E", flexShrink: 0 }} />
                     {txt}
@@ -268,7 +268,7 @@ export default function Home() {
                 <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "3.2rem", fontWeight: 400, color: "#15314C", opacity: .9, lineHeight: 1 }}>
                   {step.n}
                 </div>
-                <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.32rem", fontWeight: 500, margin: "16px 0 10px", color: "#15314C" }}>{step.title}</h4>
+                <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.32rem", fontWeight: 500, margin: "16px 0 10px", color: "#15314C" }}>{step.title}</h3>
                 <p style={{ color: "#5d6f7c", fontSize: "1rem", lineHeight: 1.6 }}>{step.text}</p>
               </motion.div>
             ))}
@@ -315,9 +315,9 @@ export default function Home() {
                 }}>
                   {ms.n}
                 </div>
-                <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1.06rem", fontWeight: 800, letterSpacing: ".02em", textTransform: "uppercase", color: "#15314C", margin: "0 0 8px" }}>
+                <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "1.06rem", fontWeight: 800, letterSpacing: ".02em", textTransform: "uppercase", color: "#15314C", margin: "0 0 8px" }}>
                   {ms.title}
-                </h4>
+                </h3>
                 <p style={{ fontSize: ".95rem", color: "#5d6f7c", paddingRight: 14, lineHeight: 1.6 }}>{ms.text}</p>
               </motion.div>
             ))}
@@ -351,47 +351,11 @@ export default function Home() {
               >
                 <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.3rem", color: "#3d8c45", lineHeight: 1, paddingTop: 4 }}>{v.n}</span>
                 <div>
-                  <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.4rem", fontWeight: 500, margin: "0 0 8px", color: "#15314C" }}>{v.title}</h4>
+                  <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.4rem", fontWeight: 500, margin: "0 0 8px", color: "#15314C" }}>{v.title}</h3>
                   <p style={{ color: "#5d6f7c", fontSize: "1.02rem", lineHeight: 1.65 }}>{v.text}</p>
                 </div>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ======================== TÉMOIGNAGE ======================== */}
-      <section style={{ background: "#fff", borderTop: "1px solid rgba(21,49,76,.12)", padding: "108px 0" }}>
-        <div className="container">
-          <div style={{ display: "grid", gridTemplateColumns: ".85fr 1.15fr", gap: 60, alignItems: "center" }} className="proof-grid">
-            {/* Photo */}
-            <motion.div
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-              style={{ width: "100%", height: 440, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/photos/temoignage-camille.webp" alt="Camille R., reconversion réussie vers les métiers du numérique" loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </motion.div>
-
-            {/* Citation */}
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp}>
-              <span className="eyebrow">Ils ont rebondi</span>
-              <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontWeight: 400, fontSize: "clamp(1.7rem, 3vw, 2.4rem)", lineHeight: 1.32, color: "#15314C", letterSpacing: "-.01em", marginTop: 24 }}>
-                <span style={{ color: "#5FB14E", fontStyle: "italic" }}>«</span>{" "}
-                J'ai enfin trouvé une formation adaptée à mon projet en moins d'une semaine. Pour la première fois depuis des mois, je savais exactement où j'allais.{" "}
-                <span style={{ color: "#5FB14E", fontStyle: "italic" }}>»</span>
-              </p>
-              <div style={{ marginTop: 30, display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 54, height: 54, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/photos/temoignage-camille-avatar.webp" alt="Camille R." loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, color: "#15314C" }}>Camille R.</div>
-                  <div style={{ color: "#5d6f7c", fontSize: ".92rem" }}>Reconversion vers les métiers du numérique</div>
-                </div>
-              </div>
-            </motion.div>
           </div>
         </div>
       </section>
@@ -476,7 +440,6 @@ export default function Home() {
       <style>{`
         @media (max-width: 980px) {
           .hero-grid,
-          .proof-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
           .problem-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
           .steps-grid { grid-template-columns: 1fr 1fr !important; gap: 40px 30px !important; }
           .method-head-grid { grid-template-columns: 1fr !important; gap: 36px !important; }

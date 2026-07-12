@@ -1,66 +1,43 @@
 # Production Readiness
 
-_Dernière mise à jour : 11 juin 2026 (passe Technical RL — fiabilité DB). Base locale PostgreSQL validée ; Supabase `us-east-1` reste injoignable par Prisma depuis Windows lorsque le trafic passe par ProtonVPN (`P1001`, malgré TCP ouvert). tsc/lint/build et 20 smoke tests verts en local._
+Dernière mise à jour : 12 juillet 2026. Périmètre évalué : site public, marketplace modérée, cockpit multi-tenant et parcours de contact. Les paiements publics restent volontairement désactivés.
 
-| Area | Verdict | Evidence / blocker |
+| Domaine | Verdict | Preuve / condition |
 |---|---|---|
-| Authentication | YES (cœur), PARTIAL (Google credentials) | Auth.js credentials + vérification email réelle (jeton haché). **Google OAuth livré** pour connexion et création de compte centre : email Google vérifié obligatoire, contexte d'inscription signé, pas de création silencieuse depuis login, trial centre OWNER. Testé `smoke:google-oauth` + `smoke:business-google-oauth`. **Reset mot de passe** (jeton haché 30 min, à usage unique) et **anti-bruteforce** (verrouillage 15 min après 5 échecs) livrés et testés (`smoke:password-reset`). `DEV_AUTOLOGIN` neutralisé en production. À configurer : `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` et redirect URI `/api/auth/callback/google`. Restant : 2FA optionnelle. |
-| Authorization | YES (cœur) | Rôles appliqués sur mutations (server actions + outils agent). **Isolation cross-tenant vérifiée par `smoke:tenant`** : lecture/recherche scopées, écriture et suppression cross-tenant bloquées. |
-| Secrets redaction | YES | `.env*` ignorés, exemples sans secrets, smoke sans secrets, logs sans tokens. |
-| Environment variables | YES | `env.ts` valide via **Zod** `DATABASE_URL` (format postgres) et `AUTH_SECRET` (≥16) au démarrage (throw en prod) + garde `DEV_AUTOLOGIN`. `.env.example` à jour (Supabase). |
-| No localhost hardcoding | PARTIAL | URLs via env. Valeurs dev par défaut encore présentes pour le local. |
-| No silent mock fallback | YES | IA/agent annoncent leur fallback ; données démo explicitement chargées via action dédiée. |
-| Database persistence | YES (local/code), PARTIAL (accès distant actuel) | Prisma 6. Les écritures ne sont jamais rejouées automatiquement. Une lecture n'est retentée qu'une fois sur coupure d'une connexion déjà établie (`P1008/P1017`) ; `P1001/P1002` échouent rapidement. Migration idempotente `20260611210000_sync_current_schema` ajoutée et validée localement. |
-| Concurrency/races | YES (publique) | Déduplication publique garantie par **index unique partiel** `Prospect_public_dedup_key` (org+formation+email, actifs) — testé `smoke:dedup`. |
-| Error handling | PARTIAL | Erreurs structurées (server actions, outils agent renvoient des messages ciblés). Audit global restant. |
-| API response consistency | PARTIAL→YES | Helper `src/lib/api.ts` (`apiOk`/`apiError`) ; erreurs homogènes. Shapes de succès volontairement couplées aux clients existants. |
-| Logging | YES (base) | **Logger structuré** JSON `src/lib/logger.ts` (secrets masqués) + **endpoint `/api/health`** (liveness + readiness DB) + smoke JSON. APM/alerting externe restant. |
-| Billing / abonnements | PARTIAL (code YES, compte non activé) | **Stripe livré** : plans FREE/PRO/PREMIUM, Checkout (`payment_method_types: ["card"]`), portail, webhook ; **quotas** (`smoke:quota`) ; `smoke:billing`. **Setup live fait** : clé restreinte live branchée (`STRIPE_SECRET_KEY=rk_live`), **produits + prix PRO (49€)/PREMIUM (99€) créés en live**, price IDs câblés ; création de session Checkout live **prouvée**. **🔴 BLOQUEUR : compte Stripe `charges_enabled=false`** (activation/vérification Stripe en attente) → aucun paiement réel possible avant. **+ `STRIPE_WEBHOOK_SECRET` à créer au déploiement** (endpoint a besoin d'une URL publique). |
-| Flux financiers (ledger) | YES (live) | **Ledger `Transaction`** migré et testé live (`smoke:finance`). `recordTransaction` idempotent (renvoie l'id), `getFinanceSummary` (brut/commission/**net à reverser** + `pendingPayout`). **Suivi du reversement** : `payoutStatus` (pending/settled/not_applicable) + `settledAt`, action `markTransactionSettled` (god-mode) + bouton « Marquer reversé » sur `/admin/finances`. Reversement manuel (pas de Stripe Connect, acté). |
-| Paiements one-time | YES (code) | Checkout formation connecté + **public** (`publicFormationCheckout`, checkout invité, `smoke:public-purchase`) + bilan, webhook FORMATION_PURCHASE/BILAN. **Inscription auto** (`enrollBeneficiaryInFormation`, idempotent) + email de confirmation à l'acheteur. **Hors scope (futur)** : portail de connexion apprenant. |
-| Espaces dédiés | YES (code) | **Espace bénéficiaire** (`/espace`, modèle `Beneficiary`, `smoke:beneficiary`), **portail formateur** (`/trainer`, `smoke:trainer-portal`), **site vitrine B2C** (`/(site)`, contact réel). À rejouer en live. |
-| Plateforme god-mode | YES (code) | `/admin` cross-tenant lecture seule derrière `requirePlatformAdmin()` (`User.platformAdmin`, `PLATFORM_ADMIN_EMAILS`) ; agrégats batchés (fix EMAXCONNSESSION) ; `smoke:platform`. |
-| Sécurité copilote (personas) | YES (code) | Personas AG-UI (visitor/beneficiary/trainer/center/platform_admin) : **allowlist d'outils côté serveur + double garde sur action approuvée** ; visiteur sans accès tenant ; admin lecture seule. `smoke:persona` (logique pure) vert. |
-| Connecteurs Socrate | YES (code), PARTIAL (credentials) | Socle Composio ajouté : Google/Microsoft Calendar en lecture seule, Drive/OneDrive/SharePoint en recherche/import, Gmail/Outlook en brouillons uniquement. Aucun outil d'envoi direct exposé ; import fichier et brouillon email en human-in-the-loop. `COMPOSIO_API_KEY` requis, slugs d'outils surchargeables par env. |
-| Email transactionnel | PARTIAL | **Resend câblé via SMTP** (`smtp.resend.com:465`), envoi de bout en bout **vérifié** (vérif email, reset, confirmations d'achat). **Bloqueur prod** : domaine non vérifié → Resend n'envoie qu'à l'adresse du compte (`dorian.labry@gmail.com`) avec `onboarding@resend.dev`. Action : vérifier un domaine sur resend.com/domains puis passer `EMAIL_FROM` à ce domaine. |
-| CLI smoke tests | YES | **20 suites vertes sur PostgreSQL local, `smoke:all` exit 0** : health, lot5, auth, registration, crud, agent, marketplace, tenant, password-reset, dedup, billing, quota, trainer-portal, beneficiary, platform, persona, finance, public-purchase, business, business-marketplace. `npm run db:diagnose` distingue TCP et session Prisma. |
-| Build | YES | `npm run build` exit 0, `npm run lint` exit 0 (0 erreur), `tsc` 0 (9 juin 2026). |
-| Deployment | NO | Pipeline CI/CD et environnement hébergé non définis. Voir `DEPLOYMENT.md`. Bucket Supabase Storage public `public-assets` à créer pour l'upload d'images. |
-| Documentation | YES (socle) | Docs socle à jour (philosophie, spec, contrat CLI, readiness) + **`DEPLOYMENT.md`** (runbook). Rapports dans `reports/`. |
+| Authentification | PASS | Credentials, vérification email, reset à usage unique, politique de session, anti-bruteforce et OAuth Google testés. OAuth est configuré sur le VPS ; `DEV_AUTOLOGIN=false`. |
+| Autorisation et isolation | PASS | Rôles serveur, guards plateforme et isolation cross-tenant couverts par les smokes `tenant`, `persona`, `platform` et `admin-auth`. |
+| Base et migrations | PASS | PostgreSQL 16 persistant sur le VPS, conteneur sain, sauvegarde quotidienne et sauvegarde avant `prisma migrate deploy`. |
+| Marketplace | PASS | Publication réservée aux centres activés, approuvés et associés à une revue humaine datée ; aucune donnée CARIF ou démo non revue n'est exposée. |
+| Formulaires publics | PASS | Validation Zod, honeypot, quotas anonymisés, logs sans PII brute et erreur explicite si l'email échoue. |
+| Connecteurs Socrate | PASS | Calendriers en lecture, documents en lecture/import et emails en brouillon uniquement. Aucun envoi, événement ou fichier externe n'est créé directement. |
+| Stockage | PASS | Supabase Storage configuré en production. Le fallback local refuse les clés absolues et les traversées de répertoire, avec smoke dédié. |
+| Email | PASS technique | Transport HTML/texte/pièce jointe testé sur Mailpit ; SMTP configuré sur le VPS. La délivrabilité vers chaque domaine destinataire reste à surveiller en exploitation. |
+| Paiements publics | SAFE OFF | Stripe et webhook sont configurés, mais les flags formations/bilans restent à `false`. L'activation exige les conditions juridiques et, pour le bilan, un NDA valide. |
+| Confiance commerciale | PASS | Faux témoignages retirés, mentions CPF/Qualiopi non justifiées supprimées, identité éditeur/hébergeur et politique de confidentialité publiées. |
+| Accessibilité | PASS | Axe et débordement horizontal : 14 routes, desktop + mobile, 28 parcours sans violation. |
+| SEO | PASS | Métadonnées par route principale, `metadataBase`, Open Graph, `robots.txt` et `sitemap.xml`. |
+| Dépendances | PASS | Next 16.2.10, React 19.2.7 ; `npm audit --audit-level=low` retourne 0 vulnérabilité. |
+| Build | PASS | ESLint propre, TypeScript propre, build Next standalone propre et sans avertissement Turbopack. |
+| Observabilité | PASS socle | Logs JSON, endpoint readiness DB, health-check de déploiement, rollback automatique, Caddy actif et sauvegardes quotidiennes. Un APM externe reste une amélioration non bloquante. |
+| Déploiement | PASS | Pipeline versionné, releases immuables, sauvegarde/migrations, bascule Docker, health-check HTTPS et rollback. Runbook : `DEPLOYMENT.md`. |
 
-## Overall verdict
+## Verdict
 
-**PARTIAL** (cockpit B2B demo-ready ; couche financière + B2C bilan à finaliser et reprouver en live).
+**GO pour le périmètre actuellement commercialisé : acquisition, prise de contact, bilan, orientation, marketplace modérée et cockpit.**
 
-### Bloqueurs P0 restants
-- Déploiement (CI/CD + hébergement + bucket Storage public) — voir `DEPLOYMENT.md`.
-- APM / alerting production externe (logging structuré + `/api/health` en place).
+**NO-GO pour activer les paiements publics** tant que les conditions suivantes ne sont pas toutes remplies :
 
-### Résolu (passe 9 juin — Phase 0/1 financière, live)
-- Migration `Transaction` (+ colonnes payout) appliquée ; **`smoke:all` exit 0 (19 suites), `build` exit 0** sur Supabase.
-- **Inscription auto à l'achat** (Learner + Enrollment sur session OUVERTE, idempotent).
-- **Suivi du reversement** (`payoutStatus`/`settledAt` + action god-mode + UI `/admin/finances`).
+1. CGV marketplace et identité du vendeur validées ;
+2. médiateur de la consommation et parcours de rétractation documentés si applicables ;
+3. NDA du prestataire de bilan renseigné et conformité de l'offre vérifiée ;
+4. test de paiement puis remboursement réalisé en environnement contrôlé.
 
-### P1 — actions credentials/compte (le code est prêt et prouvé)
-- **Activer le compte Stripe** : `charges_enabled` est `false` → terminer l'activation sur le dashboard Stripe (vérification identité/société/IBAN) pour pouvoir encaisser réellement.
-- **`STRIPE_WEBHOOK_SECRET`** : créer l'endpoint `/api/stripe/webhook` au déploiement (URL publique requise) → `whsec_`.
-- **Vérifier un domaine sur Resend** (resend.com/domains) puis `EMAIL_FROM=no-reply@tondomaine` — sinon les emails ne partent qu'à `dorian.labry@gmail.com` (le code email est branché et prouvé).
-- Portail de connexion apprenant (un acheteur public est inscrit comme `Learner` mais sans espace personnel propre).
-- Audit erreurs global + contrat API automatisé.
+## Evidence CLI
 
-### Résolu (passes du 7 juin)
-- CLI-testabilité des features critiques (CRUD, agent, marketplace, multi-tenant) — 12 smoke tests.
-- Isolation cross-tenant vérifiée et prouvée.
-- Reset mot de passe + anti-bruteforce livrés et testés.
-- **Observabilité de base** : logger structuré + `/api/health` + `smoke:health`.
-- **Intégrité doublon prospect public** : index unique partiel + `smoke:dedup`.
-- **Validation Zod des env** + garde `DEV_AUTOLOGIN`.
-- **Effet réseau marketplace** : seed multi-centres (`seed:marketplace-demo`).
-- Retron DB sur coupures transitoires. Build + lint + tsc verts.
-
-### Résolu (passes du 9 juin — écosystème multi-faces)
-- **Personas AG-UI** sécurisés (allowlist serveur + double garde) sur les 4 surfaces — `smoke:persona` vert.
-- **Espace bénéficiaire**, **portail formateur**, **admin god-mode** livrés (code) — `smoke:beneficiary/trainer-portal/platform`.
-- **Ledger financier** (`Transaction`) + paiements Stripe formation/bilan + `/admin/finances` (net à reverser) — `smoke:finance` (post-migration).
-- **Quotas de plan** appliqués — `smoke:quota`.
-- **Chasse cohérence produit** : formulaire contact réel (était un mock), éligibilité CPF fonctionnelle, suggestions AG-UI par persona, prix bilan aligné (1 200 €), géographie cohérente (Guadeloupe). tsc/lint 0.
+- `npm run smoke:all:local` : 34/34 suites PASS ;
+- `npm run smoke:accessibility` : 28/28 parcours PASS ;
+- `npm run smoke:ui` : PASS avec fixtures revues et nettoyées ;
+- `npm run smoke:email-transport` : PASS ;
+- Playwright site vitrine : 11/11 PASS ;
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : PASS ;
+- `npm audit --audit-level=low` : 0 vulnérabilité.

@@ -25,7 +25,7 @@ export default function QrPage() {
           padding: "34px 30px 30px", textAlign: "center",
         }}
       >
-        <Image src="/brand/logo-le-bon-rebond.png" alt="Le Bon Rebond" width={150} height={46} priority style={{ height: 42, width: "auto", objectFit: "contain", margin: "0 auto 22px" }} />
+        <Image src="/brand/logo-le-bon-rebond.png" alt="Le Bon Rebond" width={104} height={42} preload style={{ height: 42, width: 104, objectFit: "contain", margin: "0 auto 22px" }} />
 
         <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase", color: "#23756e", marginBottom: 10 }}>
           Rencontrons-nous

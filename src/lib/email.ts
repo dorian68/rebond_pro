@@ -1,24 +1,38 @@
 import "server-only";
-import nodemailer from "nodemailer";
+import { Message, SMTPClient, type MessageAttachment } from "emailjs";
 
 const PUBLIC_BASE_URL = (process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 // Adapter email : SMTP (Mailpit en dev, Resend/Postmark en prod via SMTP).
-let transporter: nodemailer.Transporter | null = null;
+let smtpClient: SMTPClient | null = null;
 
-function getTransporter(): nodemailer.Transporter {
-  if (transporter) return transporter;
+function getSmtpClient(): SMTPClient {
+  if (smtpClient) return smtpClient;
   const port = Number(process.env.EMAIL_SMTP_PORT ?? 1025);
-  transporter = nodemailer.createTransport({
+  smtpClient = new SMTPClient({
     host: process.env.EMAIL_SMTP_HOST ?? "localhost",
     port,
-    secure: port === 465, // 465 = TLS implicite (Resend) ; 587/1025 = STARTTLS/clair
-    auth: process.env.EMAIL_SMTP_USER ? { user: process.env.EMAIL_SMTP_USER, pass: process.env.EMAIL_SMTP_PASSWORD } : undefined,
+    ssl: port === 465,
+    tls: port === 587,
+    user: process.env.EMAIL_SMTP_USER ?? "",
+    password: process.env.EMAIL_SMTP_PASSWORD ?? "",
+    timeout: 10_000,
   });
-  return transporter;
+  return smtpClient;
 }
 
 export type Attachment = { filename: string; content: Buffer };
+
+function attachmentType(filename: string): string {
+  const extension = filename.toLowerCase().split(".").pop();
+  if (extension === "pdf") return "application/pdf";
+  if (extension === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (extension === "csv") return "text/csv";
+  if (extension === "txt") return "text/plain";
+  if (extension === "png") return "image/png";
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+  return "application/octet-stream";
+}
 
 export async function sendEmail(opts: { to: string | string[]; from?: string; subject: string; html: string; text?: string; attachments?: Attachment[] }): Promise<void> {
   const from = opts.from ?? process.env.EMAIL_FROM ?? "Le Bon Rebond <no-reply@lebonrebond.local>";
@@ -40,10 +54,24 @@ export async function sendEmail(opts: { to: string | string[]; from?: string; su
     return;
   }
 
-  // Dev (Mailpit) ou SMTP générique
-  await getTransporter().sendMail({
-    from, to: opts.to, subject: opts.subject, html: opts.html, text: opts.text, attachments: opts.attachments,
-  });
+  // Dev (Mailpit) ou SMTP générique. Les buffers sont pré-encodés pour préserver
+  // strictement les pièces jointes binaires dans le flux MIME.
+  const attachments: MessageAttachment[] = [
+    { data: opts.html, alternative: true, type: "text/html" },
+    ...(opts.attachments ?? []).map((attachment) => ({
+      name: attachment.filename,
+      data: attachment.content.toString("base64"),
+      encoded: true,
+      type: attachmentType(attachment.filename),
+    })),
+  ];
+  await getSmtpClient().sendAsync(new Message({
+    from,
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    attachment: attachments,
+  }));
 }
 
 // ── Emails Socrate chatbot ───────────────────────────────────────────────────

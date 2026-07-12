@@ -132,7 +132,7 @@ if (opts.rollback) {
   step("ROLLBACK vers le commit précédent");
   const cur = remote(`cat ${CFG.remoteDir}/DEPLOYED_COMMIT 2>/dev/null || echo ""`, { capture: true });
   log(`  Commit déployé actuel : ${cur || "(inconnu)"}`);
-  const prev = remote(`ls -1 ${CFG.remoteDir}/releases 2>/dev/null | grep -v "^${cur}$" | tail -1`, { capture: true });
+  const prev = remote(`ls -1t ${CFG.remoteDir}/releases 2>/dev/null | grep -v "^${cur}$" | head -1`, { capture: true });
   if (!prev && !opts.dryRun) die("Aucune release précédente trouvée pour rollback.");
   log(`  Cible rollback : ${prev || "<précédent>"}`);
   remote(`docker tag ${CFG.image}:${prev} ${CFG.image}:latest && cd ${CFG.remoteDir} && docker compose up -d`);
@@ -148,7 +148,7 @@ if (opts.rollback) {
   // --- 0. État git local ---
   step("Préflight — état git local");
   const dirty = execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim();
-  if (dirty && !opts.commitMsg && !opts.allowDirty) {
+  if (dirty && !opts.commitMsg && !opts.allowDirty && !opts.dryRun) {
     die("Arbre de travail non commité. Utilise --commit \"message\" pour committer, ou --allow-dirty pour déployer le dernier commit tel quel.");
   }
   if (dirty && opts.commitMsg) {
@@ -156,14 +156,14 @@ if (opts.rollback) {
     local("git", ["commit", "-m", opts.commitMsg]);
     ok("Changements commités");
   } else if (dirty) {
-    warn("Arbre sale ignoré (--allow-dirty) : seul le dernier commit sera déployé.");
+    warn(`Arbre sale ignoré (${opts.dryRun ? "dry-run" : "--allow-dirty"}) : seul le dernier commit serait déployé.`);
   } else {
     ok("Arbre de travail propre");
   }
 
   // --- 1. Gate qualité local (build) ---
   if (!opts.skipBuild) {
-    if (!opts.skipLint) { step("Préflight — lint"); local("npm", ["run", "lint"], { allowFail: true }); }
+    if (!opts.skipLint) { step("Préflight — lint"); local("npm", ["run", "lint"]); }
     step("Préflight — build local (gate, échec rapide avant la prod)");
     local("npm", ["run", "build"]);
     ok("Build local OK");
@@ -198,10 +198,10 @@ if (opts.rollback) {
   // --- 5. (option) Sauvegarde DB + migrations ---
   if (opts.migrate) {
     step("Sauvegarde DB avant migration");
-    remote(`${CFG.remoteDir}/backup.sh >> ${CFG.remoteDir}/backups/backup.log 2>&1 || echo "(backup.sh absent/échoué — poursuite prudente)"`);
+    remote(`test -x ${CFG.remoteDir}/backup.sh && mkdir -p ${CFG.remoteDir}/backups && ${CFG.remoteDir}/backup.sh >> ${CFG.remoteDir}/backups/backup.log 2>&1`);
     step("Migrations Prisma (conteneur jetable node:22-alpine, mot de passe lu sur le VPS)");
     const migrateCmd =
-      `cd ${CFG.remoteDir} && PW=$(grep -E '^POSTGRES_PASSWORD=' .env | cut -d= -f2-) && ` +
+      `cd ${CFG.remoteDir} && PW=$(grep -E '^POSTGRES_PASSWORD=' .env | cut -d= -f2-) && test -n "$PW" && ` +
       `docker run --rm --network ${CFG.composeNet} ` +
       `-e DATABASE_URL="postgresql://rebondpro:$PW@${CFG.dbService}:5432/rebondpro?schema=public" ` +
       `-v ${CFG.remoteDir}/releases/${commit}/prisma:/prisma ` +

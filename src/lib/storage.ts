@@ -8,9 +8,21 @@ const LOCAL_DIR = process.env.STORAGE_LOCAL_DIR ?? "./storage";
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const SUPABASE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "documents";
+const LOCAL_ROOT = path.resolve(/* turbopackIgnore: true */ process.cwd(), LOCAL_DIR);
+const PUBLIC_UPLOAD_ROOT = path.resolve(/* turbopackIgnore: true */ process.cwd(), "public", "uploads");
+
+function pathWithin(root: string, key: string): string {
+  if (!key || path.isAbsolute(key)) throw new Error("Clé de stockage invalide.");
+  const full = path.resolve(root, key);
+  const relative = path.relative(root, full);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error("Clé de stockage hors du répertoire autorisé.");
+  }
+  return full;
+}
 
 function localPath(key: string): string {
-  return path.join(process.cwd(), LOCAL_DIR, key);
+  return pathWithin(LOCAL_ROOT, key);
 }
 
 /** Enregistre un buffer sous `key` (ex: "documents/<org>/<id>.pdf"). Retourne la clé. */
@@ -74,7 +86,7 @@ export async function uploadPublicImage(key: string, data: Buffer, contentType: 
     return `${SUPABASE_URL}/storage/v1/object/public/${PUBLIC_BUCKET}/${key}`;
   }
   // Fallback local
-  const full = path.join(process.cwd(), "public", "uploads", key);
+  const full = pathWithin(PUBLIC_UPLOAD_ROOT, key);
   await fs.mkdir(path.dirname(full), { recursive: true });
   await fs.writeFile(full, data);
   return `/uploads/${key}`;

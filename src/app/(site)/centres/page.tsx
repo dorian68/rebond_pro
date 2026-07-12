@@ -12,14 +12,6 @@ const fadeUp = {
   }),
 };
 
-function ImgSlot({ id, alt }: { id: string; alt: string }) {
-  return (
-    <div data-slot={id} aria-label={alt} style={{ width: "100%", height: "100%", background: "#e7ddca", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>{alt}</span>
-    </div>
-  );
-}
-
 const FACTS = [
   { fv: "Visibilité", fl: "Votre catalogue exposé aux personnes en reconversion qui cherchent vraiment." },
   { fv: "Mise en relation", fl: "Des demandes pré-qualifiées arrivent directement dans votre espace." },
@@ -77,7 +69,7 @@ export default function CentresPage() {
                 </Link>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 26px", marginTop: 34 }}>
-                {["Demandes qualifiées", "Sans engagement", "Compatible CPF & Qualiopi"].map((t) => (
+                {["Demandes qualifiées", "Sans engagement", "Publication après validation"].map((t) => (
                   <span key={t} style={{ fontSize: ".92rem", color: "#5d6f7c", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 10 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#5FB14E", flexShrink: 0 }} />{t}
                   </span>
@@ -122,7 +114,7 @@ export default function CentresPage() {
                 style={{ display: "flex", gap: 22, alignItems: "flex-start", background: "#fff", border: "1.5px solid rgba(21,49,76,.08)", borderRadius: 20, padding: "30px 28px" }}>
                 <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.6rem", fontStyle: "italic", color: "rgba(21,49,76,.22)", minWidth: 34, lineHeight: 1 }}>{v.vn}</span>
                 <div>
-                  <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px" }}>{v.title}</h4>
+                  <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px" }}>{v.title}</h3>
                   <p style={{ fontSize: ".96rem", color: "#5d6f7c", lineHeight: 1.55, margin: 0 }}>{v.desc}</p>
                 </div>
               </motion.div>
@@ -145,7 +137,7 @@ export default function CentresPage() {
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i * 0.5} variants={fadeUp}
                 style={{ background: "#fff", border: "1.5px solid rgba(21,49,76,.08)", borderRadius: 20, padding: "30px 26px" }}>
                 <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.7rem", fontStyle: "italic", color: "#2C8E86", marginBottom: 14 }}>{s.num}</div>
-                <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px", lineHeight: 1.25 }}>{s.title}</h4>
+                <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px", lineHeight: 1.25 }}>{s.title}</h3>
                 <p style={{ fontSize: ".96rem", color: "#5d6f7c", lineHeight: 1.55, margin: 0 }}>{s.desc}</p>
               </motion.div>
             ))}

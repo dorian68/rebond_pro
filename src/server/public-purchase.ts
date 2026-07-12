@@ -2,6 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getStripe, isStripeEnabled } from "@/lib/stripe";
 import { logger } from "@/lib/logger";
+import { VERIFIED_MARKETPLACE_ORGANIZATION } from "@/lib/marketplace-publication";
+import { publicFormationPaymentsEnabled } from "@/lib/payment-readiness";
 
 export type CheckoutResult = { url?: string; error?: string };
 
@@ -17,12 +19,36 @@ function baseUrl(): string {
  */
 export async function publicFormationCheckout(formationId: string): Promise<CheckoutResult> {
   // 1. La formation doit être publique et publiée (validé avant Stripe pour rester testable en CLI).
+  const now = new Date();
   const f = await prisma.formation.findFirst({
-    where: { id: formationId, isPublic: true, status: "PUBLIE", deletedAt: null },
-    select: { id: true, title: true, price: true, organizationId: true, publicSlug: true, organization: { select: { slug: true } } },
+    where: {
+      id: formationId,
+      isPublic: true,
+      status: "PUBLIE",
+      deletedAt: null,
+      organization: VERIFIED_MARKETPLACE_ORGANIZATION,
+    },
+    select: {
+      id: true,
+      title: true,
+      price: true,
+      organizationId: true,
+      publicSlug: true,
+      organization: { select: { slug: true } },
+      sessions: {
+        where: { deletedAt: null, status: "OUVERTE", endDate: { gte: now } },
+        select: { id: true, capacity: true, _count: { select: { enrollments: true } } },
+      },
+    },
   });
   if (!f) return { error: "Formation indisponible." };
   if (f.price <= 0) return { error: "Cette formation n'est pas disponible à l'achat en ligne." };
+  if (!f.sessions.some((session) => session._count.enrollments < session.capacity)) {
+    return { error: "Aucune session avec des places disponibles n'est ouverte à l'achat." };
+  }
+  if (!publicFormationPaymentsEnabled()) {
+    return { error: "Le paiement en ligne des formations n'est pas encore activé." };
+  }
 
   // 2. Stripe requis pour aller plus loin.
   if (!isStripeEnabled()) return { error: "Le paiement en ligne n'est pas encore activé sur cet environnement." };

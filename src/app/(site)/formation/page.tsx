@@ -12,14 +12,6 @@ const fadeUp = {
   }),
 };
 
-function ImgSlot({ id, alt }: { id: string; alt: string }) {
-  return (
-    <div data-slot={id} aria-label={alt} style={{ width: "100%", height: "100%", background: "#e7ddca", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>{alt}</span>
-    </div>
-  );
-}
-
 const PAIN_ITEMS = [
   "Des centaines d'offres sur internet, impossibles à départager.",
   "La difficulté de savoir laquelle est réellement reconnue.",
@@ -153,7 +145,7 @@ export default function FormationPage() {
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i * 0.5} variants={fadeUp}
                 style={{ background: "#fff", border: "1.5px solid rgba(21,49,76,.08)", borderRadius: 20, padding: "30px 26px" }}>
                 <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.7rem", fontStyle: "italic", color: "#2C8E86", marginBottom: 14 }}>{s.num}</div>
-                <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px", lineHeight: 1.25 }}>{s.title}</h4>
+                <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px", lineHeight: 1.25 }}>{s.title}</h3>
                 <p style={{ fontSize: ".96rem", color: "#5d6f7c", lineHeight: 1.55, margin: 0 }}>{s.desc}</p>
               </motion.div>
             ))}

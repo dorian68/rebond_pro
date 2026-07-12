@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { VERIFIED_MARKETPLACE_ORGANIZATION } from "@/lib/marketplace-publication";
 import type { Modality, Level } from "@prisma/client";
 
 /**
@@ -30,9 +31,6 @@ const PUBLIC_FORMATION_WHERE = {
   deletedAt: null,
 };
 
-// Gate de modération : seuls les centres validés par l'admin plateforme sont publics.
-const APPROVED_ORG = { marketplaceStatus: "APPROVED" as const };
-
 export async function getMarketplaceFormationsUncached(filters: MarketplaceFilters = {}) {
   const q = filters.q?.trim();
   return prisma.formation.findMany({
@@ -42,7 +40,7 @@ export async function getMarketplaceFormationsUncached(filters: MarketplaceFilte
       ...(filters.modality ? { modality: filters.modality } : {}),
       ...(filters.level ? { level: filters.level } : {}),
       // Centre validé (+ filtre ville optionnel) — fusionnés dans une seule clé `organization`.
-      organization: { ...APPROVED_ORG, ...(filters.city ? { city: filters.city } : {}) },
+      organization: { ...VERIFIED_MARKETPLACE_ORGANIZATION, ...(filters.city ? { city: filters.city } : {}) },
       ...(q
         ? {
             OR: [
@@ -89,7 +87,7 @@ export async function getMarketplaceFormationsPaginatedUncached(filters: Marketp
       ...(filters.category ? { category: filters.category } : {}),
       ...(filters.modality ? { modality: filters.modality } : {}),
       ...(filters.level ? { level: filters.level } : {}),
-      organization: { ...APPROVED_ORG, ...(filters.city ? { city: filters.city } : {}) },
+      organization: { ...VERIFIED_MARKETPLACE_ORGANIZATION, ...(filters.city ? { city: filters.city } : {}) },
       ...(q
         ? {
             OR: [
@@ -128,7 +126,7 @@ export const getMarketplaceFormationsPaginated = unstable_cache(
 /** Facettes (catégories, villes) pour les filtres, calculées sur les formations publiques. */
 export async function getMarketplaceFacetsUncached() {
   const formations = await prisma.formation.findMany({
-    where: { ...PUBLIC_FORMATION_WHERE, organization: APPROVED_ORG },
+    where: { ...PUBLIC_FORMATION_WHERE, organization: VERIFIED_MARKETPLACE_ORGANIZATION },
     select: { category: true, organization: { select: { city: true } } },
     take: 2000,
   });
@@ -146,7 +144,7 @@ export const getMarketplaceFacets = unstable_cache(
 /** Annuaire des centres approuvés (avec ou sans formation publiée). */
 export async function getMarketplaceCentersUncached() {
   const orgs = await prisma.organization.findMany({
-    where: { deletedAt: null, marketplaceStatus: "APPROVED" },
+    where: VERIFIED_MARKETPLACE_ORGANIZATION,
     select: {
       id: true, name: true, slug: true, logoUrl: true, tagline: true, description: true, city: true,
       _count: { select: { formations: { where: PUBLIC_FORMATION_WHERE }, trainers: { where: { active: true, deletedAt: null } } } },
@@ -166,7 +164,7 @@ export const getMarketplaceCenters = unstable_cache(
 /** Fiche publique d'un centre de formation (mise en avant). */
 export async function getCenterProfileUncached(slug: string) {
   const org = await prisma.organization.findFirst({
-    where: { slug, deletedAt: null, marketplaceStatus: "APPROVED" },
+    where: { slug, ...VERIFIED_MARKETPLACE_ORGANIZATION },
     select: {
       id: true, name: true, slug: true, description: true, tagline: true, website: true,
       logoUrl: true, coverImageUrl: true, city: true, createdAt: true,
@@ -210,7 +208,7 @@ export const getCenterProfile = unstable_cache(
 /** Profil public d'un formateur (visibilité — "Facebook de la formation"). */
 export async function getPublicTrainerUncached(trainerId: string) {
   const trainer = await prisma.trainer.findFirst({
-    where: { id: trainerId, active: true, deletedAt: null },
+    where: { id: trainerId, active: true, deletedAt: null, organization: VERIFIED_MARKETPLACE_ORGANIZATION },
     select: {
       id: true, firstName: true, lastName: true, initials: true, color: true, photoUrl: true,
       specialities: true, bio: true, yearsExperience: true, email: true,

@@ -1,6 +1,7 @@
 "use server";
 
 import { createPublicLead, publicLeadSchema } from "@/server/public-conversion";
+import { rateLimit, rateLimitFingerprint } from "@/server/rate-limit";
 
 export type PublicLeadState = { error?: string; ok?: boolean } | undefined;
 
@@ -21,6 +22,14 @@ export async function submitPublicLead(
     message: formData.get("message") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
+
+  const contactFingerprint = rateLimitFingerprint(parsed.data.email || parsed.data.phone || "missing-contact");
+  if (
+    !rateLimit(`public-lead:contact:${contactFingerprint}`, 3, 86_400_000) ||
+    !rateLimit(`public-lead:formation:${orgSlug}:${publicSlug}`, 120, 3_600_000)
+  ) {
+    return { error: "Trop de demandes ont été envoyées. Réessayez plus tard." };
+  }
 
   try {
     await createPublicLead(orgSlug, publicSlug, parsed.data);

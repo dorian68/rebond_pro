@@ -39,10 +39,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Image
               src="/brand/logo-le-bon-rebond.png"
               alt="Le Bon Rebond"
-              width={150}
+              width={119}
               height={48}
-              style={{ height: 48, width: "auto", objectFit: "contain", display: "block" }}
-              priority
+              style={{ height: 48, width: 119, objectFit: "contain", display: "block" }}
+              preload
             />
           </div>
         </Link>
@@ -85,9 +85,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Image
               src="/brand/logo-le-bon-rebond.png"
               alt="Le Bon Rebond"
-              width={130}
+              width={104}
               height={42}
-              style={{ height: 42, width: "auto", objectFit: "contain", display: "block" }}
+              style={{ height: 42, width: 104, objectFit: "contain", display: "block" }}
             />
           </Link>
         </div>

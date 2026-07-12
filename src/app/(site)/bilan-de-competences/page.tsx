@@ -14,14 +14,6 @@ const fadeUp = {
   }),
 };
 
-function ImgSlot({ id, alt }: { id: string; alt: string }) {
-  return (
-    <div data-slot={id} aria-label={alt} style={{ width: "100%", height: "100%", background: "#e7ddca", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>{alt}</span>
-    </div>
-  );
-}
-
 const PAIN_ITEMS = [
   "Vous ne vous sentez plus à votre place dans votre travail.",
   "Vous avez envie de changer, mais sans savoir vers quoi.",
@@ -216,7 +208,7 @@ export default function BilanCompetencesPage() {
             ].map((col, ci) => (
               <motion.div key={ci} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={ci} variants={fadeUp}
                 style={{ background: col.warm ? "#FDF8F1" : "#fff", border: "1.5px solid rgba(21,49,76,.1)", borderRadius: 24, padding: "36px" }}>
-                <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.4rem", fontWeight: 500, color: "#15314C", margin: "0 0 22px" }}>{col.title}</h4>
+                <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.4rem", fontWeight: 500, color: "#15314C", margin: "0 0 22px" }}>{col.title}</h3>
                 <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 13 }}>
                   {col.items.map((item) => (
                     <li key={item} style={{ display: "flex", gap: 12, alignItems: "flex-start", fontSize: ".98rem", color: "#3d4e5a", lineHeight: 1.5 }}>
@@ -246,7 +238,7 @@ export default function BilanCompetencesPage() {
                 style={{ display: "flex", gap: 22, alignItems: "flex-start", background: "#fff", border: "1.5px solid rgba(21,49,76,.08)", borderRadius: 20, padding: "30px 28px" }}>
                 <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.6rem", fontStyle: "italic", color: "rgba(21,49,76,.22)", minWidth: 34, lineHeight: 1 }}>{v.vn}</span>
                 <div>
-                  <h4 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px" }}>{v.title}</h4>
+                  <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#15314C", margin: "0 0 8px" }}>{v.title}</h3>
                   <p style={{ fontSize: ".96rem", color: "#5d6f7c", lineHeight: 1.55, margin: 0 }}>{v.desc}</p>
                 </div>
               </motion.div>
@@ -277,7 +269,7 @@ export default function BilanCompetencesPage() {
                   transform: plan.featured ? "scale(1.025)" : "none",
                 } as CSSProperties}>
                 {"flag" in plan && plan.flag && (
-                  <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#E07C39", color: "#fff", fontWeight: 700, fontSize: ".78rem", letterSpacing: ".1em", textTransform: "uppercase" as const, padding: "6px 18px", borderRadius: 100, whiteSpace: "nowrap" as const }}>
+                  <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#B85B22", color: "#fff", fontWeight: 700, fontSize: ".78rem", letterSpacing: ".1em", textTransform: "uppercase" as const, padding: "6px 18px", borderRadius: 100, whiteSpace: "nowrap" as const }}>
                     {plan.flag}
                   </span>
                 )}
@@ -306,7 +298,7 @@ export default function BilanCompetencesPage() {
                     fontWeight: 700,
                     fontSize: ".96rem",
                     textDecoration: "none",
-                    background: plan.featured ? "#E07C39" : "transparent",
+                    background: plan.featured ? "#B85B22" : "transparent",
                     color: plan.featured ? "#fff" : "#15314C",
                     border: plan.featured ? "none" : "1.5px solid rgba(21,49,76,.22)",
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -317,8 +309,8 @@ export default function BilanCompetencesPage() {
               </motion.div>
             ))}
           </div>
-          <p style={{ textAlign: "center", marginTop: 36, fontSize: ".9rem", color: "#85939d", fontStyle: "italic" }}>
-            Tarifs indicatifs, ajustés selon votre situation. Financement CPF envisageable selon les cas.
+          <p style={{ textAlign: "center", marginTop: 36, fontSize: ".9rem", color: "#5f6977", fontStyle: "italic" }}>
+            Tarifs indicatifs, ajustés selon votre situation. Toute possibilité de financement est confirmée avant engagement selon la prestation et votre dossier.
           </p>
         </div>
       </section>

@@ -234,7 +234,7 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
       <p style={{ fontSize: 12, lineHeight: 1.6, color: "#15314C", fontStyle: "italic", margin: "0 18px 6px 0", fontFamily: "Georgia, serif" }}>
         {quote.q}
       </p>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: "#2C8E86", marginBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: "#23756e", marginBottom: 12 }}>
         — {quote.a}
       </div>
 

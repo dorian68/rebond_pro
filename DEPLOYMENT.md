@@ -1,134 +1,119 @@
-# Déploiement — RebondPro Formation
+# Déploiement VPS - RebondPro
 
-Runbook de mise en production. La base est **Supabase (PostgreSQL)**. L'app est **Next.js 16**.
+Dernière validation : 12 juillet 2026.
 
-## 1. Prérequis (à faire une fois)
+Ce document décrit l'infrastructure réellement utilisée par `lebonrebond.optiquant-ia.com`. Le déploiement courant est automatisé par `scripts/deploy.mjs` et conserve les secrets, la base et le proxy déjà présents sur le VPS.
 
-### 1.1 Base de données Supabase
-- Projet Supabase créé (région proche des utilisateurs).
-- Récupérer la connection string **pooler** (Settings → Database → Connection pooling, mode "Transaction" pour la prod) :
-  `postgresql://postgres.<ref>:<password>@aws-<n>-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
-- Pour les migrations, prévoir aussi l'URL **directe** (port 5432) si l'hôte de build peut l'atteindre.
+## Architecture de production
 
-### 1.2 Bucket de stockage public (images)
-- Supabase → Storage → **créer un bucket public** nommé `public-assets`.
-- Renseigner `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (Service Role), `SUPABASE_PUBLIC_BUCKET=public-assets`.
-- Tant que le bucket n'existe pas : les avatars initiales/couleur s'affichent (fonctionnel, pas de blocage).
+| Composant | Configuration |
+|---|---|
+| VPS | Hetzner, accès par clé SSH dédiée |
+| Application | Image Docker `rebondpro-app:<commit>`, publiée localement sur `127.0.0.1:3000` |
+| Base | PostgreSQL 16 dans `rebondpro-db`, volume Docker persistant, non exposé sur Internet |
+| HTTPS | Caddy installé comme service système, proxy vers l'application |
+| Fichiers | Supabase Storage côté serveur |
+| Releases | `/opt/rebondpro/releases/<commit>` ; cinq releases conservées par défaut |
+| Santé | `https://lebonrebond.optiquant-ia.com/api/health` |
 
-### 1.3 Email transactionnel
-- Fournisseur SMTP de prod (Resend/Postmark) → `EMAIL_SMTP_*`, `EMAIL_FROM`.
+Le fichier `/opt/rebondpro/docker-compose.yml` et les secrets du VPS sont la source de vérité d'exploitation. Le fichier `docker-compose.prod.yml` du dépôt reste un exemple de bootstrap et ne remplace pas la composition existante lors d'une mise à jour ordinaire.
 
-### 1.4 Facturation Stripe (Lot 7)
-- Créer les produits/prix Stripe (Pro, Premium) → renseigner `STRIPE_PRICE_PRO`, `STRIPE_PRICE_PREMIUM`.
-- `STRIPE_SECRET_KEY` (live), et configurer un webhook Stripe vers `https://<domaine>/api/stripe/webhook` → `STRIPE_WEBHOOK_SECRET`.
-- Événements à écouter : `checkout.session.completed`, `customer.subscription.created/updated/deleted`.
-- En dev : `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
-- Sans ces clés : l'app reste utilisable en FREE, l'upgrade est simplement désactivé (pas de blocage).
+## Préflight local
 
-## 2. Variables d'environnement (prod)
-
-Obligatoires (validées au démarrage par `src/lib/env.ts`) :
-- `DATABASE_URL` (pooler Supabase)
-- `AUTH_SECRET` (≥ 16 caractères ; `openssl rand -base64 32`)
-
-Recommandées :
-- `AUTH_URL` / `APP_PUBLIC_URL` (URL publique de l'app)
-- `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_PUBLIC_BUCKET`
-- `EMAIL_SMTP_HOST/PORT/USER/PASSWORD`, `EMAIL_FROM`
-- `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` (+ `AG_UI_PROVIDER`, `AG_UI_MODEL`)
-- `STORAGE_DRIVER=supabase`
-
-⛔ **Ne jamais définir `DEV_AUTOLOGIN=true` en production** (bypass d'auth). Le code le neutralise et l'avertit, mais il ne doit pas figurer dans les secrets prod.
-
-## 3. Migrations base
-
-Depuis un hôte pouvant atteindre Supabase en direct :
-```bash
-npx prisma migrate deploy
-```
-> Note Windows/VPN : si la CLI Prisma échoue (`P1001`), couper tout VPN. En dernier recours, appliquer le SQL des migrations dans le **SQL Editor Supabase** (les colonnes marketplace/auth/dedup ont été posées ainsi en dev — voir historique `prisma/migrations` + index `Prospect_public_dedup_key`).
-
-## 4. Build & run
+Depuis la branche `main` :
 
 ```bash
 npm ci
-npx prisma generate
-npm run build      # doit sortir en exit 0
-npm run start      # serveur de production (port 3000 par défaut)
+npm run lint
+npx tsc --noEmit
+npm run smoke:all:local
+npm run build
+npm run deploy:dry
 ```
 
-Hébergement recommandé : Vercel (Next.js natif) ou conteneur Node 20+ (Docker). Définir les variables d'env dans le gestionnaire de secrets de la plateforme.
-
-## 5. Vérifications post-déploiement (santé)
+Pour les parcours rendus, le serveur local doit tourner sur le port 3100 :
 
 ```bash
-curl -fsS https://<domaine>/api/health      # attendu : 200 {"ok":true,"db":"up"}
+npm run dev:local
+npm run smoke:accessibility
+npm run smoke:ui
+npm run smoke:email-transport
 ```
-Suite de fumée (depuis un environnement avec `DATABASE_URL` de prod, hors heures de pointe) :
+
+`smoke:all:local` refuse une base distante et neutralise Stripe, les emails externes, Composio et Supabase Storage.
+
+## Mise en production
+
+Cette release contient des migrations Prisma. La commande recommandée est donc :
+
 ```bash
-npm run smoke:health
-npm run smoke:all     # crée/nettoie des données jetables — à réserver à un env de staging
+node scripts/deploy.mjs --yes --migrate --commit "chore(release): harden public production"
 ```
 
-## 6. Observabilité
+Le pipeline effectue, dans l'ordre :
 
-- Logs : `src/lib/logger.ts` émet du JSON structuré (secrets masqués) → brancher la collecte de logs de la plateforme.
-- Liveness/readiness : `/api/health` (à connecter au load balancer / uptime monitor).
-- À ajouter pour la prod : APM/alerting externe (Sentry, Better Stack, etc.). **Bloqueur P0 restant.**
+1. commit et push de la révision ;
+2. lint et build local ;
+3. transfert d'une archive Git sans fichier `.env*` ;
+4. build de l'image sur le VPS ;
+5. sauvegarde PostgreSQL puis `prisma migrate deploy` ;
+6. bascule par `docker compose up -d` ;
+7. health-check HTTPS avec rollback automatique en cas d'échec ;
+8. conservation de la release et purge limitée aux anciennes images RebondPro.
 
-## 7. Sauvegardes & RGPD
+Ne jamais utiliser `--skip-build` pour une release normale. `DEV_AUTOLOGIN` doit rester absent ou à `false` en production.
 
-- Activer les **sauvegardes automatiques** Supabase (PITR selon le plan).
-- Export utilisateur disponible in-app (Paramètres → Avancé → CSV).
-- Voir `/legal/confidentialite` pour la politique.
+## Variables sensibles
 
-## 8 bis. Déploiement Docker sur VPS (Hetzner)
+Les vraies valeurs restent uniquement dans la configuration du VPS. Les familles requises sont :
 
-Architecture : **app Next.js (image standalone)** derrière **Caddy** (HTTPS auto Let's Encrypt). La base reste **Supabase managé** → aucun conteneur Postgres. Fichiers : `Dockerfile`, `docker-compose.prod.yml`, `Caddyfile`, `.dockerignore`, `.env.production.example`.
+- `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `APP_PUBLIC_URL` ;
+- SMTP (`EMAIL_SMTP_*`, `EMAIL_FROM`) ;
+- stockage (`STORAGE_DRIVER=supabase`, `SUPABASE_*`) ;
+- OAuth Google, fournisseur LLM et Stripe selon les fonctionnalités activées.
 
-**Prérequis serveur (une fois)**
-- VPS avec Docker + plugin Compose : `curl -fsSL https://get.docker.com | sh`.
-- Pare-feu : ouvrir **80** et **443** (Caddy gère le challenge ACME sur 80).
-- DNS : enregistrement **A** `VOTRE-DOMAINE` → IP du VPS (propagé avant le 1er `up`, sinon le certificat échoue).
+Les paiements publics sont des fonctionnalités à activation explicite :
 
-**Déploiement**
+- `PUBLIC_FORMATION_PAYMENTS_ENABLED=true` seulement après validation des CGV marketplace et du vendeur ;
+- `BILAN_PAYMENTS_ENABLED=true` seulement avec `ORGANISME_FORMATION_NDA` renseigné et conformité du prestataire vérifiée.
+
+Sans ces conditions, le site conserve un parcours de prise de contact et n'affiche pas de paiement trompeur.
+
+## Sauvegardes et migrations
+
+`/opt/rebondpro/backup.sh` produit une sauvegarde PostgreSQL avant migration. Une sauvegarde quotidienne compressée est également conservée dans `/opt/rebondpro/backups`.
+
+Vérifications manuelles non sensibles :
+
 ```bash
-# 1. Récupérer le code (les secrets ne sont PAS dans le repo)
-git clone https://github.com/dorian68/rebond-connect-flow.git rebondpro && cd rebondpro
-
-# 2. Variables de l'app
-cp .env.production.example .env.production    # puis éditer avec les vraies valeurs
-echo 'DOMAIN=VOTRE-DOMAINE' > .env            # lu par Compose pour Caddy
-
-# 3. Build + run
-docker compose -f docker-compose.prod.yml up -d --build
-
-# 4. Santé (la DB Supabase est joignable depuis Hetzner, sans VPN)
-curl -fsS https://VOTRE-DOMAINE/api/health    # attendu : 200 {"ok":true,"db":"up"}
+ssh -i ~/.ssh/rebondpro_deploy root@204.168.138.243 "docker compose -f /opt/rebondpro/docker-compose.yml ps"
+ssh -i ~/.ssh/rebondpro_deploy root@204.168.138.243 "cat /opt/rebondpro/DEPLOYED_COMMIT"
 ```
 
-**Base de données** : le schéma Supabase est **déjà provisionné** (l'app tourne déjà contre lui) → **aucune migration n'est requise au premier déploiement**. Pour de futurs changements de schéma : exécuter `npx prisma migrate deploy` depuis une machine disposant du repo + Node et pouvant joindre Supabase en direct (ou appliquer le SQL via le SQL Editor Supabase).
+## Vérifications après bascule
 
-**Webhook Stripe** (après le 1er déploiement, quand l'URL publique existe)
-1. Stripe → Développeurs → Webhooks → ajouter `https://VOTRE-DOMAINE/api/stripe/webhook`.
-2. Événements : `checkout.session.completed`, `invoice.paid`, `customer.subscription.created/updated/deleted`.
-3. Copier le `whsec_…` dans `.env.production` → `docker compose -f docker-compose.prod.yml up -d` (redémarre l'app).
-
-**Mises à jour**
 ```bash
-git pull && docker compose -f docker-compose.prod.yml up -d --build
+curl -fsS https://lebonrebond.optiquant-ia.com/api/health
+curl -fsSI https://lebonrebond.optiquant-ia.com/
+curl -fsSI https://lebonrebond.optiquant-ia.com/bilan-de-competences
+curl -fsSI https://lebonrebond.optiquant-ia.com/bilan-orientation
+curl -fsSI https://lebonrebond.optiquant-ia.com/legal/mentions
+curl -fsSI https://lebonrebond.optiquant-ia.com/robots.txt
+curl -fsSI https://lebonrebond.optiquant-ia.com/sitemap.xml
 ```
 
-**Sécurité** : ne jamais committer `.env.production` ni `.env` (déjà couverts par `.gitignore`/`.dockerignore`). `DEV_AUTOLOGIN` doit être **absent** des secrets prod. La `SUPABASE_SERVICE_KEY` reste server-side.
+Contrôler ensuite les logs sans afficher l'environnement :
 
-## 8. Checklist Go-Live
+```bash
+ssh -i ~/.ssh/rebondpro_deploy root@204.168.138.243 "docker logs --since 10m rebondpro-app"
+```
 
-- [ ] `DATABASE_URL` pooler + `AUTH_SECRET` (≥16) configurés
-- [ ] `DEV_AUTOLOGIN` absent des secrets prod
-- [ ] Bucket `public-assets` créé (si upload d'images voulu)
-- [ ] SMTP prod configuré + email de test reçu
-- [ ] `prisma migrate deploy` appliqué (+ index `Prospect_public_dedup_key`)
-- [ ] `npm run build` exit 0
-- [ ] `/api/health` → 200
-- [ ] APM/alerting branché
-- [ ] Sauvegardes activées
+## Rollback
+
+Le pipeline conserve l'image précédente et revient automatiquement dessus si la santé échoue. Un rollback manuel reste disponible :
+
+```bash
+npm run deploy:rollback
+```
+
+Après rollback, vérifier `/api/health`, les logs de l'application et l'état de `rebondpro-db` avant toute nouvelle tentative.

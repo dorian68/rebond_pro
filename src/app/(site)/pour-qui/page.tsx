@@ -28,7 +28,7 @@ const profiles = [
       "Construire un plan de reconversion sécurisé",
       "Repartir avec un parcours de formation concret",
     ],
-    cta: "Finançable via votre CPF, sans informer votre employeur",
+    cta: "Les options de financement sont étudiées selon votre situation",
   },
   {
     icon: Search,
@@ -42,7 +42,7 @@ const profiles = [
       "Définir un projet professionnel motivant",
       "Accéder à des formations adaptées au marché local",
     ],
-    cta: "Éligible CPF – reprenez le contrôle de votre avenir",
+    cta: "Un conseiller vous aide à identifier les dispositifs réellement accessibles",
   },
   {
     icon: Rocket,
@@ -67,7 +67,7 @@ export default function Cibles() {
         <div className="container mx-auto px-4 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp}>
             <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 rounded-full">Pour qui ?</Badge>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Le Bon Rebond s'adresse à <span className="font-script text-accent">vous</span></h1>
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Le Bon Rebond s'adresse à <span className="font-script text-[#A64F20]">vous</span></h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Que vous soyez salarié, en recherche d'emploi ou entrepreneur, votre parcours commence ici.
             </p>
@@ -99,12 +99,12 @@ export default function Cibles() {
                   <div className="flex flex-col lg:flex-row">
                     <div className="bg-muted/50 p-8 lg:w-72 flex flex-col items-center justify-center text-center">
                       <profile.icon className="w-10 h-10 mb-3 text-primary" />
-                      <h3 className="font-display font-bold text-2xl text-foreground">{profile.title}</h3>
+                      <h2 className="font-display font-bold text-2xl text-foreground">{profile.title}</h2>
                       <span className="text-sm text-muted-foreground">{profile.subtitle}</span>
                     </div>
                     <div className="p-8 flex-1">
                       <p className="text-muted-foreground leading-relaxed mb-6">{profile.pain}</p>
-                      <h4 className="font-display font-semibold mb-3">Comment Le Bon Rebond vous aide :</h4>
+                      <h3 className="font-display font-semibold mb-3">Comment Le Bon Rebond vous aide :</h3>
                       <ul className="space-y-2 mb-6">
                         {profile.solution.map((s, j) => (
                           <li key={j} className="flex items-start gap-3 text-sm">

@@ -72,13 +72,13 @@ const channels = [
     k: "Modalités",
     v: "Consultations en présentiel ou en visio",
     s: "",
-    href: undefined,
+    href: "#form",
   },
 ];
 
 export default function ContactPage() {
   const [audience, setAudience] = useState<"particulier" | "centre">("particulier");
-  const [form, setForm] = useState({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", situation: "", message: "", website: "" });
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export default function ContactPage() {
     setSubmitting(false);
     if (!res.ok) { setError(res.error ?? "Une erreur est survenue. Réessayez."); return; }
     setSent(true);
-    setForm({ name: "", email: "", phone: "", situation: "", message: "", cpfCheck: false });
+    setForm({ name: "", email: "", phone: "", situation: "", message: "", website: "" });
   };
 
   const pillBase: CSSProperties = { padding: "12px 22px", borderRadius: 100, border: "1.5px solid rgba(21,49,76,.18)", fontWeight: 700, fontSize: ".96rem", cursor: "pointer", background: "transparent", color: "#5d6f7c", fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all .2s" };
@@ -130,8 +130,6 @@ export default function ContactPage() {
       </section>
 
       {/* ── FORMULAIRE + CANAUX ── */}
-      {/* ancre #eligibilite : ciblée depuis /tarifs (questions financement / CPF) */}
-      <span id="eligibilite" style={{ position: "absolute", marginTop: -90 }} aria-hidden="true" />
       <section style={{ padding: "40px 0 108px" }} id="form">
         <div className="container">
           <div style={{ display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: 54, alignItems: "start" }} className="contact-page-grid">
@@ -161,6 +159,17 @@ export default function ContactPage() {
                   onSubmit={handleSubmit}
                   style={{ background: "#fff", border: "1px solid rgba(21,49,76,.12)", borderRadius: 24, padding: 38, boxShadow: "0 18px 50px -28px rgba(14,36,56,.45)", display: "flex", flexDirection: "column", gap: 20 }}
                 >
+                  <div style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clipPath: "inset(50%)", whiteSpace: "nowrap" }} aria-hidden="true">
+                    <label htmlFor="contact-website">Site web</label>
+                    <input
+                      id="contact-website"
+                      name="website"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={form.website}
+                      onChange={(e) => setForm({ ...form, website: e.target.value })}
+                    />
+                  </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }} className="form-row">
                     <div>
                       <label htmlFor="nom" style={labelStyle}>Nom complet</label>
@@ -216,11 +225,11 @@ export default function ContactPage() {
                     </div>
                   )}
 
-                  <button type="submit" disabled={submitting} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "17px 28px", borderRadius: 100, background: submitting ? "#5d6f7c" : "#E07C39", color: "#fff", fontWeight: 700, fontSize: "1.05rem", border: "none", cursor: submitting ? "not-allowed" : "pointer", width: "100%", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <button type="submit" disabled={submitting} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "17px 28px", borderRadius: 100, background: submitting ? "#5d6f7c" : "#B85B22", color: "#fff", fontWeight: 700, fontSize: "1.05rem", border: "none", cursor: submitting ? "not-allowed" : "pointer", width: "100%", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     {submitting ? "Envoi…" : <>Envoyer ma demande <span>→</span></>}
                   </button>
 
-                  <p style={{ fontSize: ".82rem", color: "#85939d", lineHeight: 1.5, textAlign: "center" }}>
+                  <p style={{ fontSize: ".82rem", color: "#5f6977", lineHeight: 1.5, textAlign: "center" }}>
                     En envoyant ce formulaire, vous acceptez d'être recontacté par Le Bon Rebond. Vos informations restent confidentielles.
                   </p>
                 </form>
@@ -235,6 +244,7 @@ export default function ContactPage() {
                     href={ch.href}
                     style={{
                       display: "block",
+                      minWidth: 0,
                       background: ch.accent ? "#15314C" : "#F3E9D7",
                       borderRadius: 20,
                       padding: "26px 28px",
@@ -247,10 +257,10 @@ export default function ContactPage() {
                     <div style={{ fontSize: ".78rem", fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: ch.accent ? "#5FB14E" : "#23756e", marginBottom: 8 }}>
                       {ch.k}
                     </div>
-                    <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", color: ch.accent ? "#fff" : "#15314C", fontWeight: 500, lineHeight: 1.2 }}>
+                    <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "1.5rem", color: ch.accent ? "#fff" : "#15314C", fontWeight: 500, lineHeight: 1.2, overflowWrap: "anywhere" }}>
                       {ch.v}
                     </div>
-                    <div style={{ color: ch.accent ? "rgba(255,255,255,.72)" : "#5d6f7c", fontSize: ".96rem", marginTop: 6, lineHeight: 1.55 }}>
+                    <div style={{ color: ch.accent ? "rgba(255,255,255,.72)" : "#536673", fontSize: ".96rem", marginTop: 6, lineHeight: 1.55 }}>
                       {ch.s}
                     </div>
                   </a>

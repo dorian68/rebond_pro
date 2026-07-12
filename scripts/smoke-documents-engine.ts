@@ -1,7 +1,7 @@
 import "./_env";
 import PizZip from "pizzip";
 import { prisma } from "../src/lib/prisma";
-import { saveFile } from "../src/lib/storage";
+import { deleteFile, saveFile } from "../src/lib/storage";
 import { renderDocxTemplate } from "../src/server/docx/template-engine";
 import { getDocumentGenerationPreflight } from "../src/server/documents/document-context";
 import { createTestTenant, step, assert, runner } from "./_tenant";
@@ -41,10 +41,22 @@ function createTemplate(): Buffer {
 runner("documents_engine_smoke", async () => {
   const t = await createTestTenant("documents-engine");
   let globalTemplateId: string | null = null;
+  const storageKeys: string[] = [];
   try {
     const templateBuffer = createTemplate();
+    if ((process.env.STORAGE_DRIVER ?? "local") === "local") {
+      let traversalBlocked = false;
+      try {
+        await saveFile("../outside-smoke.docx", templateBuffer);
+      } catch {
+        traversalBlocked = true;
+      }
+      assert(traversalBlocked, "Une clé de stockage traversant le répertoire local devrait être refusée.");
+      step("local_storage_traversal_blocked");
+    }
     const key = `document-templates/${t.organizationId}/smoke-template.docx`;
     await saveFile(key, templateBuffer);
+    storageKeys.push(key);
     const template = await prisma.documentTemplate.create({
       data: {
         organizationId: t.organizationId,
@@ -86,6 +98,7 @@ runner("documents_engine_smoke", async () => {
 
     const globalKey = `document-templates/global/smoke-platform-template.docx`;
     await saveFile(globalKey, templateBuffer);
+    storageKeys.push(globalKey);
     const global = await prisma.documentTemplate.create({
       data: {
         organizationId: null,
@@ -121,6 +134,7 @@ runner("documents_engine_smoke", async () => {
     step("docx_renders_readable_missing", { bytes: rendered.length });
   } finally {
     if (globalTemplateId) await prisma.documentTemplate.delete({ where: { id: globalTemplateId } }).catch(() => undefined);
+    await Promise.all(storageKeys.map((key) => deleteFile(key)));
     await t.cleanup();
     step("tenant_cleanup");
   }

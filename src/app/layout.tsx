@@ -1,15 +1,23 @@
 /* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_PUBLIC_URL ?? "https://lebonrebond.optiquant-ia.com"),
   title: "Le Bon Rebond — Orientation, formation et reconversion",
   description:
     "Trouvez votre prochaine direction professionnelle grâce à un bilan de compétences ou une formation adaptée à votre projet.",
   icons: {
     icon: "/brand/logo-mark-le-bon-rebond.png",
     apple: "/brand/logo-mark-le-bon-rebond.png",
+  },
+  openGraph: {
+    title: "Le Bon Rebond — Orientation, formation et reconversion",
+    description: "Trouvez votre prochaine direction professionnelle grâce à un accompagnement ou une formation adaptée à votre projet.",
+    siteName: "Le Bon Rebond",
+    locale: "fr_FR",
+    type: "website",
+    images: [{ url: "/photos/hero-woman.jpg", alt: "Le Bon Rebond" }],
   },
 };
 
@@ -30,13 +38,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body>{children}</body>
-      <Script src="https://www.googletagmanager.com/gtag/js?id=G-DRCT6GRN04" strategy="afterInteractive" />
-      <Script id="ga-init" strategy="afterInteractive">{`
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-DRCT6GRN04');
-      `}</Script>
     </html>
   );
 }

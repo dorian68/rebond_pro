@@ -7,8 +7,8 @@ export type ConnectorKey =
   | "sharepoint"
   | "microsoft_calendar";
 
-export type ConnectorCapability = "calendar_read" | "calendar_write" | "document_read" | "document_import" | "document_write" | "document_upload" | "email_draft" | "email_send";
-export type ConnectorToolKind = "listEvents" | "createEvent" | "searchFiles" | "getFile" | "createFile" | "uploadFile" | "createDraft" | "sendEmail";
+export type ConnectorCapability = "calendar_read" | "document_read" | "document_import" | "email_draft";
+export type ConnectorToolKind = "listEvents" | "searchFiles" | "getFile" | "createDraft";
 export type ConnectorScope = "personal" | "organization";
 
 export type ConnectorDefinition = {
@@ -20,7 +20,7 @@ export type ConnectorDefinition = {
   capabilities: ConnectorCapability[];
   scopes: ConnectorScope[];
   defaultScope: ConnectorScope;
-  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND" | "WRITE";
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY";
   description: string;
   envToolOverrides: Partial<Record<ConnectorToolKind, string>>;
 };
@@ -32,12 +32,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "googlecalendar",
     priority: 1,
-    capabilities: ["calendar_read", "calendar_write"],
+    capabilities: ["calendar_read"],
     scopes: ["personal", "organization"],
     defaultScope: "personal",
-    writePolicy: "WRITE",
-    description: "Lecture des disponibilités et création d'événements. La création déclenche une validation humaine avant exécution.",
-    envToolOverrides: { listEvents: "COMPOSIO_TOOL_GOOGLE_CALENDAR_LIST_EVENTS", createEvent: "COMPOSIO_TOOL_GOOGLE_CALENDAR_CREATE_EVENT" },
+    writePolicy: "READ_ONLY",
+    description: "Lecture des disponibilités Google Calendar, sans création ni modification d'événement.",
+    envToolOverrides: { listEvents: "COMPOSIO_TOOL_GOOGLE_CALENDAR_LIST_EVENTS" },
   },
   {
     key: "google_drive",
@@ -45,12 +45,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "googledrive",
     priority: 2,
-    capabilities: ["document_read", "document_import", "document_write", "document_upload"],
+    capabilities: ["document_read", "document_import"],
     scopes: ["organization", "personal"],
     defaultScope: "organization",
-    writePolicy: "WRITE",
-    description: "Recherche, import, création de documents texte et dépôt de fichiers (PDF généré). L'écriture déclenche une validation humaine avant exécution.",
-    envToolOverrides: { searchFiles: "COMPOSIO_TOOL_GOOGLE_DRIVE_SEARCH_FILES", getFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_GET_FILE", createFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_CREATE_FILE", uploadFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_UPLOAD_FILE" },
+    writePolicy: "READ_ONLY",
+    description: "Recherche et import contrôlé de fichiers Google Drive, sans écriture dans le compte connecté.",
+    envToolOverrides: { searchFiles: "COMPOSIO_TOOL_GOOGLE_DRIVE_SEARCH_FILES", getFile: "COMPOSIO_TOOL_GOOGLE_DRIVE_GET_FILE" },
   },
   {
     key: "gmail",
@@ -58,12 +58,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "google",
     toolkit: "gmail",
     priority: 3,
-    capabilities: ["email_draft", "email_send"],
+    capabilities: ["email_draft"],
     scopes: ["personal"],
     defaultScope: "personal",
-    writePolicy: "SEND",
-    description: "Création de brouillons et envoi d'emails. L'envoi déclenche une validation humaine avant exécution.",
-    envToolOverrides: { createDraft: "COMPOSIO_TOOL_GMAIL_CREATE_DRAFT", sendEmail: "COMPOSIO_TOOL_GMAIL_SEND_EMAIL" },
+    writePolicy: "DRAFT_ONLY",
+    description: "Création de brouillons Gmail uniquement. Aucun outil d'envoi direct n'est exposé.",
+    envToolOverrides: { createDraft: "COMPOSIO_TOOL_GMAIL_CREATE_DRAFT" },
   },
   {
     key: "outlook",
@@ -71,12 +71,12 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "microsoft",
     toolkit: "outlook",
     priority: 4,
-    capabilities: ["email_draft", "email_send"],
+    capabilities: ["email_draft"],
     scopes: ["personal"],
     defaultScope: "personal",
-    writePolicy: "SEND",
-    description: "Création de brouillons et envoi d'emails Outlook. L'envoi déclenche une validation humaine avant exécution.",
-    envToolOverrides: { createDraft: "COMPOSIO_TOOL_OUTLOOK_CREATE_DRAFT", sendEmail: "COMPOSIO_TOOL_OUTLOOK_SEND_EMAIL" },
+    writePolicy: "DRAFT_ONLY",
+    description: "Création de brouillons Outlook uniquement. Aucun outil d'envoi direct n'est exposé.",
+    envToolOverrides: { createDraft: "COMPOSIO_TOOL_OUTLOOK_CREATE_DRAFT" },
   },
   {
     key: "onedrive",
@@ -110,24 +110,23 @@ export const CONNECTORS: ConnectorDefinition[] = [
     provider: "microsoft",
     toolkit: "outlook",
     priority: 7,
-    capabilities: ["calendar_read", "calendar_write"],
+    capabilities: ["calendar_read"],
     scopes: ["personal", "organization"],
     defaultScope: "personal",
-    writePolicy: "WRITE",
-    description: "Lecture et création d'événements Microsoft 365 via Outlook Calendar. La création déclenche une validation humaine avant exécution.",
-    envToolOverrides: { listEvents: "COMPOSIO_TOOL_MICROSOFT_CALENDAR_LIST_EVENTS", createEvent: "COMPOSIO_TOOL_MICROSOFT_CALENDAR_CREATE_EVENT" },
+    writePolicy: "READ_ONLY",
+    description: "Lecture des disponibilités Microsoft 365, sans création ni modification d'événement.",
+    envToolOverrides: { listEvents: "COMPOSIO_TOOL_MICROSOFT_CALENDAR_LIST_EVENTS" },
   },
 ];
 
 export const DEFAULT_COMPOSIO_TOOLS: Record<ConnectorKey, Partial<Record<ConnectorToolKind, string>>> = {
-  google_calendar: { listEvents: "GOOGLECALENDAR_EVENTS_LIST", createEvent: "GOOGLECALENDAR_CREATE_EVENT" },
-  google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE", createFile: "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT", uploadFile: "GOOGLEDRIVE_UPLOAD_FILE" },
-  gmail: { createDraft: "GMAIL_CREATE_EMAIL_DRAFT", sendEmail: "GMAIL_SEND_EMAIL" },
-  // Le toolkit Outlook expose ses slugs avec le préfixe doublé OUTLOOK_OUTLOOK_* (vérifié via l'API Composio).
-  outlook: { createDraft: "OUTLOOK_OUTLOOK_CREATE_DRAFT", sendEmail: "OUTLOOK_OUTLOOK_SEND_EMAIL" },
+  google_calendar: { listEvents: "GOOGLECALENDAR_EVENTS_LIST" },
+  google_drive: { searchFiles: "GOOGLEDRIVE_SEARCH_FILES", getFile: "GOOGLEDRIVE_GET_FILE" },
+  gmail: { createDraft: "GMAIL_CREATE_EMAIL_DRAFT" },
+  outlook: { createDraft: "OUTLOOK_OUTLOOK_CREATE_DRAFT" },
   onedrive: { searchFiles: "ONEDRIVE_SEARCH_FILES", getFile: "ONEDRIVE_GET_FILE" },
   sharepoint: { searchFiles: "SHAREPOINT_SEARCH_FILES", getFile: "SHAREPOINT_GET_FILE" },
-  microsoft_calendar: { listEvents: "OUTLOOK_LIST_EVENTS", createEvent: "OUTLOOK_OUTLOOK_CALENDAR_CREATE_EVENT" },
+  microsoft_calendar: { listEvents: "OUTLOOK_LIST_EVENTS" },
 };
 
 export function getConnector(key: string): ConnectorDefinition | undefined {

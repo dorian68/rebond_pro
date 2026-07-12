@@ -5,6 +5,8 @@ import { createTestTenant, step, assert, runner } from "./_tenant";
 // Ce smoke valide explicitement le fallback sans Stripe et ne doit jamais
 // utiliser une clé réelle héritée de .env.local.
 delete process.env.STRIPE_SECRET_KEY;
+const originalPublicPaymentsEnabled = process.env.PUBLIC_FORMATION_PAYMENTS_ENABLED;
+process.env.PUBLIC_FORMATION_PAYMENTS_ENABLED = "false";
 
 // Vérifie l'achat PUBLIC (sans compte) : appelable sans session, gating public/publié/prix,
 // et dégradation propre quand Stripe n'est pas configuré (env de test). La création réelle de
@@ -27,11 +29,45 @@ runner("public_purchase_smoke", async () => {
       data: { organizationId: t.organizationId, title: "Formation Gratuite", slug: `free-${stamp}`, price: 0, status: "PUBLIE", isPublic: true, publicSlug: `free-${stamp}` },
     });
 
+    const beforeReview = await publicFormationCheckout(pub.id);
+    assert(beforeReview.error && /indisponible/i.test(beforeReview.error), "Un centre sans revue humaine ne doit PAS pouvoir vendre.");
+    step("unreviewed_center_blocked");
+
+    await prisma.organization.update({
+      where: { id: t.organizationId },
+      data: {
+        publicProfileEnabled: true,
+        marketplaceStatus: "APPROVED",
+        marketplaceReviewedAt: new Date(),
+        marketplaceReviewedBy: t.userId,
+      },
+    });
+
+    const noSession = await publicFormationCheckout(pub.id);
+    assert(noSession.error && /aucune session/i.test(noSession.error), "Une formation sans session ouverte ne doit PAS être achetable.");
+    step("formation_without_open_session_blocked");
+
+    await prisma.session.create({
+      data: {
+        organizationId: t.organizationId,
+        formationId: pub.id,
+        startDate: new Date(Date.now() + 86_400_000),
+        endDate: new Date(Date.now() + 2 * 86_400_000),
+        capacity: 10,
+        status: "OUVERTE",
+      },
+    });
+
+    const gated = await publicFormationCheckout(pub.id);
+    assert(!gated.url && /formations/i.test(gated.error ?? ""), "Le paiement doit rester fermé sans activation juridique explicite.");
+    step("public_payment_feature_gate");
+
+    process.env.PUBLIC_FORMATION_PAYMENTS_ENABLED = "true";
     // Aucune session requireTenant : l'appel aboutit sans contexte d'authentification.
     const r1 = await publicFormationCheckout(pub.id);
     assert(typeof r1 === "object" && (r1.url || r1.error), "L'achat public doit renvoyer url|error sans lever (pas d'auth requise).");
     // Stripe non configuré en test → message d'activation (preuve : la validation public/prix est passée).
-    assert(!r1.url && /activé/i.test(r1.error ?? ""), "Avec une formation publique valide, on doit atteindre l'étape Stripe (désactivée en test).");
+    assert(!r1.url && /environnement/i.test(r1.error ?? ""), "Avec une formation publique valide, on doit atteindre l'étape Stripe (désactivée en test).");
     step("public_formation_reaches_stripe", { error: r1.error });
 
     const r2 = await publicFormationCheckout(priv.id);
@@ -46,6 +82,8 @@ runner("public_purchase_smoke", async () => {
     assert(r4.error && /indisponible/i.test(r4.error), "Un id inconnu doit être rejeté proprement.");
     step("unknown_formation_blocked");
   } finally {
+    if (originalPublicPaymentsEnabled === undefined) delete process.env.PUBLIC_FORMATION_PAYMENTS_ENABLED;
+    else process.env.PUBLIC_FORMATION_PAYMENTS_ENABLED = originalPublicPaymentsEnabled;
     await t.cleanup();
     step("tenant_cleanup");
   }

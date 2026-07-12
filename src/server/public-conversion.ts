@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { VERIFIED_MARKETPLACE_ORGANIZATION } from "@/lib/marketplace-publication";
 
 export const publicLeadSchema = z
   .object({
@@ -26,7 +27,7 @@ export async function getPublicFormationUncached(orgSlug: string, publicSlug: st
       isPublic: true,
       status: "PUBLIE",
       deletedAt: null,
-      organization: { slug: orgSlug, deletedAt: null },
+      organization: { slug: orgSlug, ...VERIFIED_MARKETPLACE_ORGANIZATION },
     },
     include: {
       organization: {
@@ -80,7 +81,7 @@ export async function createPublicLead(orgSlug: string, publicSlug: string, rawI
       isPublic: true,
       status: "PUBLIE",
       deletedAt: null,
-      organization: { slug: orgSlug, deletedAt: null },
+      organization: { slug: orgSlug, ...VERIFIED_MARKETPLACE_ORGANIZATION },
     },
     select: { id: true, organizationId: true, title: true, price: true },
   });

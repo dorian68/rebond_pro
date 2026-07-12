@@ -146,10 +146,10 @@ const Header = () => {
           <Image
             src="/brand/logo-le-bon-rebond.png"
             alt="Le Bon Rebond"
-            width={160}
+            width={114}
             height={46}
-            priority
-            style={{ height: 46, width: "auto", objectFit: "contain" }}
+            loading="eager"
+            style={{ height: 46, width: 114, objectFit: "contain" }}
           />
         </Link>
 

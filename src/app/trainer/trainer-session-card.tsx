@@ -19,9 +19,8 @@ type Session = {
   moduleAssignments?: { module: { title: string } }[];
 };
 
-export function TrainerSessionCard({ session: s, trainerId }: { session: Session; trainerId: string }) {
+export function TrainerSessionCard({ session: s }: { session: Session }) {
   const [pending, start] = useTransition();
-  const fillRate = s.capacity > 0 ? Math.round((s._count.enrollments / s.capacity) * 100) : 0;
 
   return (
     <div style={{

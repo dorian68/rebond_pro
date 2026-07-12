@@ -11,8 +11,6 @@ import { MODALITY_LABELS } from "@/lib/labels";
 import { DOC_LABELS, PER_LEARNER_DOCUMENT_TYPES } from "@/lib/document-types";
 import { renderDocxTemplate } from "@/server/docx/template-engine";
 import { sanitizeDocxForClient, isDocxMime } from "@/server/docx/sanitize";
-import { uploadExternalDocumentFile } from "@/server/connectors";
-import type { ConnectorScope } from "@/lib/connectors";
 import { contextSnapshot, DOCX_MIME, getDocumentGenerationPreflight, type DocumentPreflight } from "@/server/documents/document-context";
 import { readablePlaceholder } from "@/server/documents/document-context";
 import { logger } from "@/lib/logger";
@@ -397,39 +395,6 @@ export async function generateForEnrollment(enrollmentId: string, type: string):
   await persistDoc(ctx, type, { sessionId: s.id, enrollmentId }, data);
   revalidatePath("/documents");
   revalidatePath(`/sessions/${s.id}`);
-}
-
-/**
- * Dépose un document généré dans Google Drive (archive du centre).
- * Appelé par l'agent : `forClient` sanitise le DOCX (sinon copie interne avec instructions).
- */
-export async function uploadDocumentToDrive(input: {
-  ctx: TenantContext;
-  documentId: string;
-  scope?: ConnectorScope;
-  folderId?: string;
-  forClient?: boolean;
-}): Promise<{ ok: boolean; error?: string }> {
-  const { ctx, documentId, scope, folderId, forClient } = input;
-  requireRole(ctx, [...EDITORS]);
-  const doc = await prisma.document.findFirst({ where: { id: documentId, organizationId: ctx.organizationId } });
-  if (!doc || !doc.fileUrl) return { ok: false, error: "Document introuvable." };
-  const raw = await readFile(doc.fileUrl);
-  const buffer = forClient && isDocxMime(doc.mimeType) ? sanitizeDocxForClient(raw) : raw;
-  try {
-    await uploadExternalDocumentFile(ctx, {
-      connector: "google_drive",
-      scope,
-      buffer,
-      fileName: doc.fileName ?? `${doc.type.toLowerCase()}.${isDocxMime(doc.mimeType) ? "docx" : "pdf"}`,
-      mimeType: doc.mimeType ?? "application/pdf",
-      folderId,
-    });
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Dépôt Drive impossible." };
-  }
-  await auditDocumentEvent(ctx, "document.uploaded_drive", documentId, { type: doc.type, scope: scope ?? "organization", fileName: doc.fileName ?? "" });
-  return { ok: true };
 }
 
 /** Envoie un document généré par email (à l'apprenant si lié à une inscription). */

@@ -50,7 +50,7 @@ type ConnectorStatus = {
   scopes: ConnectorScope[];
   scope: ConnectorScope;
   defaultScope: ConnectorScope;
-  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND" | "WRITE";
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY";
   description: string;
   connected: boolean;
   status: string;
@@ -476,7 +476,7 @@ function ConnecteursTab({ connectors, role }: { connectors: ConnectorsState; rol
           <div>
             <h3 style={{ fontWeight: 700, marginBottom: 6, fontSize: 15 }}>Connectivité Socrate</h3>
             <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.6, maxWidth: 760 }}>
-              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas et documents connectés, importer un fichier, créer des brouillons et événements, déposer des fichiers, et envoyer des emails. Chaque action d&apos;écriture ou d&apos;envoi déclenche une validation humaine avant exécution.
+              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas, rechercher et importer des documents, puis créer des brouillons d&apos;email. Les agendas et bibliothèques documentaires restent sans écriture. Aucun outil d&apos;envoi direct n&apos;est exposé.
             </p>
           </div>
           <span className={connectors.enabled ? "badge badge-primary" : "badge"}>
@@ -537,7 +537,7 @@ function ConnectorGroup({ title, subtitle, connectors, canConnect, busy, enabled
                   <span className={connector.connected ? "badge badge-primary" : "badge"}>
                     {connector.connected ? "Connecté" : connector.status === "DISABLED" ? "Désactivé" : "À connecter"}
                   </span>
-                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : connector.writePolicy === "SEND" ? "Brouillon + envoi" : connector.writePolicy === "WRITE" ? "Lecture + écriture" : "Brouillon uniquement"}</span>
+                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"}</span>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>{connector.description}</p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
@@ -622,13 +622,9 @@ function AvanceTab({ role, orgName }: { role: string; orgName: string }) {
 function capabilityLabel(capability: ConnectorCapability) {
   const labels: Record<ConnectorCapability, string> = {
     calendar_read: "Agenda",
-    calendar_write: "Création événement",
     document_read: "Recherche fichiers",
     document_import: "Import fichier",
-    document_write: "Création document",
-    document_upload: "Dépôt de fichier",
     email_draft: "Brouillon email",
-    email_send: "Envoi email",
   };
   return labels[capability];
 }

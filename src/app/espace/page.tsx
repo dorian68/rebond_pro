@@ -4,6 +4,7 @@ import { Card, EmptyState } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { PHASE_LABEL } from "@/server/bilan";
 import { PayBilanButton } from "./pay-bilan-button";
+import { bilanPaymentsEnabled } from "@/lib/payment-readiness";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function EspaceHomePage() {
             <p style={{ fontSize: 13.5, color: "var(--ink-2)" }}>Toutes les formations des centres du réseau, pour construire votre projet.</p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <PayBilanButton />
+            {bilanPaymentsEnabled() && <PayBilanButton />}
             <Link href="/espace/catalogue" className="btn btn-primary"><Icon name="book" size={16} /> Voir le catalogue</Link>
           </div>
         </div>

@@ -4,6 +4,8 @@ import { createTestTenant, step, assert, runner } from "./_tenant";
 import { quotaUsage, enforceQuota, arePlanLimitsDisabled } from "../src/server/quota";
 
 runner("quota_smoke", async () => {
+  const originalPlanLimitsDisabled = process.env.CENTER_PLAN_LIMITS_DISABLED;
+  process.env.CENTER_PLAN_LIMITS_DISABLED = "false";
   const t = await createTestTenant("quota"); // plan FREE par défaut
   try {
     // 1. Limites du plan FREE exposées
@@ -45,9 +47,9 @@ runner("quota_smoke", async () => {
     assert(bypassed.limit >= 1_000_000, `Limite bypass attendue >= 1_000_000, obtenu ${bypassed.limit}.`);
     await enforceQuota(t, "trainers");
     step("temporary_bypass_lifts_limits", { limit: bypassed.limit });
-    delete process.env.CENTER_PLAN_LIMITS_DISABLED;
   } finally {
-    delete process.env.CENTER_PLAN_LIMITS_DISABLED;
+    if (originalPlanLimitsDisabled === undefined) delete process.env.CENTER_PLAN_LIMITS_DISABLED;
+    else process.env.CENTER_PLAN_LIMITS_DISABLED = originalPlanLimitsDisabled;
     await t.cleanup();
     step("tenant_cleanup");
   }

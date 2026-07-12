@@ -8,7 +8,6 @@ import {
   getMarketplaceFacets,
   getMarketplaceCenters,
   type MarketplaceFormation,
-  FORMATIONS_PAGE_SIZE,
   CENTERS_PREVIEW,
 } from "@/server/marketplace";
 import { formatMoney } from "@/lib/utils";
@@ -126,21 +125,21 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
           <p>Explorez les formations proposées par les centres partenaires Le Bon Rebond, comparez les offres et passez à l'action.</p>
 
           <form className="mkt-searchbar" method="get">
-            <input type="search" name="q" placeholder="Rechercher une formation, un centre, un thème…" defaultValue={filters.q} />
-            <select name="category" defaultValue={filters.category ?? ""}>
+            <input type="search" name="q" aria-label="Rechercher dans les formations" placeholder="Rechercher une formation, un centre, un thème…" defaultValue={filters.q} />
+            <select name="category" aria-label="Catégorie" defaultValue={filters.category ?? ""}>
               <option value="">Toutes catégories</option>
               {facets.categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select name="modality" defaultValue={filters.modality ?? ""}>
+            <select name="modality" aria-label="Modalité" defaultValue={filters.modality ?? ""}>
               <option value="">Toutes modalités</option>
               {Object.entries(MODALITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-            <select name="level" defaultValue={filters.level ?? ""}>
+            <select name="level" aria-label="Niveau" defaultValue={filters.level ?? ""}>
               <option value="">Tous niveaux</option>
               {Object.entries(LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             {facets.cities.length > 0 && (
-              <select name="city" defaultValue={filters.city ?? ""}>
+              <select name="city" aria-label="Ville" defaultValue={filters.city ?? ""}>
                 <option value="">Toutes villes</option>
                 {facets.cities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
