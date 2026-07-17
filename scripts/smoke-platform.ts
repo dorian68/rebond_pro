@@ -2,7 +2,7 @@ import "./_env";
 import { prisma } from "../src/lib/prisma";
 import { step, assert, runner, createTestTenant } from "./_tenant";
 import { getPlatformOverview, listAllCenters, listAllTrainers, listAllBeneficiaries } from "../src/server/platform";
-import { activateCenterPublicProfileForAdmin, approveCenterMarketplaceForAdmin } from "../src/server/marketplace-moderation-service";
+import { approveCenterMarketplaceForAdmin } from "../src/server/marketplace-moderation-service";
 
 runner("platform_smoke", async () => {
   // 1. Vue d'ensemble cross-tenant : champs numériques cohérents
@@ -32,7 +32,7 @@ runner("platform_smoke", async () => {
     await prisma.user.delete({ where: { id: u.id } }).catch(() => {});
   }
 
-  // 4. Modération marketplace : un super-admin peut activer le profil public puis valider.
+  // 4. Modération marketplace : un super-admin peut publier en un clic.
   const t = await createTestTenant("platform-public-profile");
   const stamp = Date.now();
   let platformUserId: string | null = null;
@@ -64,26 +64,20 @@ runner("platform_smoke", async () => {
     });
     const admin = { userId: platformUser.id, email: platformUser.email, name: platformUser.name };
 
-    const blocked = await approveCenterMarketplaceForAdmin(t.organizationId, admin, { revalidate: false, notify: false });
-    assert(blocked.ok === false && blocked.error?.includes("profil public"), "La validation doit rester bloquee si le profil public est inactif.");
-
-    const activated = await activateCenterPublicProfileForAdmin(t.organizationId, admin, { revalidate: false });
-    assert(activated.ok, activated.error ?? "Activation profil public echouee.");
+    const approved = await approveCenterMarketplaceForAdmin(t.organizationId, admin, { revalidate: false, notify: false });
+    assert(approved.ok, approved.error ?? "Publication marketplace en un clic echouee.");
 
     const orgAfterActivation = await prisma.organization.findUnique({
       where: { id: t.organizationId },
       select: { publicProfileEnabled: true, marketplaceStatus: true },
     });
     assert(orgAfterActivation?.publicProfileEnabled === true, "Le profil public n'a pas ete active.");
-    assert(orgAfterActivation.marketplaceStatus === "PENDING", "L'activation du profil public ne doit pas valider automatiquement le centre.");
+    assert(orgAfterActivation.marketplaceStatus === "APPROVED", "Le centre doit etre valide dans la meme action admin.");
 
     const audit = await prisma.auditLog.findFirst({
       where: { organizationId: t.organizationId, actorId: platformUser.id, action: "marketplace.public_profile_activated" },
     });
     assert(Boolean(audit), "Audit manquant pour l'activation admin du profil public.");
-
-    const approved = await approveCenterMarketplaceForAdmin(t.organizationId, admin, { revalidate: false, notify: false });
-    assert(approved.ok, approved.error ?? "Validation marketplace echouee apres activation du profil public.");
 
     const orgAfterApproval = await prisma.organization.findUnique({
       where: { id: t.organizationId },

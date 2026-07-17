@@ -95,18 +95,6 @@ export async function approveCenterMarketplaceForAdmin(
     publicProfileEnabled: readiness.publicProfileEnabled,
     publicFormationCount: readiness._count.formations,
   };
-  if (!readiness.publicProfileEnabled) {
-    const error = "Activez d'abord le profil public du centre.";
-    logger.warn("marketplace.approve.blocked", { orgId, by: admin.email, reason: "public_profile_disabled", ...before });
-    await auditMarketplaceModeration({
-      organizationId: orgId,
-      actorId: admin.userId,
-      action: "marketplace.approve.blocked",
-      before,
-      after: { ok: false, reason: "public_profile_disabled", error },
-    });
-    return { ok: false, error };
-  }
   if (readiness._count.formations === 0) {
     const error = "Publiez au moins une formation avant de valider ce centre sur la marketplace.";
     logger.warn("marketplace.approve.blocked", { orgId, by: admin.email, reason: "no_public_published_formation", ...before });
@@ -118,6 +106,10 @@ export async function approveCenterMarketplaceForAdmin(
       after: { ok: false, reason: "no_public_published_formation", error },
     });
     return { ok: false, error };
+  }
+  if (!readiness.publicProfileEnabled) {
+    const activated = await activateCenterPublicProfileForAdmin(orgId, admin, { revalidate: false });
+    if (!activated.ok) return activated;
   }
 
   const org = await prisma.organization.update({

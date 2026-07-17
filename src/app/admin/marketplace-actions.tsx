@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { activateCenterPublicProfile, approveCenterMarketplace, rejectCenterMarketplace } from "@/server/marketplace-moderation";
+import { approveCenterMarketplace, rejectCenterMarketplace } from "@/server/marketplace-moderation";
 
 type Status = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -41,16 +41,6 @@ export function MarketplaceModerationButtons({
       else router.refresh();
     });
 
-  const activatePublicProfile = () => {
-    if (!window.confirm("Activer le profil public de ce centre ? Il restera soumis à validation marketplace avant publication.")) return;
-    start(async () => {
-      setErr(null);
-      const r = await activateCenterPublicProfile(orgId);
-      if (!r.ok) setErr(r.error ?? "Erreur");
-      else router.refresh();
-    });
-  };
-
   const reject = () => {
     const reason = window.prompt("Motif du refus (optionnel, envoyé au centre) :") ?? undefined;
     start(async () => {
@@ -63,14 +53,9 @@ export function MarketplaceModerationButtons({
 
   return (
     <span style={{ display: "inline-flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
-      {!publicProfileEnabled && (
-        <button className={`btn btn-secondary ${btn}`} onClick={activatePublicProfile} disabled={pending}>
-          <Icon name="globe" size={15} /> {pending ? "…" : "Activer profil public"}
-        </button>
-      )}
       {status !== "APPROVED" && (
         <button className={`btn btn-primary ${btn}`} onClick={approve} disabled={pending}>
-          <Icon name="check" size={15} /> {pending ? "…" : "Valider"}
+          <Icon name="check" size={15} /> {pending ? "…" : publicProfileEnabled ? "Valider" : "Publier"}
         </button>
       )}
       {status !== "REJECTED" && (
