@@ -1,7 +1,8 @@
 import "./_env";
 import { prisma } from "../src/lib/prisma";
-import { step, assert, runner } from "./_tenant";
+import { step, assert, runner, createTestTenant } from "./_tenant";
 import { getPlatformOverview, listAllCenters, listAllTrainers, listAllBeneficiaries } from "../src/server/platform";
+import { activateCenterPublicProfileForAdmin, approveCenterMarketplaceForAdmin } from "../src/server/marketplace-moderation-service";
 
 runner("platform_smoke", async () => {
   // 1. Vue d'ensemble cross-tenant : champs numériques cohérents
@@ -29,5 +30,71 @@ runner("platform_smoke", async () => {
     step("platform_admin_flag");
   } finally {
     await prisma.user.delete({ where: { id: u.id } }).catch(() => {});
+  }
+
+  // 4. Modération marketplace : un super-admin peut activer le profil public puis valider.
+  const t = await createTestTenant("platform-public-profile");
+  const stamp = Date.now();
+  let platformUserId: string | null = null;
+  try {
+    await prisma.organization.update({
+      where: { id: t.organizationId },
+      data: { publicProfileEnabled: false, marketplaceStatus: "PENDING" },
+    });
+    await prisma.formation.create({
+      data: {
+        organizationId: t.organizationId,
+        title: "Formation moderation marketplace",
+        slug: `platform-public-profile-${stamp}`,
+        price: 50000,
+        modality: "PRESENTIEL",
+        level: "DEBUTANT",
+        status: "PUBLIE",
+        isPublic: true,
+        publicSlug: `platform-public-profile-${stamp}`,
+      },
+    });
+
+    const platformUser = await prisma.user.create({
+      data: { email: `platform-admin-${stamp}@smoke.test`, name: "Smoke Platform Admin", platformAdmin: true },
+    });
+    platformUserId = platformUser.id;
+    await prisma.membership.create({
+      data: { userId: platformUser.id, organizationId: t.organizationId, role: "OWNER", status: "ACTIVE" },
+    });
+    const admin = { userId: platformUser.id, email: platformUser.email, name: platformUser.name };
+
+    const blocked = await approveCenterMarketplaceForAdmin(t.organizationId, admin, { revalidate: false, notify: false });
+    assert(blocked.ok === false && blocked.error?.includes("profil public"), "La validation doit rester bloquee si le profil public est inactif.");
+
+    const activated = await activateCenterPublicProfileForAdmin(t.organizationId, admin, { revalidate: false });
+    assert(activated.ok, activated.error ?? "Activation profil public echouee.");
+
+    const orgAfterActivation = await prisma.organization.findUnique({
+      where: { id: t.organizationId },
+      select: { publicProfileEnabled: true, marketplaceStatus: true },
+    });
+    assert(orgAfterActivation?.publicProfileEnabled === true, "Le profil public n'a pas ete active.");
+    assert(orgAfterActivation.marketplaceStatus === "PENDING", "L'activation du profil public ne doit pas valider automatiquement le centre.");
+
+    const audit = await prisma.auditLog.findFirst({
+      where: { organizationId: t.organizationId, actorId: platformUser.id, action: "marketplace.public_profile_activated" },
+    });
+    assert(Boolean(audit), "Audit manquant pour l'activation admin du profil public.");
+
+    const approved = await approveCenterMarketplaceForAdmin(t.organizationId, admin, { revalidate: false, notify: false });
+    assert(approved.ok, approved.error ?? "Validation marketplace echouee apres activation du profil public.");
+
+    const orgAfterApproval = await prisma.organization.findUnique({
+      where: { id: t.organizationId },
+      select: { marketplaceStatus: true, marketplaceReviewedBy: true, marketplaceReviewedAt: true },
+    });
+    assert(orgAfterApproval?.marketplaceStatus === "APPROVED", "Le centre n'est pas passe en APPROVED.");
+    assert(orgAfterApproval.marketplaceReviewedBy === platformUser.id, "L'admin validateur n'est pas trace.");
+    assert(Boolean(orgAfterApproval.marketplaceReviewedAt), "La date de revue marketplace n'est pas tracee.");
+    step("marketplace_public_profile_admin_activation");
+  } finally {
+    if (platformUserId) await prisma.user.delete({ where: { id: platformUserId } }).catch(() => {});
+    await t.cleanup();
   }
 });

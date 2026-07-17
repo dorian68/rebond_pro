@@ -52,7 +52,7 @@ export default async function AdminOverviewPage() {
                   <td className="muted">{o.city ?? "—"}</td>
                   <td className="tnum">{o._count.formations} formation{o._count.formations > 1 ? "s" : ""}</td>
                   <td><span className={"badge " + (o.marketplaceStatus === "REJECTED" ? "badge-danger" : "badge-warn")}>{o.marketplaceStatus === "REJECTED" ? "Refusé" : "À valider"}</span></td>
-                  <td style={{ textAlign: "right" }}><MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} /></td>
+                  <td style={{ textAlign: "right" }}><MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} publicProfileEnabled={o.publicProfileEnabled} /></td>
                 </tr>
               ))}
             </tbody>

@@ -50,7 +50,7 @@ export async function listPendingMarketplaceCenters() {
     },
     select: {
       id: true, name: true, slug: true, city: true, logoUrl: true, createdAt: true,
-      marketplaceStatus: true, publicEmail: true, marketplaceRejectionReason: true,
+      marketplaceStatus: true, publicProfileEnabled: true, publicEmail: true, marketplaceRejectionReason: true,
       _count: {
         select: {
           formations: { where: { isPublic: true, status: "PUBLIE", deletedAt: null } },

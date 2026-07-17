@@ -31,7 +31,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} />
+          <MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} publicProfileEnabled={o.publicProfileEnabled} />
           {isMarketplaceVisible && <Link href="/marketplace#centres" target="_blank" className="btn btn-secondary btn-sm"><Icon name="layers" size={15} /> Voir dans la marketplace</Link>}
           {isMarketplaceVisible && <Link href={`/${o.slug}`} target="_blank" className="btn btn-secondary btn-sm"><Icon name="globe" size={15} /> Page publique</Link>}
         </div>
@@ -42,6 +42,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
           <strong style={{ fontSize: 13.5 }}>Centre non visible sur la marketplace.</strong>
           <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 6 }}>
             Conditions requises : profil public actif, validation marketplace, et au moins une formation avec le statut Publiée et la page publique active.
+            Profil public : {o.publicProfileEnabled ? "actif" : "inactif"}.
             Aujourd'hui : {publicFormations.length} formation{publicFormations.length > 1 ? "s" : ""} publicable{publicFormations.length > 1 ? "s" : ""}.
           </p>
         </Card>
