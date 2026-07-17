@@ -142,6 +142,27 @@ export async function getPlatformBeneficiary(id: string) {
   });
 }
 
+export async function listPlatformBeneficiaryDocuments(beneficiaryId: string) {
+  return prisma.document.findMany({
+    where: {
+      type: "DOSSIER_NUMERIQUE_EXPORTABLE",
+      manualOverrides: { path: ["beneficiaryId"], equals: beneficiaryId },
+    },
+    select: {
+      id: true,
+      status: true,
+      fileName: true,
+      mimeType: true,
+      generatedAt: true,
+      sentAt: true,
+      createdAt: true,
+      organizationId: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+  });
+}
+
 export async function listBeneficiaryTransferCenters(excludeOrganizationId?: string) {
   return prisma.organization.findMany({
     where: { deletedAt: null, slug: { not: PLATFORM_BENEFICIARY_ORG_SLUG }, ...(excludeOrganizationId ? { id: { not: excludeOrganizationId } } : {}) },

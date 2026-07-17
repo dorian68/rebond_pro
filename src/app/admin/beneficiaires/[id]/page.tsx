@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, Avatar } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { getPlatformBeneficiary, listBeneficiaryTransferCenters } from "@/server/platform";
-import { BILAN_ROADMAP, decodeIkigaiResult, ensureBilanRoadmap, ikigaiShareUrl, IKIGAI_STEP_TITLE, roadmapIndex } from "@/server/bilan-roadmap";
+import { getPlatformBeneficiary, listBeneficiaryTransferCenters, listPlatformBeneficiaryDocuments } from "@/server/platform";
+import { decodeIkigaiResult, ensureBilanRoadmap, getBilanRoadmap, ikigaiShareUrl, IKIGAI_STEP_TITLES, roadmapIndex } from "@/server/bilan-roadmap";
 import { workspaceForPage } from "@/lib/bilan-workspaces";
-import { BilanStepEditor, BilanWorkspaceEditor, CompetenceCanvasEditor, CopyShareLink, PlatformBeneficiaryStatus, TransferBeneficiaryForm } from "./beneficiary-admin-actions";
+import { getBilanProgram, parseBilanProgramId } from "@/lib/bilan-programs";
+import { BeneficiaryDossierDocuments, BeneficiaryProgramSelector, BilanStepEditor, BilanWorkspaceEditor, CompetenceCanvasEditor, CopyShareLink, PlatformBeneficiaryStatus, TransferBeneficiaryForm } from "./beneficiary-admin-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +27,21 @@ export default async function AdminBeneficiaryDetailPage({
   const query = await searchParams;
   const exists = await getPlatformBeneficiary(id);
   if (!exists) notFound();
-  await ensureBilanRoadmap(id);
+  const programArtifact = exists.artifacts.find((artifact) => artifact.key === "prestation-program");
+  const programContent = programArtifact?.content && typeof programArtifact.content === "object" ? programArtifact.content as Record<string, unknown> : {};
+  const programId = parseBilanProgramId(programContent.programId);
+  const program = getBilanProgram(programId);
+  await ensureBilanRoadmap(id, programId);
   const beneficiary = await getPlatformBeneficiary(id);
   if (!beneficiary) notFound();
 
-  const centers = await listBeneficiaryTransferCenters(beneficiary.organizationId);
-  const activeIndex = roadmapIndex(query.page);
-  const active = BILAN_ROADMAP[activeIndex];
+  const [centers, documents] = await Promise.all([
+    listBeneficiaryTransferCenters(beneficiary.organizationId),
+    listPlatformBeneficiaryDocuments(beneficiary.id),
+  ]);
+  const activeIndex = roadmapIndex(query.page, programId);
+  const roadmap = getBilanRoadmap(programId);
+  const active = roadmap[activeIndex];
   const stepsByTitle = new Map(beneficiary.steps.map((step) => [step.title, step]));
   const artifactsByKey = new Map(beneficiary.artifacts.map((artifact) => [artifact.key, artifact]));
   const activeStep = stepsByTitle.get(active.title);
@@ -40,12 +49,13 @@ export default async function AdminBeneficiaryDetailPage({
   const activeWorkspace = workspaceForPage(active.id);
   const activeArtifact = activeWorkspace ? artifactsByKey.get(activeWorkspace.key) ?? null : null;
 
-  const total = BILAN_ROADMAP.length;
-  const done = BILAN_ROADMAP.filter((item) => stepsByTitle.get(item.title)?.status === "done").length;
+  const total = roadmap.length;
+  const done = roadmap.filter((item) => stepsByTitle.get(item.title)?.status === "done").length;
   const percent = Math.round((done / total) * 100);
-  const ikigaiStep = stepsByTitle.get(IKIGAI_STEP_TITLE);
+  const ikigaiStep = IKIGAI_STEP_TITLES.map((title) => stepsByTitle.get(title)).find(Boolean);
   const ikigai = decodeIkigaiResult(ikigaiStep?.notes);
   const ikigaiUrl = ikigaiShareUrl(beneficiary.id);
+  const activeIsIkigai = active.id === "ikigai" || IKIGAI_STEP_TITLES.includes(active.title as (typeof IKIGAI_STEP_TITLES)[number]);
 
   return (
     <div className="fade-up">
@@ -77,7 +87,7 @@ export default async function AdminBeneficiaryDetailPage({
             <div style={{ height: "100%", width: `${percent}%`, background: "linear-gradient(90deg,#2f9488,#2469a6)" }} />
           </div>
           <div style={{ display: "grid", gap: 6 }}>
-            {BILAN_ROADMAP.map((item, index) => {
+            {roadmap.map((item, index) => {
               const step = stepsByTitle.get(item.title);
               const meta = STATUS_META[step?.status ?? "todo"] ?? STATUS_META.todo;
               const activePage = index === activeIndex;
@@ -112,9 +122,10 @@ export default async function AdminBeneficiaryDetailPage({
         <Card>
           <div className="spread" style={{ gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
             <div>
-              <div className="badge badge-neutral" style={{ marginBottom: 8 }}>Page {activeIndex + 1}/{BILAN_ROADMAP.length}</div>
+              <div className="badge badge-neutral" style={{ marginBottom: 8 }}>Page {activeIndex + 1}/{roadmap.length}</div>
               <h2 style={{ fontSize: 22, fontWeight: 850, marginBottom: 6 }}>{active.title}</h2>
               <p className="muted" style={{ lineHeight: 1.6 }}>{active.description}</p>
+              <p className="muted-3" style={{ marginTop: 6, fontSize: 12.5 }}>{program.label} · {program.audience}</p>
             </div>
             <span className="badge badge-primary">{active.phase}</span>
           </div>
@@ -132,7 +143,7 @@ export default async function AdminBeneficiaryDetailPage({
             </div>
           </div>
 
-          {active.title === IKIGAI_STEP_TITLE && (
+          {activeIsIkigai && (
             <div className="card" style={{ padding: 14, background: "rgba(36,105,166,.06)", marginBottom: 16 }}>
               <div className="spread" style={{ gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
                 <div>
@@ -145,7 +156,7 @@ export default async function AdminBeneficiaryDetailPage({
             </div>
           )}
 
-          {ikigai && active.title === IKIGAI_STEP_TITLE && (
+          {ikigai && activeIsIkigai && (
             <div className="card" style={{ padding: 14, background: "var(--surface-2)", marginBottom: 16 }}>
               <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Canvas Ikigai collecté</h3>
               <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 14, alignItems: "start" }}>
@@ -185,16 +196,24 @@ export default async function AdminBeneficiaryDetailPage({
           )}
 
           <div className="spread" style={{ marginTop: 18 }}>
-            <Link className="btn btn-secondary" href={`/admin/beneficiaires/${beneficiary.id}?page=${BILAN_ROADMAP[Math.max(0, activeIndex - 1)].id}`}>
+            <Link className="btn btn-secondary" href={`/admin/beneficiaires/${beneficiary.id}?page=${roadmap[Math.max(0, activeIndex - 1)].id}`}>
               <Icon name="chevron-left" size={15} /> Page précédente
             </Link>
-            <Link className="btn btn-primary" href={`/admin/beneficiaires/${beneficiary.id}?page=${BILAN_ROADMAP[Math.min(BILAN_ROADMAP.length - 1, activeIndex + 1)].id}`}>
+            <Link className="btn btn-primary" href={`/admin/beneficiaires/${beneficiary.id}?page=${roadmap[Math.min(roadmap.length - 1, activeIndex + 1)].id}`}>
               Page suivante <Icon name="chevron-right" size={15} />
             </Link>
           </div>
         </Card>
 
         <div style={{ display: "grid", gap: 16 }}>
+          <Card>
+            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Prestation Le Bon Rebond</h3>
+            <BeneficiaryProgramSelector beneficiaryId={beneficiary.id} programId={programId} />
+          </Card>
+          <Card>
+            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Support numérique</h3>
+            <BeneficiaryDossierDocuments beneficiaryId={beneficiary.id} beneficiaryEmail={beneficiary.email} documents={documents} />
+          </Card>
           {beneficiary.objective && (
             <Card><h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Projet visé</h3><p style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.6 }}>{beneficiary.objective}</p></Card>
           )}

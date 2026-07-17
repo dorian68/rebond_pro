@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPlatformOverview, listAllCenters, listPendingMarketplaceCenters } from "@/server/platform";
+import { getPlatformOverview, listAllBeneficiaries, listAllCenters, listPendingMarketplaceCenters } from "@/server/platform";
 import { getFinanceSummary } from "@/server/finance";
 import { PageHeader, Card } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
@@ -9,9 +9,10 @@ import { MarketplaceModerationButtons } from "./marketplace-actions";
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
-  const [m, centers, finance, pending] = await Promise.all([
+  const [m, centers, beneficiaries, finance, pending] = await Promise.all([
     getPlatformOverview(),
     listAllCenters(),
+    listAllBeneficiaries(),
     getFinanceSummary(),
     listPendingMarketplaceCenters(),
   ]);
@@ -85,6 +86,37 @@ export default async function AdminOverviewPage() {
           return k.href ? <Link key={k.label} href={k.href}>{inner}</Link> : <div key={k.label}>{inner}</div>;
         })}
       </div>
+
+      <Card style={{ marginBottom: 18 }}>
+        <div className="spread" style={{ marginBottom: 14 }}>
+          <div>
+            <h3 style={{ fontWeight: 800, fontSize: 15 }}>Dossiers de prestation Le Bon Rebond</h3>
+            <p className="muted-3" style={{ fontSize: 13, marginTop: 3 }}>Accès rapide aux accompagnements adultes/jeunes, exports PDF et envois bénéficiaires.</p>
+          </div>
+          <Link href="/admin/beneficiaires" className="btn btn-secondary btn-sm">Tout voir</Link>
+        </div>
+        {beneficiaries.length === 0 ? (
+          <p className="muted-3" style={{ fontSize: 13 }}>Aucun dossier bénéficiaire pour le moment.</p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {beneficiaries.slice(0, 6).map((b) => (
+              <Link key={b.id} href={`/admin/beneficiaires/${b.id}`} style={{ padding: 13, borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)", display: "grid", gap: 8 }}>
+                <div className="spread" style={{ gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 850, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.firstName} {b.lastName}</div>
+                    <div className="muted-3" style={{ fontSize: 12 }}>{b.email ?? "Email manquant"}</div>
+                  </div>
+                  <span className="badge badge-primary">{b.progress}%</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 99, background: "#e8eaef", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${b.progress}%`, background: "linear-gradient(90deg,#2f9488,#2469a6)" }} />
+                </div>
+                <div className="muted-3" style={{ fontSize: 11.5 }}>{b.stepsDone}/{b.stepsTotal} étapes · {b.organization.name}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Card>
         <div className="spread" style={{ marginBottom: 14 }}>

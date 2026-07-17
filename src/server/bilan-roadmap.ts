@@ -1,8 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { getBilanProgram, type BilanProgramId } from "@/lib/bilan-programs";
 
 export const IKIGAI_STEP_TITLE = "Test Ikigai portable";
+export const IKIGAI_STEP_TITLES = [IKIGAI_STEP_TITLE, "Me connaître - envies et ressources", "Me connaître"] as const;
 
 export const BILAN_ROADMAP = [
   {
@@ -99,15 +101,21 @@ export const BILAN_ROADMAP = [
 
 export type BilanRoadmapItem = (typeof BILAN_ROADMAP)[number];
 
-export function roadmapIndex(id?: string | null) {
-  const index = BILAN_ROADMAP.findIndex((item) => item.id === id);
+export function getBilanRoadmap(programId?: BilanProgramId | string | null) {
+  return getBilanProgram(programId).steps;
+}
+
+export function roadmapIndex(id?: string | null, programId?: BilanProgramId | string | null) {
+  const roadmap = getBilanRoadmap(programId);
+  const index = roadmap.findIndex((item) => item.id === id);
   return index >= 0 ? index : 0;
 }
 
-export async function ensureBilanRoadmap(beneficiaryId: string) {
+export async function ensureBilanRoadmap(beneficiaryId: string, programId?: BilanProgramId | string | null) {
+  const roadmap = getBilanRoadmap(programId);
   const existing = await prisma.bilanStep.findMany({ where: { beneficiaryId }, select: { title: true } });
   const titles = new Set(existing.map((step) => step.title));
-  const missing = BILAN_ROADMAP.filter((item) => !titles.has(item.title));
+  const missing = roadmap.filter((item) => !titles.has(item.title));
   if (missing.length === 0) return;
   await prisma.bilanStep.createMany({
     data: missing.map((item, offset) => ({
@@ -115,7 +123,7 @@ export async function ensureBilanRoadmap(beneficiaryId: string) {
       phase: item.phase,
       title: item.title,
       description: item.description,
-      order: BILAN_ROADMAP.findIndex((candidate) => candidate.id === item.id) + offset,
+      order: roadmap.findIndex((candidate) => candidate.id === item.id) + offset,
     })),
   });
 }

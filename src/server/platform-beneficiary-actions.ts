@@ -4,13 +4,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { prisma } from "@/lib/prisma";
+import { saveFile } from "@/lib/storage";
+import { sendEmail, brandedEmail } from "@/lib/email";
 import { createBeneficiaryInternal } from "@/server/beneficiary-actions";
 import { getPlatformBeneficiaryOrganization } from "@/server/platform-beneficiary-org";
+import { getBilanProgram, parseBilanProgramId } from "@/lib/bilan-programs";
+import { renderBeneficiaryDossierPdf } from "@/server/pdf/beneficiary-dossier";
 import type { FormActionState } from "@/server/formations-actions";
-import type { Prisma } from "@prisma/client";
+import { DocumentStatus, DocumentType, type Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const statusSchema = z.enum(["active", "completed", "archived"]);
 const stepStatusSchema = z.enum(["todo", "in_progress", "done"]);
+const dossierDocumentType = DocumentType.DOSSIER_NUMERIQUE_EXPORTABLE;
 
 export async function updatePlatformBeneficiaryStatus(id: string, status: "active" | "completed" | "archived"): Promise<void> {
   const admin = await requirePlatformAdmin();
@@ -166,6 +172,232 @@ export async function savePlatformBilanArtifact(_prev: FormActionState, formData
     },
   });
   revalidatePath(`/admin/beneficiaires/${parsed.data.beneficiaryId}`);
+  return { ok: true };
+}
+
+export async function setPlatformBeneficiaryProgram(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const admin = await requirePlatformAdmin();
+  const parsed = z.object({
+    beneficiaryId: z.string().min(1),
+    programId: z.string().min(1),
+  }).safeParse({
+    beneficiaryId: formData.get("beneficiaryId"),
+    programId: formData.get("programId"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Parcours invalide." };
+
+  const programId = parseBilanProgramId(parsed.data.programId);
+  const beneficiary = await prisma.beneficiary.findUnique({ where: { id: parsed.data.beneficiaryId }, select: { id: true, organizationId: true } });
+  if (!beneficiary) return { error: "Bénéficiaire introuvable." };
+  const program = getBilanProgram(programId);
+  const updatedAt = new Date().toISOString();
+
+  const previous = await prisma.bilanArtifact.findUnique({
+    where: { beneficiaryId_key: { beneficiaryId: beneficiary.id, key: "prestation-program" } },
+  });
+  const artifact = await prisma.bilanArtifact.upsert({
+    where: { beneficiaryId_key: { beneficiaryId: beneficiary.id, key: "prestation-program" } },
+    create: {
+      beneficiaryId: beneficiary.id,
+      key: "prestation-program",
+      kind: "program",
+      title: "Modèle de prestation",
+      status: "validated",
+      shareable: false,
+      source: "admin",
+      content: { programId, label: program.label, sourcePdf: program.sourcePdf, updatedAt },
+    },
+    update: {
+      status: "validated",
+      source: "admin",
+      content: { programId, label: program.label, sourcePdf: program.sourcePdf, updatedAt },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: beneficiary.organizationId,
+      actorId: admin.userId,
+      action: "platform.beneficiary.program_set",
+      entityType: "BilanArtifact",
+      entityId: artifact.id,
+      before: previous ? { content: previous.content } : undefined,
+      after: { programId, label: program.label, sourcePdf: program.sourcePdf },
+    },
+  });
+  revalidatePath("/admin/beneficiaires");
+  revalidatePath(`/admin/beneficiaires/${beneficiary.id}`);
+  return { ok: true };
+}
+
+function jsonObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function nowText(): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" }).format(new Date());
+}
+
+async function buildPlatformBeneficiaryDossierData(beneficiaryId: string) {
+  const beneficiary = await prisma.beneficiary.findUnique({
+    where: { id: beneficiaryId },
+    include: {
+      organization: { select: { id: true, name: true } },
+      steps: { orderBy: { order: "asc" } },
+      artifacts: { orderBy: { updatedAt: "desc" } },
+    },
+  });
+  if (!beneficiary) return null;
+
+  const programArtifact = beneficiary.artifacts.find((artifact) => artifact.key === "prestation-program");
+  const programId = parseBilanProgramId(jsonObject(programArtifact?.content).programId);
+  const program = getBilanProgram(programId);
+  const roadmapTitles = new Set(program.steps.map((step) => step.title));
+  const orderedSteps = beneficiary.steps
+    .filter((step) => roadmapTitles.has(step.title))
+    .sort((a, b) => {
+      const ai = program.steps.findIndex((step) => step.title === a.title);
+      const bi = program.steps.findIndex((step) => step.title === b.title);
+      return ai - bi;
+    });
+
+  return {
+    beneficiary,
+    programId,
+    program,
+    data: {
+      organizationName: beneficiary.organization.name,
+      beneficiary: {
+        firstName: beneficiary.firstName,
+        lastName: beneficiary.lastName,
+        email: beneficiary.email,
+        phone: beneficiary.phone,
+        objective: beneficiary.objective,
+        status: beneficiary.status,
+        startedAt: beneficiary.startedAt,
+      },
+      program,
+      generatedAt: nowText(),
+      steps: orderedSteps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        phase: step.phase,
+        status: step.status,
+        notes: step.notes,
+      })),
+      artifacts: beneficiary.artifacts
+        .filter((artifact) => artifact.key !== "prestation-program")
+        .map((artifact) => ({
+          key: artifact.key,
+          title: artifact.title,
+          kind: artifact.kind,
+          status: artifact.status,
+          shareable: artifact.shareable,
+          content: artifact.content,
+        })),
+    },
+  };
+}
+
+export async function renderPlatformBilanDossierPdf(beneficiaryId: string): Promise<{ buffer: Buffer; fileName: string } | null> {
+  await requirePlatformAdmin();
+  const dossier = await buildPlatformBeneficiaryDossierData(beneficiaryId);
+  if (!dossier) return null;
+  const buffer = await renderBeneficiaryDossierPdf(dossier.data);
+  const safeName = `${dossier.beneficiary.firstName}-${dossier.beneficiary.lastName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "beneficiaire";
+  return { buffer, fileName: `dossier-prestation-${safeName}.pdf` };
+}
+
+async function createPlatformBeneficiaryDossierDocument(beneficiaryId: string, actorId: string) {
+  const dossier = await buildPlatformBeneficiaryDossierData(beneficiaryId);
+  if (!dossier) return { ok: false as const, error: "Bénéficiaire introuvable." };
+  const { beneficiary, program, programId, data } = dossier;
+  const buffer = await renderBeneficiaryDossierPdf(data);
+  if (buffer.length < 512) return { ok: false as const, error: "PDF généré vide." };
+
+  const fileId = randomUUID();
+  const safeName = `${beneficiary.firstName}-${beneficiary.lastName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "beneficiaire";
+  const fileName = `dossier-prestation-${safeName}-${fileId}.pdf`;
+  const key = `documents/${beneficiary.organizationId}/${fileName}`;
+  await saveFile(key, buffer);
+
+  const doc = await prisma.document.create({
+    data: {
+      organizationId: beneficiary.organizationId,
+      type: dossierDocumentType,
+      status: DocumentStatus.GENERE,
+      generatedAt: new Date(),
+      fileUrl: key,
+      fileName,
+      mimeType: "application/pdf",
+      manualOverrides: { beneficiaryId: beneficiary.id, programId, source: "platform-beneficiary-dossier" },
+      generationContextSnapshot: {
+        beneficiaryId: beneficiary.id,
+        programId,
+        steps: data.steps.length,
+        artifacts: beneficiary.artifacts.length,
+      },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: beneficiary.organizationId,
+      actorId,
+      action: "platform.beneficiary.dossier_pdf_generated",
+      entityType: "Document",
+      entityId: doc.id,
+      after: { beneficiaryId: beneficiary.id, programId, fileName, bytes: buffer.length },
+    },
+  });
+  return { ok: true as const, document: doc, buffer, beneficiary, program };
+}
+
+export async function generatePlatformBeneficiaryDossier(beneficiaryId: string, prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  void prev;
+  void formData;
+  const admin = await requirePlatformAdmin();
+  const result = await createPlatformBeneficiaryDossierDocument(beneficiaryId, admin.userId);
+  if (!result.ok) return { error: result.error };
+  revalidatePath("/admin");
+  revalidatePath("/admin/beneficiaires");
+  revalidatePath(`/admin/beneficiaires/${beneficiaryId}`);
+  return { ok: true };
+}
+
+export async function sendPlatformBeneficiaryDossier(beneficiaryId: string, prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  void prev;
+  void formData;
+  const admin = await requirePlatformAdmin();
+  const result = await createPlatformBeneficiaryDossierDocument(beneficiaryId, admin.userId);
+  if (!result.ok) return { error: result.error };
+  const to = result.beneficiary.email;
+  if (!to) return { error: "Aucun email bénéficiaire renseigné." };
+  const fullName = `${result.beneficiary.firstName} ${result.beneficiary.lastName}`.trim();
+  await sendEmail({
+    to,
+    subject: `Votre dossier d'accompagnement - ${result.program.label}`,
+    html: brandedEmail(
+      "Votre dossier d'accompagnement",
+      `<p>Bonjour ${fullName},</p><p>Vous trouverez en pièce jointe votre dossier numérique de prestation Le Bon Rebond.</p><p>Ce document reprend les éléments saisis pendant l'accompagnement et peut être imprimé ou conservé pour votre suivi.</p>`,
+    ),
+    text: `Bonjour ${fullName},\n\nVous trouverez en pièce jointe votre dossier numérique de prestation Le Bon Rebond.`,
+    attachments: [{ filename: result.document.fileName ?? "dossier-prestation.pdf", content: result.buffer }],
+  });
+  await prisma.document.update({ where: { id: result.document.id }, data: { status: DocumentStatus.ENVOYE, sentAt: new Date() } });
+  await prisma.auditLog.create({
+    data: {
+      organizationId: result.beneficiary.organizationId,
+      actorId: admin.userId,
+      action: "platform.beneficiary.dossier_pdf_sent",
+      entityType: "Document",
+      entityId: result.document.id,
+      after: { beneficiaryId, to, fileName: result.document.fileName },
+    },
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/beneficiaires");
+  revalidatePath(`/admin/beneficiaires/${beneficiaryId}`);
   return { ok: true };
 }
 

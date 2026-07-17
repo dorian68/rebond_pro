@@ -3,9 +3,10 @@
 import { useMemo, useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { transferBeneficiaryToCenter, updatePlatformBeneficiaryStatus, updatePlatformBilanStep, savePlatformBilanArtifact } from "@/server/platform-beneficiary-actions";
+import { transferBeneficiaryToCenter, updatePlatformBeneficiaryStatus, updatePlatformBilanStep, savePlatformBilanArtifact, setPlatformBeneficiaryProgram, generatePlatformBeneficiaryDossier, sendPlatformBeneficiaryDossier } from "@/server/platform-beneficiary-actions";
 import type { FormActionState } from "@/server/formations-actions";
 import type { BilanWorkspace } from "@/lib/bilan-workspaces";
+import { BILAN_PROGRAMS, type BilanProgramId } from "@/lib/bilan-programs";
 
 export function PlatformBeneficiaryStatus({ id, status }: { id: string; status: string }) {
   const router = useRouter();
@@ -431,5 +432,100 @@ export function CopyShareLink({ url }: { url: string }) {
     >
       <Icon name="copy" size={14} /> {copied ? "Copié" : "Copier le lien"}
     </button>
+  );
+}
+
+export function BeneficiaryProgramSelector({
+  beneficiaryId,
+  programId,
+}: {
+  beneficiaryId: string;
+  programId: BilanProgramId;
+}) {
+  const [state, action, pending] = useActionState<FormActionState, FormData>(setPlatformBeneficiaryProgram, undefined);
+  const router = useRouter();
+  return (
+    <form action={async (formData) => {
+      await action(formData);
+      router.refresh();
+    }} style={{ display: "grid", gap: 10 }}>
+      <input type="hidden" name="beneficiaryId" value={beneficiaryId} />
+      <label style={{ display: "grid", gap: 6 }}>
+        <span className="field-label">Modèle de prestation</span>
+        <select className="select" name="programId" defaultValue={programId}>
+          {Object.values(BILAN_PROGRAMS).map((program) => (
+            <option key={program.id} value={program.id}>{program.label}</option>
+          ))}
+        </select>
+      </label>
+      <p className="muted-3" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+        Le modèle pilote les étapes du dossier et l'export PDF.
+      </p>
+      {state?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>Parcours enregistré.</span>}
+      {state?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</span>}
+      <button type="submit" className="btn btn-secondary btn-sm" disabled={pending}>
+        <Icon name="check" size={14} /> {pending ? "Enregistrement..." : "Appliquer ce modèle"}
+      </button>
+    </form>
+  );
+}
+
+export function BeneficiaryDossierDocuments({
+  beneficiaryId,
+  beneficiaryEmail,
+  documents,
+}: {
+  beneficiaryId: string;
+  beneficiaryEmail: string | null;
+  documents: { id: string; status: string; fileName: string | null; generatedAt: Date | null; sentAt: Date | null }[];
+}) {
+  const generate = generatePlatformBeneficiaryDossier.bind(null, beneficiaryId);
+  const send = sendPlatformBeneficiaryDossier.bind(null, beneficiaryId);
+  const [generateState, generateAction, generatePending] = useActionState<FormActionState, FormData>(generate, undefined);
+  const [sendState, sendAction, sendPending] = useActionState<FormActionState, FormData>(send, undefined);
+  const router = useRouter();
+  const latest = documents[0] ?? null;
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <form action={async (formData) => {
+          await generateAction(formData);
+          router.refresh();
+        }}>
+          <button className="btn btn-primary btn-sm" type="submit" disabled={generatePending} style={{ width: "100%" }}>
+            <Icon name="file-pdf" size={14} /> {generatePending ? "Génération..." : "Générer PDF"}
+          </button>
+        </form>
+        <form action={async (formData) => {
+          await sendAction(formData);
+          router.refresh();
+        }}>
+          <button className="btn btn-secondary btn-sm" type="submit" disabled={sendPending || !beneficiaryEmail} title={!beneficiaryEmail ? "Email bénéficiaire manquant" : undefined} style={{ width: "100%" }}>
+            <Icon name="mail" size={14} /> {sendPending ? "Envoi..." : "Envoyer email"}
+          </button>
+        </form>
+      </div>
+
+      {latest ? (
+        <a className="btn btn-ghost btn-sm" href={`/api/admin/beneficiaires/${beneficiaryId}/documents/${latest.id}/download`} target="_blank" rel="noreferrer">
+          <Icon name="download" size={14} /> Ouvrir / imprimer le dernier PDF
+        </a>
+      ) : (
+        <p className="muted-3" style={{ fontSize: 12.5, lineHeight: 1.5 }}>Aucun PDF généré pour ce dossier.</p>
+      )}
+
+      {latest && (
+        <div style={{ fontSize: 12, color: "var(--ink-3)", lineHeight: 1.5 }}>
+          Dernier : {latest.generatedAt ? new Date(latest.generatedAt).toLocaleDateString("fr-FR") : "date inconnue"} · {latest.status === "ENVOYE" ? "envoyé" : "généré"}
+          {latest.sentAt ? ` le ${new Date(latest.sentAt).toLocaleDateString("fr-FR")}` : ""}
+        </div>
+      )}
+
+      {generateState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>PDF généré. Vous pouvez l'ouvrir ou l'imprimer.</span>}
+      {generateState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{generateState.error}</span>}
+      {sendState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>Dossier envoyé par email.</span>}
+      {sendState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{sendState.error}</span>}
+    </div>
   );
 }
