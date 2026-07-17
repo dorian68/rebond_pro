@@ -44,10 +44,14 @@ assert(programs.includes("04_Livret_projet_competences_adultes_Rebond.pdf") && p
 assert(adminDetail.includes("BeneficiaryProgramSelector") && adminDetail.includes("BeneficiaryDossierDocuments"), "La fiche admin doit exposer le choix de prestation et le support numérique.");
 assert(adminDetailActions.includes("setPlatformBeneficiaryProgram") && adminDetailActions.includes("sendPlatformBeneficiaryDossier") && adminDetailActions.includes("generatePlatformBeneficiaryDossier"), "Les actions admin doivent choisir le programme, générer le PDF et envoyer le dossier.");
 assert(actions.includes("platform.beneficiary.program_set") && actions.includes("platform.beneficiary.dossier_pdf_sent") && actions.includes("platform.beneficiary.dossier_pdf_generated"), "Le choix programme, la génération et l'envoi dossier doivent être audités.");
+assert(actions.includes('formData.get("reviewedLatestPdf") === "true"'), "L'envoi email doit exiger la relecture explicite du dernier PDF.");
+assert(actions.includes('artifact.shareable || artifact.status === "shareable"'), "Le PDF bénéficiaire ne doit inclure que les blocs explicitement partageables.");
 assert(dossierPdf.includes("renderBeneficiaryDossierPdf") && dossierPdf.includes("@react-pdf/renderer"), "Le dossier doit être exportable en PDF généré.");
+assert(dossierPdf.includes('includes("private")') && dossierPdf.includes('includes("confidential")'), "Le rendu PDF doit filtrer les champs confidentiels.");
 assert(dossierApi.includes("requirePlatformAdmin") && dossierApi.includes("application/pdf") && dossierApi.includes("no-store"), "Une route admin doit servir le PDF privé du dossier.");
 assert(platform.includes("listPlatformBeneficiaryDocuments") && platform.includes("DOSSIER_NUMERIQUE_EXPORTABLE"), "Les PDFs de dossier doivent être listés depuis la fiche bénéficiaire.");
-assert(adminDetailActions.includes("Ouvrir / imprimer le dernier PDF"), "La fiche admin doit exposer une action PDF imprimable.");
+assert(adminDetailActions.includes("Ouvrir / imprimer") && adminDetailActions.includes("/documents/${latest.id}/download"), "La fiche admin doit exposer une action PDF imprimable.");
+assert(adminDetailActions.includes("Inclure PDF/email") && adminDetailActions.includes("J’ai relu le dernier PDF"), "L'UX doit expliciter inclusion PDF/email et relecture avant envoi.");
 assert(adminDetail.includes("BilanWorkspaceEditor") && adminDetail.includes("CompetenceCanvasEditor") && adminDetail.includes("AdminIkigaiGraph"), "La fiche admin doit afficher des ateliers visuels, pas seulement des formulaires.");
 assert(adminDetail.includes("CopyShareLink") && adminDetail.includes("ikigaiShareUrl"), "La fiche admin doit exposer un lien Ikigai portable.");
 assert(adminDetailActions.includes("updatePlatformBilanStep"), "L'admin doit pouvoir éditer les pages du parcours bilan.");

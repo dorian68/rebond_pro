@@ -87,8 +87,8 @@ export function BilanStepEditor({
           </select>
         </label>
         <label style={{ display: "grid", gap: 6 }}>
-          <span className="field-label">Notes conseiller / dossier</span>
-          <textarea className="input" name="notes" rows={4} defaultValue={step.notes ?? ""} placeholder="Constats, décisions, éléments partageables, points à revoir..." />
+          <span className="field-label">Contenu de séance</span>
+          <textarea className="input" name="notes" rows={4} defaultValue={step.notes ?? ""} placeholder="Constats, décisions, éléments à garder dans le dossier, points à revoir..." />
         </label>
       </div>
       {state?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>Étape enregistrée.</span>}
@@ -263,7 +263,7 @@ export function BilanWorkspaceEditor({
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 12px", border: "1px solid var(--border)", borderRadius: 10 }}>
           <input type="checkbox" checked={shareable} onChange={(event) => setShareable(event.target.checked)} />
-          <span style={{ fontSize: 12.5, fontWeight: 750 }}>Partager</span>
+          <span style={{ fontSize: 12.5, fontWeight: 750 }}>Inclure PDF/email</span>
         </label>
         <button type="submit" className="btn btn-primary" disabled={pending}>
           <Icon name="check" size={15} /> {pending ? "Sauvegarde…" : "Sauvegarder"}
@@ -459,7 +459,7 @@ export function BeneficiaryProgramSelector({
         </select>
       </label>
       <p className="muted-3" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-        Le modèle pilote les étapes du dossier et l'export PDF.
+        Le modèle pilote les étapes affichées et le support remis au bénéficiaire.
       </p>
       {state?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>Parcours enregistré.</span>}
       {state?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</span>}
@@ -483,37 +483,65 @@ export function BeneficiaryDossierDocuments({
   const send = sendPlatformBeneficiaryDossier.bind(null, beneficiaryId);
   const [generateState, generateAction, generatePending] = useActionState<FormActionState, FormData>(generate, undefined);
   const [sendState, sendAction, sendPending] = useActionState<FormActionState, FormData>(send, undefined);
+  const [reviewed, setReviewed] = useState(false);
   const router = useRouter();
   const latest = documents[0] ?? null;
+  const canSend = Boolean(latest && beneficiaryEmail && reviewed);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <div style={{ padding: 12, borderRadius: 12, background: "rgba(36,105,166,.06)", border: "1px solid rgba(36,105,166,.16)" }}>
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#174d80", marginBottom: 4 }}>Workflow conseillé</div>
+        <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 4, fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
+          <li>Générer le dossier complet PDF.</li>
+          <li>Ouvrir et relire le document avec le client si besoin.</li>
+          <li>Cocher la relecture puis envoyer au bénéficiaire.</li>
+        </ol>
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
         <form action={async (formData) => {
           await generateAction(formData);
+          setReviewed(false);
           router.refresh();
         }}>
           <button className="btn btn-primary btn-sm" type="submit" disabled={generatePending} style={{ width: "100%" }}>
-            <Icon name="file-pdf" size={14} /> {generatePending ? "Génération..." : "Générer PDF"}
-          </button>
-        </form>
-        <form action={async (formData) => {
-          await sendAction(formData);
-          router.refresh();
-        }}>
-          <button className="btn btn-secondary btn-sm" type="submit" disabled={sendPending || !beneficiaryEmail} title={!beneficiaryEmail ? "Email bénéficiaire manquant" : undefined} style={{ width: "100%" }}>
-            <Icon name="mail" size={14} /> {sendPending ? "Envoi..." : "Envoyer email"}
+            <Icon name="file-pdf" size={14} /> {generatePending ? "Génération..." : "Générer le dossier complet PDF"}
           </button>
         </form>
       </div>
 
       {latest ? (
-        <a className="btn btn-ghost btn-sm" href={`/api/admin/beneficiaires/${beneficiaryId}/documents/${latest.id}/download`} target="_blank" rel="noreferrer">
-          <Icon name="download" size={14} /> Ouvrir / imprimer le dernier PDF
-        </a>
+        <div style={{ display: "grid", gap: 8 }}>
+          <a className="btn btn-ghost btn-sm" href={`/api/admin/beneficiaires/${beneficiaryId}/documents/${latest.id}/download`} target="_blank" rel="noreferrer">
+            <Icon name="download" size={14} /> Ouvrir / imprimer le dossier
+          </a>
+          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: 10, border: "1px solid var(--border)", borderRadius: 10, background: "#fff" }}>
+            <input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} style={{ marginTop: 2 }} />
+            <span style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
+              J’ai relu le dernier PDF et il peut être transmis au bénéficiaire.
+            </span>
+          </label>
+        </div>
       ) : (
         <p className="muted-3" style={{ fontSize: 12.5, lineHeight: 1.5 }}>Aucun PDF généré pour ce dossier.</p>
       )}
+
+      <form action={async (formData) => {
+        formData.set("reviewedLatestPdf", reviewed ? "true" : "false");
+        await sendAction(formData);
+        router.refresh();
+      }}>
+        <button
+          className="btn btn-secondary btn-sm"
+          type="submit"
+          disabled={sendPending || !canSend}
+          title={!beneficiaryEmail ? "Email bénéficiaire manquant" : !latest ? "Générez d'abord un PDF" : !reviewed ? "Relisez le PDF avant envoi" : undefined}
+          style={{ width: "100%" }}
+        >
+          <Icon name="mail" size={14} /> {sendPending ? "Envoi..." : "Envoyer au bénéficiaire"}
+        </button>
+      </form>
 
       {latest && (
         <div style={{ fontSize: 12, color: "var(--ink-3)", lineHeight: 1.5 }}>
@@ -522,10 +550,13 @@ export function BeneficiaryDossierDocuments({
         </div>
       )}
 
-      {generateState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>PDF généré. Vous pouvez l'ouvrir ou l'imprimer.</span>}
+      {generateState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>PDF généré. Ouvrez-le pour le relire avant envoi.</span>}
       {generateState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{generateState.error}</span>}
       {sendState?.ok && <span style={{ color: "var(--success)", fontSize: 13 }}>Dossier envoyé par email.</span>}
       {sendState?.error && <span style={{ color: "var(--danger)", fontSize: 13 }}>{sendState.error}</span>}
+      <p className="muted-3" style={{ fontSize: 12, lineHeight: 1.45 }}>
+        Pour éviter une erreur face client, l’envoi utilise le dernier PDF généré et relu, pas une génération invisible. Le PDF reprend uniquement les blocs marqués "Inclure PDF/email" ; les notes confidentielles restent dans le dossier interne.
+      </p>
     </div>
   );
 }

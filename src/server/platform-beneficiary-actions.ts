@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { prisma } from "@/lib/prisma";
-import { saveFile } from "@/lib/storage";
+import { readFile, saveFile } from "@/lib/storage";
 import { sendEmail, brandedEmail } from "@/lib/email";
 import { createBeneficiaryInternal } from "@/server/beneficiary-actions";
 import { getPlatformBeneficiaryOrganization } from "@/server/platform-beneficiary-org";
 import { getBilanProgram, parseBilanProgramId } from "@/lib/bilan-programs";
+import { ensureBilanRoadmap } from "@/server/bilan-roadmap";
 import { renderBeneficiaryDossierPdf } from "@/server/pdf/beneficiary-dossier";
 import type { FormActionState } from "@/server/formations-actions";
 import { DocumentStatus, DocumentType, type Prisma } from "@prisma/client";
@@ -283,10 +284,10 @@ async function buildPlatformBeneficiaryDossierData(beneficiaryId: string) {
         title: step.title,
         phase: step.phase,
         status: step.status,
-        notes: step.notes,
+        notes: null,
       })),
       artifacts: beneficiary.artifacts
-        .filter((artifact) => artifact.key !== "prestation-program")
+        .filter((artifact) => artifact.key !== "prestation-program" && (artifact.shareable || artifact.status === "shareable"))
         .map((artifact) => ({
           key: artifact.key,
           title: artifact.title,
@@ -367,32 +368,56 @@ export async function generatePlatformBeneficiaryDossier(beneficiaryId: string, 
 
 export async function sendPlatformBeneficiaryDossier(beneficiaryId: string, prev: FormActionState, formData: FormData): Promise<FormActionState> {
   void prev;
-  void formData;
   const admin = await requirePlatformAdmin();
-  const result = await createPlatformBeneficiaryDossierDocument(beneficiaryId, admin.userId);
-  if (!result.ok) return { error: result.error };
-  const to = result.beneficiary.email;
+  const reviewed = formData.get("reviewedLatestPdf") === "true";
+  if (!reviewed) return { error: "Ouvrez et relisez le dernier PDF avant envoi." };
+
+  const beneficiary = await prisma.beneficiary.findUnique({
+    where: { id: beneficiaryId },
+    include: {
+      organization: { select: { id: true, name: true } },
+      artifacts: { where: { key: "prestation-program" }, take: 1 },
+    },
+  });
+  if (!beneficiary) return { error: "Bénéficiaire introuvable." };
+  const to = beneficiary.email;
   if (!to) return { error: "Aucun email bénéficiaire renseigné." };
-  const fullName = `${result.beneficiary.firstName} ${result.beneficiary.lastName}`.trim();
+
+  const document = await prisma.document.findFirst({
+    where: {
+      type: dossierDocumentType,
+      fileUrl: { not: null },
+      manualOverrides: { path: ["beneficiaryId"], equals: beneficiaryId },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!document?.fileUrl) return { error: "Générez d'abord un PDF, ouvrez-le puis validez l'envoi." };
+
+  const programId = parseBilanProgramId(jsonObject(beneficiary.artifacts[0]?.content).programId);
+  const program = getBilanProgram(programId);
+  const buffer = await readFile(document.fileUrl);
+  if (buffer.length < 512) return { error: "Le dernier PDF généré est invalide. Regénérez le dossier." };
+
+  const fullName = `${beneficiary.firstName} ${beneficiary.lastName}`.trim();
   await sendEmail({
     to,
-    subject: `Votre dossier d'accompagnement - ${result.program.label}`,
+    subject: `Votre dossier d'accompagnement - ${program.label}`,
     html: brandedEmail(
       "Votre dossier d'accompagnement",
       `<p>Bonjour ${fullName},</p><p>Vous trouverez en pièce jointe votre dossier numérique de prestation Le Bon Rebond.</p><p>Ce document reprend les éléments saisis pendant l'accompagnement et peut être imprimé ou conservé pour votre suivi.</p>`,
     ),
     text: `Bonjour ${fullName},\n\nVous trouverez en pièce jointe votre dossier numérique de prestation Le Bon Rebond.`,
-    attachments: [{ filename: result.document.fileName ?? "dossier-prestation.pdf", content: result.buffer }],
+    attachments: [{ filename: document.fileName ?? "dossier-prestation.pdf", content: buffer }],
   });
-  await prisma.document.update({ where: { id: result.document.id }, data: { status: DocumentStatus.ENVOYE, sentAt: new Date() } });
+  await prisma.document.update({ where: { id: document.id }, data: { status: DocumentStatus.ENVOYE, sentAt: new Date() } });
   await prisma.auditLog.create({
     data: {
-      organizationId: result.beneficiary.organizationId,
+      organizationId: beneficiary.organizationId,
       actorId: admin.userId,
       action: "platform.beneficiary.dossier_pdf_sent",
       entityType: "Document",
-      entityId: result.document.id,
-      after: { beneficiaryId, to, fileName: result.document.fileName },
+      entityId: document.id,
+      after: { beneficiaryId, to, fileName: document.fileName, reviewedLatestPdf: true },
     },
   });
   revalidatePath("/admin");
@@ -550,6 +575,7 @@ const platformInviteSchema = z.object({
   email: z.string().email("Email invalide."),
   phone: z.string().optional(),
   objective: z.string().optional(),
+  programId: z.string().optional(),
 });
 
 export async function invitePlatformBeneficiary(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -560,11 +586,39 @@ export async function invitePlatformBeneficiary(_prev: FormActionState, formData
     email: formData.get("email"),
     phone: formData.get("phone") || undefined,
     objective: formData.get("objective") || undefined,
+    programId: formData.get("programId") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Champs invalides." };
   const holdingOrg = await getPlatformBeneficiaryOrganization();
   const result = await createBeneficiaryInternal(holdingOrg.id, parsed.data);
   if (!result.ok) return { error: result.error };
+  const programId = parseBilanProgramId(parsed.data.programId);
+  const program = getBilanProgram(programId);
+  const beneficiary = await prisma.beneficiary.findFirst({
+    where: { organizationId: holdingOrg.id, email: parsed.data.email.toLowerCase() },
+    select: { id: true },
+  });
+  if (beneficiary) {
+    await prisma.bilanArtifact.upsert({
+      where: { beneficiaryId_key: { beneficiaryId: beneficiary.id, key: "prestation-program" } },
+      create: {
+        beneficiaryId: beneficiary.id,
+        key: "prestation-program",
+        kind: "program",
+        title: "Modèle de prestation",
+        status: "validated",
+        shareable: false,
+        source: "admin",
+        content: { programId, label: program.label, sourcePdf: program.sourcePdf, updatedAt: new Date().toISOString() },
+      },
+      update: {
+        status: "validated",
+        source: "admin",
+        content: { programId, label: program.label, sourcePdf: program.sourcePdf, updatedAt: new Date().toISOString() },
+      },
+    });
+    await ensureBilanRoadmap(beneficiary.id, programId);
+  }
   revalidatePath("/admin/beneficiaires");
   return { ok: true };
 }

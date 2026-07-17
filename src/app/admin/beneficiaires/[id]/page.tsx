@@ -11,9 +11,16 @@ import { BeneficiaryDossierDocuments, BeneficiaryProgramSelector, BilanStepEdito
 export const dynamic = "force-dynamic";
 
 const STATUS_META: Record<string, { label: string; icon: string; color: string }> = {
-  todo: { label: "À faire", icon: "circle", color: "var(--ink-4)" },
+  todo: { label: "À compléter", icon: "circle", color: "var(--ink-4)" },
   in_progress: { label: "En cours", icon: "play", color: "#a86617" },
-  done: { label: "Terminé", icon: "check-circle", color: "#137a45" },
+  done: { label: "Validé", icon: "check-circle", color: "#137a45" },
+};
+
+const PHASE_LABELS: Record<string, string> = {
+  preliminaire: "Phase préliminaire",
+  investigation: "Investigation",
+  conclusion: "Conclusion",
+  suivi: "Suivi",
 };
 
 export default async function AdminBeneficiaryDetailPage({
@@ -52,6 +59,15 @@ export default async function AdminBeneficiaryDetailPage({
   const total = roadmap.length;
   const done = roadmap.filter((item) => stepsByTitle.get(item.title)?.status === "done").length;
   const percent = Math.round((done / total) * 100);
+  const nextStep = roadmap.find((item) => stepsByTitle.get(item.title)?.status !== "done") ?? null;
+  const latestDocument = documents[0] ?? null;
+  const shareableArtifacts = beneficiary.artifacts.filter((artifact) => artifact.key !== "prestation-program" && (artifact.shareable || artifact.status === "shareable" || artifact.status === "validated")).length;
+  const readinessItems = [
+    { label: "Email bénéficiaire renseigné", ok: Boolean(beneficiary.email) },
+    { label: "Accompagnement sélectionné", ok: Boolean(programId) },
+    { label: "Éléments métier documentés", ok: shareableArtifacts > 0 || done > 0 },
+    { label: "PDF généré pour relecture", ok: Boolean(latestDocument) },
+  ];
   const ikigaiStep = IKIGAI_STEP_TITLES.map((title) => stepsByTitle.get(title)).find(Boolean);
   const ikigai = decodeIkigaiResult(ikigaiStep?.notes);
   const ikigaiUrl = ikigaiShareUrl(beneficiary.id);
@@ -70,7 +86,7 @@ export default async function AdminBeneficiaryDetailPage({
               {beneficiary.email ?? "—"}{beneficiary.phone ? ` · ${beneficiary.phone}` : ""}
             </p>
             <p style={{ color: "var(--ink-3)", marginTop: 4, fontSize: 12.5 }}>
-              Dossier : <Link href={`/admin/centres/${beneficiary.organization.id}`} style={{ color: "var(--primary)", fontWeight: 700 }}>{beneficiary.organization.name}</Link>
+              Dossier de prestation numérique · {program.label} · Opéré par <Link href={`/admin/centres/${beneficiary.organization.id}`} style={{ color: "var(--primary)", fontWeight: 700 }}>{beneficiary.organization.name}</Link>
             </p>
           </div>
         </div>
@@ -80,9 +96,12 @@ export default async function AdminBeneficiaryDetailPage({
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr 320px", gap: 16, alignItems: "start" }}>
         <Card>
           <div className="spread" style={{ marginBottom: 12 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 800 }}>Dossier numérique</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 800 }}>Parcours séance</h3>
             <span className="badge badge-primary">{percent}%</span>
           </div>
+          <p className="muted-3" style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 12 }}>
+            Support : {program.subtitle}
+          </p>
           <div style={{ height: 8, borderRadius: 99, background: "var(--surface-3)", overflow: "hidden", marginBottom: 14 }}>
             <div style={{ height: "100%", width: `${percent}%`, background: "linear-gradient(90deg,#2f9488,#2469a6)" }} />
           </div>
@@ -122,21 +141,21 @@ export default async function AdminBeneficiaryDetailPage({
         <Card>
           <div className="spread" style={{ gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
             <div>
-              <div className="badge badge-neutral" style={{ marginBottom: 8 }}>Page {activeIndex + 1}/{roadmap.length}</div>
+              <div className="badge badge-neutral" style={{ marginBottom: 8 }}>Séance {activeIndex + 1}/{roadmap.length}</div>
               <h2 style={{ fontSize: 22, fontWeight: 850, marginBottom: 6 }}>{active.title}</h2>
               <p className="muted" style={{ lineHeight: 1.6 }}>{active.description}</p>
               <p className="muted-3" style={{ marginTop: 6, fontSize: 12.5 }}>{program.label} · {program.audience}</p>
             </div>
-            <span className="badge badge-primary">{active.phase}</span>
+            <span className="badge badge-primary">{PHASE_LABELS[active.phase] ?? active.phase}</span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
             <div className="card" style={{ padding: 14, background: "var(--surface-2)" }}>
-              <h3 style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 8 }}>Consigne client</h3>
+              <h3 style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 8 }}>Question à travailler</h3>
               <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.55 }}>{active.clientPrompt}</p>
             </div>
             <div className="card" style={{ padding: 14, background: "var(--surface-2)" }}>
-              <h3 style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 8 }}>Checkpoints</h3>
+              <h3 style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 8 }}>À valider en séance</h3>
               <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 5, fontSize: 13, color: "var(--ink-2)" }}>
                 {active.checkpoints.map((checkpoint) => <li key={checkpoint}>{checkpoint}</li>)}
               </ul>
@@ -207,20 +226,38 @@ export default async function AdminBeneficiaryDetailPage({
 
         <div style={{ display: "grid", gap: 16 }}>
           <Card>
-            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Prestation Le Bon Rebond</h3>
-            <BeneficiaryProgramSelector beneficiaryId={beneficiary.id} programId={programId} />
+            <div className="spread" style={{ gap: 10, marginBottom: 10 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 900 }}>Brief séance</h3>
+              <span className={"badge " + (percent >= 70 ? "badge-positive" : "badge-neutral")}>{percent >= 70 ? "Présentable" : "À compléter"}</span>
+            </div>
+            <div style={{ display: "grid", gap: 9, fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
+              <div><strong>Page active :</strong> {active.short} · {PHASE_LABELS[active.phase] ?? active.phase}</div>
+              <div><strong>Progression :</strong> {done}/{total} étapes validées</div>
+              <div><strong>Prochaine étape :</strong> {nextStep ? nextStep.title : "Parcours complet"}</div>
+            </div>
+            <div style={{ display: "grid", gap: 7, marginTop: 12 }}>
+              {readinessItems.map((item) => (
+                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: item.ok ? "var(--ink-2)" : "var(--ink-4)" }}>
+                  <Icon name={item.ok ? "check-circle" : "circle"} size={14} style={{ color: item.ok ? "#137a45" : "var(--ink-4)" }} />
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="muted-3" style={{ fontSize: 12, lineHeight: 1.45, marginTop: 10 }}>
+              Usage face client : compléter, générer le PDF, le relire, puis seulement l’envoyer.
+            </p>
           </Card>
           <Card>
             <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Support numérique</h3>
             <BeneficiaryDossierDocuments beneficiaryId={beneficiary.id} beneficiaryEmail={beneficiary.email} documents={documents} />
           </Card>
+          <Card>
+            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Prestation Le Bon Rebond</h3>
+            <BeneficiaryProgramSelector beneficiaryId={beneficiary.id} programId={programId} />
+          </Card>
           {beneficiary.objective && (
             <Card><h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Projet visé</h3><p style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.6 }}>{beneficiary.objective}</p></Card>
           )}
-          <Card>
-            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Migrer vers un centre</h3>
-            <TransferBeneficiaryForm beneficiaryId={beneficiary.id} centers={centers} />
-          </Card>
           <Card>
             <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Formations suivies ({beneficiary.interests.length})</h3>
             {beneficiary.interests.length === 0 ? <p className="muted-3" style={{ fontSize: 13 }}>Aucune pour le moment.</p> : (
@@ -239,8 +276,8 @@ export default async function AdminBeneficiaryDetailPage({
             )}
           </Card>
           <Card>
-            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Données structurées ({beneficiary.artifacts.length})</h3>
-            {beneficiary.artifacts.length === 0 ? <p className="muted-3" style={{ fontSize: 13 }}>Aucun bloc enrichi pour le moment.</p> : (
+            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Éléments du dossier ({beneficiary.artifacts.length})</h3>
+            {beneficiary.artifacts.length === 0 ? <p className="muted-3" style={{ fontSize: 13 }}>Aucun élément enregistré pour le moment.</p> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {beneficiary.artifacts.slice(0, 8).map((artifact) => (
                   <div key={artifact.id} style={{ padding: 9, borderRadius: 9, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
@@ -251,6 +288,13 @@ export default async function AdminBeneficiaryDetailPage({
               </div>
             )}
           </Card>
+          <details className="card" style={{ padding: 16 }}>
+            <summary style={{ cursor: "pointer", fontSize: 14, fontWeight: 900 }}>Actions avancées</summary>
+            <div style={{ marginTop: 12 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Migrer vers un centre</h3>
+              <TransferBeneficiaryForm beneficiaryId={beneficiary.id} centers={centers} />
+            </div>
+          </details>
         </div>
       </div>
     </div>

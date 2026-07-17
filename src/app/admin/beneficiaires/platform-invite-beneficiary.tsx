@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DocumentImportPrefill } from "@/components/app/DocumentImportPrefill";
 import { invitePlatformBeneficiary } from "@/server/platform-beneficiary-actions";
 import type { FormActionState } from "@/server/formations-actions";
+import { BILAN_PROGRAMS } from "@/lib/bilan-programs";
 
 type Draft = { firstName?: string; lastName?: string; email?: string; phone?: string; objective?: string };
 
@@ -43,6 +44,15 @@ export function PlatformInviteBeneficiary() {
               <div><label className="field-label">Email *</label><input className="input" type="email" name="email" required defaultValue={draft.email ?? ""} /></div>
               <div><label className="field-label">Téléphone</label><input className="input" name="phone" defaultValue={draft.phone ?? ""} /></div>
             </div>
+            <label style={{ display: "grid", gap: 6 }}>
+              <span className="field-label">Accompagnement prévu *</span>
+              <select className="select" name="programId" required defaultValue="adultes_projet_competences">
+                {Object.values(BILAN_PROGRAMS).map((program) => (
+                  <option key={program.id} value={program.id}>{program.label} — {program.audience}</option>
+                ))}
+              </select>
+              <span className="muted-3" style={{ fontSize: 12 }}>Ce choix prépare directement le bon livret numérique et le futur PDF.</span>
+            </label>
             <div><label className="field-label">Projet / objectif</label><input className="input" name="objective" defaultValue={draft.objective ?? ""} /></div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button type="submit" className="btn btn-primary" disabled={pending}>

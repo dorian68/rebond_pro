@@ -80,7 +80,14 @@ function textValue(value: unknown): string {
 function artifactLines(content: unknown): [string, string][] {
   if (!content || typeof content !== "object" || Array.isArray(content)) return [];
   return Object.entries(content as Record<string, unknown>)
-    .filter(([key]) => !["updatedAt", "progress"].includes(key))
+    .filter(([key]) => {
+      const normalized = key.toLowerCase();
+      return !["updatedat", "progress"].includes(normalized)
+        && !normalized.includes("private")
+        && !normalized.includes("confidential")
+        && !normalized.includes("confidentiel")
+        && !normalized.includes("sensitive");
+    })
     .map(([key, value]) => [key, textValue(value)] as [string, string])
     .filter(([, value]) => value.length > 0)
     .slice(0, 12);
