@@ -180,7 +180,7 @@ if (opts.rollback) {
   // --- 3. Transfert de la source vers une nouvelle release (archive tar, sans secrets) ---
   step(`Transfert source -> ${CFG.remoteDir}/releases/${commit}`);
   const tarball = resolve(process.cwd(), `.deploy-${commit}.tar`);
-  local("git", ["archive", "--format=tar", "-o", tarball, "HEAD"]);            // fichiers suivis only
+  local("git", ["-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tarball, "HEAD"]);            // fichiers suivis only
   remote(`mkdir -p ${CFG.remoteDir}/releases/${commit}`);
   if (!opts.dryRun) local("scp", [...sshBase, tarball, `${CFG.vpsHost}:${CFG.remoteDir}/releases/${commit}/src.tar`]);
   else log(`${C.dim}[local] scp .deploy-${commit}.tar -> ${CFG.vpsHost}:.../releases/${commit}/src.tar${C.reset}`);
@@ -198,7 +198,7 @@ if (opts.rollback) {
   step("Installation des scripts d'exploitation versionnes");
   remote(
     `node --check ${CFG.remoteDir}/releases/${commit}/ops/backup-storage.mjs && ` +
-    `bash -n ${CFG.remoteDir}/releases/${commit}/ops/backup.sh && ` +
+    `sh -n ${CFG.remoteDir}/releases/${commit}/ops/backup.sh && ` +
     `node --check ${CFG.remoteDir}/releases/${commit}/ops/restore-storage.mjs && ` +
     `install -d -m 0750 ${CFG.remoteDir}/ops && ` +
     `install -m 0750 ${CFG.remoteDir}/releases/${commit}/ops/backup.sh ${CFG.remoteDir}/backup.sh && ` +
