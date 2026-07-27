@@ -93,7 +93,7 @@ export default function AProposPage() {
           <motion.article initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0.5} variants={fadeUp}
             className="ap-founder ap-founder-rev">
             <div className="ap-founder-portrait">
-              <Image src="/photos/dorian-labry.webp" alt="Dorian Labry, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "center 75%" }} sizes="(max-width:880px) 100vw, 400px" />
+              <Image src="/photos/dorian-labry.webp" alt="Dorian Labry, cofondateur du Bon Rebond" fill style={{ objectFit: "cover", objectPosition: "50% 22%" }} sizes="(max-width:880px) 100vw, 400px" />
             </div>
             <div>
               <div style={{ fontSize: ".78rem", fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase" as const, color: "#23756e" }}>Cofondateur · Technologie &amp; produit</div>
