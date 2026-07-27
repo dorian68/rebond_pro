@@ -195,9 +195,21 @@ if (opts.rollback) {
   remote(`cd ${CFG.remoteDir} && docker build -t ${CFG.image}:${commit} -t ${CFG.image}:latest releases/${commit}`);
   ok(`Image construite : ${CFG.image}:${commit}`);
 
+  step("Installation des scripts d'exploitation versionnes");
+  remote(
+    `node --check ${CFG.remoteDir}/releases/${commit}/ops/backup-storage.mjs && ` +
+    `bash -n ${CFG.remoteDir}/releases/${commit}/ops/backup.sh && ` +
+    `node --check ${CFG.remoteDir}/releases/${commit}/ops/restore-storage.mjs && ` +
+    `install -d -m 0750 ${CFG.remoteDir}/ops && ` +
+    `install -m 0750 ${CFG.remoteDir}/releases/${commit}/ops/backup.sh ${CFG.remoteDir}/backup.sh && ` +
+    `install -m 0640 ${CFG.remoteDir}/releases/${commit}/ops/backup-storage.mjs ${CFG.remoteDir}/ops/backup-storage.mjs && ` +
+    `install -m 0640 ${CFG.remoteDir}/releases/${commit}/ops/restore-storage.mjs ${CFG.remoteDir}/ops/restore-storage.mjs`,
+  );
+  ok("Backup PostgreSQL + stockage Supabase installe");
+
   // --- 5. (option) Sauvegarde DB + migrations ---
   if (opts.migrate) {
-    step("Sauvegarde DB avant migration");
+    step("Sauvegarde DB + stockage avant migration");
     remote(`test -x ${CFG.remoteDir}/backup.sh && mkdir -p ${CFG.remoteDir}/backups && ${CFG.remoteDir}/backup.sh >> ${CFG.remoteDir}/backups/backup.log 2>&1`);
     step("Migrations Prisma (conteneur jetable node:22-alpine, mot de passe lu sur le VPS)");
     const migrateCmd =
@@ -211,6 +223,13 @@ if (opts.rollback) {
   } else {
     warn("Migrations sautées (aucun changement de schéma attendu — ajouter --migrate si besoin)");
   }
+
+  step("Synchronisation des 70 modeles DOCX globaux");
+  remote(
+    `cd ${CFG.remoteDir} && docker run --rm --network ${CFG.composeNet} --env-file .env ` +
+    `${CFG.image}:${commit} node /app/ops/sync-default-templates.mjs /app/document-templates/defaults`,
+  );
+  ok("Modeles DOCX verifies, televerses et synchronises");
 
   // --- 6. Bascule (recrée l'app avec la nouvelle image latest) ---
   step("Bascule — docker compose up -d");
