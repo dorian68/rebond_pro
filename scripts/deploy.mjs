@@ -227,6 +227,8 @@ if (opts.rollback) {
   step("Synchronisation des 70 modeles DOCX globaux");
   remote(
     `cd ${CFG.remoteDir} && docker run --rm --network ${CFG.composeNet} --env-file .env ` +
+    `-v ${CFG.remoteDir}/releases/${commit}/ops:/app/ops ` +
+    `-v ${CFG.remoteDir}/releases/${commit}/document-templates:/app/document-templates ` +
     `${CFG.image}:${commit} node /app/ops/sync-default-templates.mjs /app/document-templates/defaults`,
   );
   ok("Modeles DOCX verifies, televerses et synchronises");
