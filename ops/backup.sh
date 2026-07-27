@@ -18,7 +18,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-for cmd in docker gzip tar node; do
+for cmd in docker gzip tar node
+do
   command -v "$cmd" >/dev/null 2>&1 || { echo "backup FAILED: $cmd absent"; exit 1; }
 done
 
