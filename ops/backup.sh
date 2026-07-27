@@ -1,0 +1,46 @@
+#!/bin/sh
+# Atomic daily backup: PostgreSQL plus every object in the private/public
+# Supabase buckets used by the application. Old backups rotate only on success.
+set -eu
+umask 077
+
+ROOT=${REBONDPRO_ROOT:-/opt/rebondpro}
+DIR=${REBONDPRO_BACKUP_DIR:-$ROOT/backups}
+DB_CONTAINER=${REBONDPRO_DB_CONTAINER:-rebondpro-db}
+APP_CONTAINER=${REBONDPRO_APP_CONTAINER:-rebondpro-app}
+STAMP=$(date +%F-%H%M)
+WORK="$DIR/.backup-$STAMP-$$"
+DB_FINAL="$DIR/rebondpro-$STAMP.sql.gz"
+STORAGE_FINAL="$DIR/rebondpro-storage-$STAMP.tar.gz"
+
+cleanup() {
+  rm -rf "$WORK"
+}
+trap cleanup EXIT INT TERM
+
+for command in docker gzip tar node; do
+  command -v "$command" >/dev/null 2>&1 || { echo "backup FAILED: $command absent"; exit 1; }
+done
+
+mkdir -p "$DIR" "$WORK/storage"
+
+if ! docker exec "$DB_CONTAINER" pg_dump -U rebondpro -d rebondpro --no-owner --no-privileges | gzip > "$WORK/database.sql.gz"; then
+  echo "backup FAILED: pg_dump"
+  exit 1
+fi
+gzip -t "$WORK/database.sql.gz"
+[ "$(wc -c < "$WORK/database.sql.gz")" -ge 5000 ] || { echo "backup FAILED: dump anormalement petit"; exit 1; }
+
+node "$ROOT/ops/backup-storage.mjs" "$WORK/storage" "$APP_CONTAINER"
+node "$ROOT/ops/backup-storage.mjs" --verify "$WORK/storage"
+tar -czf "$WORK/storage.tar.gz" -C "$WORK/storage" .
+tar -tzf "$WORK/storage.tar.gz" >/dev/null
+[ "$(wc -c < "$WORK/storage.tar.gz")" -ge 1000 ] || { echo "backup FAILED: archive stockage anormalement petite"; exit 1; }
+
+mv "$WORK/database.sql.gz" "$DB_FINAL"
+mv "$WORK/storage.tar.gz" "$STORAGE_FINAL"
+
+find "$DIR" -name 'rebondpro-*.sql.gz' -mtime +7 -delete
+find "$DIR" -name 'rebondpro-storage-*.tar.gz' -mtime +7 -delete
+
+echo "$(date '+%F %T') backup OK: $(basename "$DB_FINAL") ($(du -h "$DB_FINAL" | cut -f1)), $(basename "$STORAGE_FINAL") ($(du -h "$STORAGE_FINAL" | cut -f1))"
