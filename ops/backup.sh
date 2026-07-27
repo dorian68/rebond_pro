@@ -18,8 +18,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-for command in docker gzip tar node; do
-  command -v "$command" >/dev/null 2>&1 || { echo "backup FAILED: $command absent"; exit 1; }
+for cmd in docker gzip tar node; do
+  command -v "$cmd" >/dev/null 2>&1 || { echo "backup FAILED: $cmd absent"; exit 1; }
 done
 
 mkdir -p "$DIR" "$WORK/storage"
