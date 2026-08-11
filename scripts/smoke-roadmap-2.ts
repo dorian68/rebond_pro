@@ -7,6 +7,7 @@ import { prisma } from "../src/lib/prisma";
 import {
   Roadmap2ConflictError,
   Roadmap2NotFoundError,
+  Roadmap2WorkspaceNameExistsError,
   roadmap2DriveUrlSchema,
   roadmap2Repository,
 } from "../src/server/roadmap2";
@@ -51,10 +52,29 @@ runner("roadmap_2_smoke", async () => {
     baseNode.ownerUserId = userId;
     step("fixture_created", { userId, organizationId });
 
-    const workspaceA = await prisma.roadmap2Workspace.create({ data: { key: `smoke-a-${suffix}`, name: "Smoke A" } });
-    const workspaceB = await prisma.roadmap2Workspace.create({ data: { key: `smoke-b-${suffix}`, name: "Smoke B" } });
-    const seedWorkspace = await prisma.roadmap2Workspace.create({ data: { key: `smoke-seed-${suffix}`, name: "Smoke Seed" } });
+    const workspaceA = await roadmap2Repository.createWorkspace(userId, "Roadmap pilote A");
+    let duplicateNameRejected = false;
+    try {
+      await roadmap2Repository.createWorkspace(userId, "roadmap PILOTE a");
+    } catch (error) {
+      duplicateNameRejected = error instanceof Roadmap2WorkspaceNameExistsError;
+    }
+    assert(duplicateNameRejected, "Deux roadmaps ne doivent pas pouvoir porter le même nom, même avec une casse différente.");
+    const workspaceB = await roadmap2Repository.createWorkspace(userId, "Roadmap pilote B");
+    const seedWorkspace = await roadmap2Repository.createWorkspace(userId, "Roadmap seed");
     workspaceIds.push(workspaceA.id, workspaceB.id, seedWorkspace.id);
+    assert(workspaceA.key !== workspaceB.key, "Deux roadmaps doivent recevoir des clés distinctes.");
+    assert(await prisma.roadmap2Node.count({ where: { workspaceId: workspaceA.id } }) === 0, "Une nouvelle roadmap doit être vide.");
+    let duplicateRenameRejected = false;
+    try {
+      await roadmap2Repository.renameWorkspace(workspaceA.id, userId, "roadmap pilote b");
+    } catch (error) {
+      duplicateRenameRejected = error instanceof Roadmap2WorkspaceNameExistsError;
+    }
+    assert(duplicateRenameRejected, "Le renommage ne doit pas créer deux roadmaps ambiguës.");
+    const renamedWorkspace = await roadmap2Repository.renameWorkspace(workspaceA.id, userId, "Lancement Martinique 2027");
+    assert(renamedWorkspace.name === "Lancement Martinique 2027" && renamedWorkspace.key === workspaceA.key, "Renommer une roadmap ne doit pas changer sa clé ni son contenu.");
+    step("independent_empty_workspace_created", { key: workspaceA.key });
 
     const rlsTables = await prisma.$queryRaw<Array<{ relname: string }>>`
       SELECT relname
@@ -176,12 +196,13 @@ runner("roadmap_2_smoke", async () => {
     ].map((path) => readFileSync(join(process.cwd(), path), "utf8")).join("\n");
     assert(nav.includes('label: "Roadmap"') && nav.includes('label: "Roadmap 2"'), "Les deux rubriques doivent coexister.");
     assert(!sitemap.includes("roadmap-2"), "Roadmap 2 ne doit pas apparaître dans le sitemap public.");
-    const actionNames = ["createRoadmap2Node", "updateRoadmap2Node", "moveRoadmap2Node", "archiveRoadmap2Node", "deleteRoadmap2Node", "createRoadmap2Edge", "addRoadmap2Update", "initializeRoadmap2"];
+    const actionNames = ["createRoadmap2Workspace", "renameRoadmap2Workspace", "createRoadmap2Node", "updateRoadmap2Node", "moveRoadmap2Node", "archiveRoadmap2Node", "deleteRoadmap2Node", "createRoadmap2Edge", "addRoadmap2Update", "initializeRoadmap2"];
     for (const name of actionNames) assert(actions.includes(`function ${name}`), `Action manquante : ${name}`);
-    const guardCount = (actions.match(/resolveRoadmap2Context\(\)/g) ?? []).length;
-    assert(guardCount >= actionNames.length, "Chaque mutation doit résoudre le contexte admin privé côté serveur.");
+    const guardCount = (actions.match(/resolveRoadmap2Context\(workspaceKey\)/g) ?? []).length;
+    assert(guardCount >= 11 && actions.includes("await requirePlatformAdmin()"), "Chaque mutation doit résoudre la roadmap et le contexte admin privé côté serveur.");
     assert(!actions.includes("workspaceId: string"), "Les actions publiques ne doivent pas accepter workspaceId.");
     assert(!clientSources.includes("dangerouslySetInnerHTML"), "Les textes Roadmap 2 ne doivent pas être injectés comme HTML.");
+    assert(clientSources.includes("Nouvelle roadmap") && clientSources.includes('aria-label="Choisir une roadmap"'), "Le sélecteur et la création d’une roadmap doivent être opérables dans l’interface.");
     step("private_route_and_legacy_roadmap_preserved");
   } finally {
     if (workspaceIds.length) await prisma.roadmap2Workspace.deleteMany({ where: { id: { in: workspaceIds } } }).catch(() => undefined);

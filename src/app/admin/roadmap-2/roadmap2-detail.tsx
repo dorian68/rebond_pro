@@ -71,7 +71,8 @@ function nullable(value: string) {
   return value.trim() ? value : null;
 }
 
-export function Roadmap2Detail({ node, createDefaults, nodes, edges, owners, actions, onClose, onCreateChild, onLocalNode, announce }: {
+export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edges, owners, actions, onClose, onCreateChild, onLocalNode, announce }: {
+  workspaceKey: string;
   node: Roadmap2NodeDto | null;
   createDefaults?: { parentId?: string; type?: Roadmap2NodeDto["type"] };
   nodes: Roadmap2NodeDto[];
@@ -156,7 +157,7 @@ export function Roadmap2Detail({ node, createDefaults, nodes, edges, owners, act
   function addUpdate() {
     if (!node || !updateBody.trim()) return;
     startTransition(async () => {
-      const result = await addRoadmap2Update({ nodeId: node.id, nodeVersion: baseVersion ?? node.version, updateType, body: updateBody });
+      const result = await addRoadmap2Update(workspaceKey, { nodeId: node.id, nodeVersion: baseVersion ?? node.version, updateType, body: updateBody });
       if (!result.ok) {
         announce("error", result.error ?? "Mise à jour impossible.");
         if (result.code === "CONFLICT") router.refresh();

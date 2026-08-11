@@ -20,11 +20,13 @@ import {
   archiveRoadmap2Node,
   createRoadmap2Edge,
   createRoadmap2Node,
+  createRoadmap2Workspace,
   deleteRoadmap2Edge,
   deleteRoadmap2Node,
   duplicateRoadmap2Node,
   initializeRoadmap2,
   moveRoadmap2Node,
+  renameRoadmap2Workspace,
   setRoadmap2RootDriveUrl,
   updateRoadmap2Node,
   type Roadmap2ActionResult,
@@ -64,15 +66,20 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
   const [nodes, setNodes] = useState(initialData.nodes);
   const [edges, setEdges] = useState(initialData.edges);
   const [workspace, setWorkspace] = useState(initialData.workspace);
+  const [workspaceOptions, setWorkspaceOptions] = useState(initialData.workspaces);
   const [view, setView] = useState<Roadmap2View>("graph");
   const [filters, setFilters] = useState<Roadmap2Filters>(EMPTY_FILTERS);
   const [editor, setEditor] = useState<EditorState>(null);
   const [driveConfigOpen, setDriveConfigOpen] = useState(false);
+  const [workspaceModal, setWorkspaceModal] = useState<"create" | "rename" | null>(null);
+  const [workspaceNameInput, setWorkspaceNameInput] = useState("");
   const [driveInput, setDriveInput] = useState(initialData.workspace.rootDriveUrl ?? "");
   const [toast, setToast] = useState<{ tone: "success" | "error" | "info"; message: string } | null>(null);
   const [busy, startTransition] = useTransition();
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const graphToolbarRef = useRef<HTMLDivElement>(null);
+  const modalPanelRef = useRef<HTMLElement>(null);
+  const modalReturnFocusRef = useRef<HTMLElement | null>(null);
   const closeEditor = useCallback(() => setEditor(null), []);
 
   useEffect(() => {
@@ -80,6 +87,7 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
       setNodes(initialData.nodes);
       setEdges(initialData.edges);
       setWorkspace(initialData.workspace);
+      setWorkspaceOptions(initialData.workspaces);
       setDriveInput(initialData.workspace.rootDriveUrl ?? "");
     }, 0);
     return () => window.clearTimeout(timer);
@@ -96,6 +104,32 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!driveConfigOpen && !workspaceModal) return;
+    const handleKeys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDriveConfigOpen(false);
+        setWorkspaceModal(null);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...(modalPanelRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])') ?? [])]
+        .filter((element) => element.getClientRects().length > 0);
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", handleKeys);
+    return () => {
+      document.removeEventListener("keydown", handleKeys);
+      if (modalReturnFocusRef.current?.isConnected) modalReturnFocusRef.current.focus();
+      modalReturnFocusRef.current = null;
+    };
+  }, [driveConfigOpen, workspaceModal]);
+
   const filteredNodes = useMemo(() => filterRoadmap2Nodes(nodes, filters), [nodes, filters]);
   const selectedNode = editor?.mode === "edit" ? nodes.find((node) => node.id === editor.nodeId) ?? null : null;
 
@@ -106,7 +140,7 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
   }, [router]);
 
   const saveNode = useCallback(async (node: Roadmap2NodeDto | null, input: Roadmap2NodeInput) => {
-    const result = node ? await updateRoadmap2Node(node.id, node.version, input) : await createRoadmap2Node(input);
+    const result = node ? await updateRoadmap2Node(workspace.key, node.id, node.version, input) : await createRoadmap2Node(workspace.key, input);
     if (result.ok) {
       const now = new Date().toISOString();
       const owner = initialData.owners.find((candidate) => candidate.id === input.ownerUserId) ?? null;
@@ -139,77 +173,77 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
       router.refresh();
     }
     return showResult(result, node ? "Nœud enregistré." : "Nœud créé.");
-  }, [initialData.owners, router, showResult]);
+  }, [initialData.owners, router, showResult, workspace.key]);
 
   const quickUpdate = useCallback(async (node: Roadmap2NodeDto, patch: Partial<Roadmap2NodeInput>) => {
     const input = { ...nodeToInput(node), ...patch };
-    const result = await updateRoadmap2Node(node.id, node.version, input);
+    const result = await updateRoadmap2Node(workspace.key, node.id, node.version, input);
     if (result.ok) {
       const owner = initialData.owners.find((candidate) => candidate.id === input.ownerUserId) ?? null;
       setNodes((current) => current.map((candidate) => candidate.id === node.id ? { ...candidate, ...input, owner, version: result.version ?? candidate.version + 1, updatedAt: new Date().toISOString() } : candidate));
       router.refresh();
     }
     return showResult(result, "Mise à jour enregistrée.");
-  }, [initialData.owners, router, showResult]);
+  }, [initialData.owners, router, showResult, workspace.key]);
 
   const moveNode = useCallback(async (node: Roadmap2NodeDto, positionX: number, positionY: number) => {
-    const result = await moveRoadmap2Node(node.id, node.version, positionX, positionY);
+    const result = await moveRoadmap2Node(workspace.key, node.id, node.version, positionX, positionY);
     if (result.ok) {
       setNodes((current) => current.map((candidate) => candidate.id === node.id ? { ...candidate, positionX, positionY, version: result.version ?? candidate.version + 1, updatedAt: new Date().toISOString() } : candidate));
     }
     return showResult(result, "Position enregistrée.");
-  }, [showResult]);
+  }, [showResult, workspace.key]);
 
   const archiveNode = useCallback(async (node: Roadmap2NodeDto) => {
-    const result = await archiveRoadmap2Node(node.id, node.version);
+    const result = await archiveRoadmap2Node(workspace.key, node.id, node.version);
     if (result.ok) {
       const now = new Date().toISOString();
       setNodes((current) => current.map((candidate) => candidate.id === node.id ? { ...candidate, status: "archived", archivedAt: now, version: candidate.version + 1, updatedAt: now } : candidate));
       setEditor(null);
     }
     return showResult(result, "Élément archivé.");
-  }, [showResult]);
+  }, [showResult, workspace.key]);
 
   const removeNode = useCallback(async (node: Roadmap2NodeDto) => {
-    const result = await deleteRoadmap2Node(node.id);
+    const result = await deleteRoadmap2Node(workspace.key, node.id);
     if (result.ok) {
       setNodes((current) => current.filter((candidate) => candidate.id !== node.id));
       setEdges((current) => current.filter((edge) => edge.sourceNodeId !== node.id && edge.targetNodeId !== node.id));
       setEditor(null);
     }
     return showResult(result, "Élément supprimé définitivement.");
-  }, [showResult]);
+  }, [showResult, workspace.key]);
 
   const duplicateNode = useCallback(async (node: Roadmap2NodeDto) => {
-    const result = await duplicateRoadmap2Node(node.id);
+    const result = await duplicateRoadmap2Node(workspace.key, node.id);
     if (result.ok) router.refresh();
     return showResult(result, "Copie créée.");
-  }, [router, showResult]);
+  }, [router, showResult, workspace.key]);
 
   const createEdge = useCallback(async (sourceNodeId: string, targetNodeId: string, relationType: Roadmap2RelationType) => {
-    const result = await createRoadmap2Edge({ sourceNodeId, targetNodeId, relationType });
+    const result = await createRoadmap2Edge(workspace.key, { sourceNodeId, targetNodeId, relationType });
     if (result.ok && result.id) {
       setEdges((current) => [...current, { id: result.id!, sourceNodeId, targetNodeId, relationType, createdAt: new Date().toISOString() }]);
       router.refresh();
     }
     return showResult(result, "Relation créée.");
-  }, [router, showResult]);
+  }, [router, showResult, workspace.key]);
 
   const removeEdge = useCallback(async (edgeId: string) => {
-    const result = await deleteRoadmap2Edge(edgeId);
+    const result = await deleteRoadmap2Edge(workspace.key, edgeId);
     if (result.ok) {
       setEdges((current) => current.filter((edge) => edge.id !== edgeId));
       router.refresh();
     }
     return showResult(result, "Relation supprimée.");
-  }, [router, showResult]);
+  }, [router, showResult, workspace.key]);
 
   const actions: Roadmap2UiActions = useMemo(() => ({ saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge }), [saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge]);
 
   function runSeed() {
-    if (!window.confirm("Initialiser la roadmap Le Bon Rebond dans ce workspace vide ? Les éléments seront attribués provisoirement à l’administrateur qui lance l’initialisation, puis pourront être répartis entre Dorian et Mathurin.")) return;
+    if (!window.confirm("Créer ici une copie modifiable du modèle Le Bon Rebond (65 nœuds et 110 relations) ? Les dates, statuts, priorités et dépendances sont des propositions. Les éléments seront attribués provisoirement à l’administrateur qui lance l’initialisation.")) return;
     startTransition(async () => {
-      const result = await initializeRoadmap2();
+      const result = await initializeRoadmap2(workspace.key);
       showResult(result, `Roadmap initialisée : ${result.meta?.nodes ?? 0} nœuds, ${result.meta?.edges ?? 0} relations.`);
       if (result.ok) router.refresh();
     });
@@ -217,12 +251,48 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
 
   function saveRootDrive() {
     startTransition(async () => {
-      const result = await setRoadmap2RootDriveUrl(driveInput);
+      const result = await setRoadmap2RootDriveUrl(workspace.key, driveInput);
       if (result.ok) {
         setWorkspace((current) => ({ ...current, rootDriveUrl: driveInput || null, updatedAt: new Date().toISOString() }));
         setDriveConfigOpen(false);
       }
       showResult(result, "Dossier Drive racine enregistré.");
+    });
+  }
+
+  function openWorkspaceModal(mode: "create" | "rename") {
+    modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setWorkspaceNameInput(mode === "rename" ? workspace.name : "");
+    setWorkspaceModal(mode);
+  }
+
+  function openDriveConfig() {
+    modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDriveConfigOpen(true);
+  }
+
+  function saveWorkspace() {
+    startTransition(async () => {
+      const result = workspaceModal === "rename"
+        ? await renameRoadmap2Workspace(workspace.key, workspaceNameInput)
+        : await createRoadmap2Workspace(workspaceNameInput);
+      if (!result.ok) {
+        showResult(result, "");
+        return;
+      }
+      if (workspaceModal === "rename" && result.name) {
+        setWorkspace((current) => ({ ...current, name: result.name! }));
+        setWorkspaceOptions((current) => current.map((item) => item.key === workspace.key ? { ...item, name: result.name! } : item));
+        setWorkspaceModal(null);
+        showResult(result, "Roadmap renommée.");
+        router.refresh();
+        return;
+      }
+      if (result.key) {
+        setWorkspaceModal(null);
+        showResult(result, "Roadmap vide créée.");
+        router.push(`/admin/roadmap-2?roadmap=${encodeURIComponent(result.key)}`);
+      }
     });
   }
 
@@ -235,10 +305,22 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
   return (
     <section className={`${styles.workspace} ${editor ? styles.detailOpen : ""}`} aria-label="Roadmap 2">
       <header className={styles.hero}>
-        <div className={styles.eyebrow}>Studio de pilotage privé · Dorian & Mathurin</div>
+        <div className={styles.heroTopline}>
+          <div className={styles.eyebrow}>Roadmap 2 · Studio de pilotage privé · Dorian & Mathurin</div>
+          <div className={styles.workspaceChooser} data-private-export>
+            <label>
+              <span>Roadmap active</span>
+              <select aria-label="Choisir une roadmap" value={workspace.key} onChange={(event) => router.push(`/admin/roadmap-2?roadmap=${encodeURIComponent(event.target.value)}`)}>
+                {workspaceOptions.map((item) => <option key={item.key} value={item.key}>{item.name} · {item.nodeCount} nœud{item.nodeCount === 1 ? "" : "s"}</option>)}
+              </select>
+            </label>
+            <button className={styles.secondaryButton} onClick={() => openWorkspaceModal("create")}><Icon name="plus" size={15} /> Nouvelle roadmap</button>
+            <button className={styles.iconButtonText} onClick={() => openWorkspaceModal("rename")} aria-label="Renommer la roadmap active"><Icon name="edit-3" size={15} /> Renommer</button>
+          </div>
+        </div>
         <div className={styles.heroRow}>
           <div>
-            <h1>Roadmap 2</h1>
+            <h1>{workspace.name}</h1>
             <p>Du cap stratégique aux preuves Drive, sans perdre le fil des décisions.</p>
           </div>
           <div className={styles.heroActions}>
@@ -250,10 +332,10 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
             {workspace.rootDriveUrl ? (
               <>
                 <a className={styles.driveButton} href={workspace.rootDriveUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" size={16} /> Dossier Drive racine</a>
-                <button className={styles.iconButtonText} onClick={() => setDriveConfigOpen(true)}><Icon name="edit-3" size={16} /> Modifier Drive</button>
+                <button className={styles.iconButtonText} onClick={openDriveConfig}><Icon name="edit-3" size={16} /> Modifier Drive</button>
               </>
             ) : (
-              <button className={styles.driveButton} onClick={() => setDriveConfigOpen(true)}><Icon name="plus" size={16} /> Configurer Drive</button>
+              <button className={styles.driveButton} onClick={openDriveConfig}><Icon name="plus" size={16} /> Configurer Drive</button>
             )}
           </div>
         </div>
@@ -312,7 +394,7 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
       </div>
 
       {nodes.length === 0 ? (
-        <Roadmap2Empty onSeed={runSeed} onCreate={() => setEditor({ mode: "create" })} onDrive={() => setDriveConfigOpen(true)} busy={busy} />
+        <Roadmap2Empty workspaceName={workspace.name} isDefault={workspace.key === "le-bon-rebond"} onSeed={runSeed} onCreate={() => setEditor({ mode: "create" })} onDrive={openDriveConfig} busy={busy} />
       ) : filteredNodes.length === 0 ? (
         <div className={styles.emptyFiltered}><Icon name="search" size={24} /><strong>Aucun résultat avec ces filtres</strong><button onClick={() => setFilters(EMPTY_FILTERS)}>Afficher toute la roadmap</button></div>
       ) : (
@@ -327,6 +409,7 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
         <Roadmap2Detail
           key={editor.mode === "edit" ? `edit-${editor.nodeId}` : `create-${editor.parentId ?? "root"}-${editor.type ?? "initiative"}`}
           node={selectedNode}
+          workspaceKey={workspace.key}
           createDefaults={editor.mode === "create" ? { parentId: editor.parentId, type: editor.type } : undefined}
           nodes={nodes}
           edges={edges}
@@ -343,7 +426,7 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
 
       {driveConfigOpen && (
         <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDriveConfigOpen(false); }}>
-          <section className={styles.driveModal} role="dialog" aria-modal="true" aria-labelledby="drive-config-title">
+          <section ref={modalPanelRef} className={styles.driveModal} role="dialog" aria-modal="true" aria-labelledby="drive-config-title">
             <button className={styles.closeButton} onClick={() => setDriveConfigOpen(false)} aria-label="Fermer"><Icon name="x" size={18} /></button>
             <div className={styles.eyebrow}>Configuration privée</div>
             <h2 id="drive-config-title">Dossier Drive racine</h2>
@@ -354,19 +437,33 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
         </div>
       )}
 
+      {workspaceModal && (
+        <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setWorkspaceModal(null); }}>
+          <section ref={modalPanelRef} className={styles.driveModal} role="dialog" aria-modal="true" aria-labelledby="workspace-config-title">
+            <button className={styles.closeButton} onClick={() => setWorkspaceModal(null)} aria-label="Fermer"><Icon name="x" size={18} /></button>
+            <div className={styles.eyebrow}>{workspaceModal === "create" ? "Nouvel espace privé" : "Roadmap active"}</div>
+            <h2 id="workspace-config-title">{workspaceModal === "create" ? "Créer une roadmap vide" : "Renommer la roadmap"}</h2>
+            <p>{workspaceModal === "create" ? "Elle sera indépendante des autres roadmaps. Vous pourrez partir de zéro ou initialiser ensuite le modèle Le Bon Rebond." : "Le contenu, les liens et l’historique restent inchangés."}</p>
+            <label className={styles.field}><span>Nom de la roadmap</span><input autoFocus minLength={2} maxLength={100} value={workspaceNameInput} onChange={(event) => setWorkspaceNameInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") saveWorkspace(); }} placeholder="Ex. Lancement Martinique 2027" /></label>
+            <div className={styles.modalActions}><button className={styles.primaryButton} disabled={busy || workspaceNameInput.trim().length < 2} onClick={saveWorkspace}>{busy ? "Enregistrement…" : workspaceModal === "create" ? "Créer la roadmap" : "Enregistrer"}</button><button className={styles.secondaryButton} onClick={() => setWorkspaceModal(null)}>Annuler</button></div>
+          </section>
+        </div>
+      )}
+
       <div className={`${styles.toast} ${toast ? styles.toastVisible : ""} ${toast ? styles[`toast_${toast.tone}`] : ""}`} role="status" aria-live="polite">{toast?.message}</div>
     </section>
   );
 }
 
-function Roadmap2Empty({ onSeed, onCreate, onDrive, busy }: { onSeed: () => void; onCreate: () => void; onDrive: () => void; busy: boolean }) {
+function Roadmap2Empty({ workspaceName, isDefault, onSeed, onCreate, onDrive, busy }: { workspaceName: string; isDefault: boolean; onSeed: () => void; onCreate: () => void; onDrive: () => void; busy: boolean }) {
   return (
     <div className={styles.emptyState}>
       <div className={styles.emptyCompass}><Icon name="target" size={34} /></div>
       <div>
         <div className={styles.eyebrow}>Premier cap</div>
-        <h2>Construisons la roadmap du Bon Rebond</h2>
+        <h2>{isDefault ? "Construisons la roadmap du Bon Rebond" : `Construisons « ${workspaceName} »`}</h2>
         <p>Visualisez les prochaines étapes, reliez chaque chantier à son dossier Drive et gardez vos décisions au même endroit.</p>
+        <p className={styles.seedDisclosure}><strong>D’où vient le modèle proposé ?</strong> Des branches et actions fournies dans le cahier des charges Roadmap 2. L’initialisation crée ici une copie modifiable de 65 nœuds et 110 relations ; les dates, positions, statuts, priorités et dépendances sont des propositions de départ.</p>
         <div className={styles.emptyActions}>
           <button className={styles.primaryButton} disabled={busy} onClick={onSeed}>{busy ? "Initialisation…" : "Initialiser la roadmap Le Bon Rebond"}</button>
           <button className={styles.secondaryButton} onClick={onCreate}>Créer un premier nœud</button>

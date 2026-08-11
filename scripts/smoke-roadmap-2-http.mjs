@@ -20,7 +20,7 @@ try {
 
   const roadmap2 = await load("/admin/roadmap-2");
   assert(roadmap2.response.status === 200 && roadmap2.response.url.endsWith("/admin/roadmap-2"), "Roadmap 2 n'est pas accessible séparément.");
-  for (const text of ["Roadmap 2", "Graphe", "Timeline", "Liste", "Nouveau nœud", "Nouvelle décision"]) assert(roadmap2.body.includes(text), `Contenu SSR Roadmap 2 manquant : ${text}`);
+  for (const text of ["Roadmap 2", "Graphe", "Timeline", "Liste", "Nouveau nœud", "Nouvelle décision", "Nouvelle roadmap", "Choisir une roadmap"]) assert(roadmap2.body.includes(text), `Contenu SSR Roadmap 2 manquant : ${text}`);
   step("roadmap_2_http", { status: roadmap2.response.status, bytes: roadmap2.body.length });
 
   for (const path of ["/roadmap-2", "/api/roadmap-2"]) {

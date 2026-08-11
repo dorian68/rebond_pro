@@ -139,12 +139,21 @@ export type Roadmap2Stats = {
   lastUpdatedBy: string | null;
 };
 
+export type Roadmap2WorkspaceSummary = {
+  key: string;
+  name: string;
+  nodeCount: number;
+  updatedAt: string;
+};
+
 export type Roadmap2Data = {
   workspace: {
+    key: string;
     name: string;
     rootDriveUrl: string | null;
     updatedAt: string;
   };
+  workspaces: Roadmap2WorkspaceSummary[];
   nodes: Roadmap2NodeDto[];
   edges: Roadmap2EdgeDto[];
   owners: Roadmap2Owner[];

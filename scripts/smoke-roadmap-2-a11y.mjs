@@ -20,6 +20,9 @@ try {
   assert(client.includes('role="tablist"') && client.includes('role="tab"') && client.includes('aria-selected='), "Les changements de vue doivent exposer la sémantique onglets.");
   assert(client.includes('aria-live="polite"') && client.includes('role="status"'), "Les sauvegardes et erreurs doivent être annoncées.");
   assert(client.includes('aria-label="Rechercher un nœud"'), "La recherche doit avoir un label accessible.");
+  assert(client.includes('aria-label="Choisir une roadmap"') && client.includes('aria-label="Renommer la roadmap active"'), "Le sélecteur de roadmap et son action de renommage doivent être nommés.");
+  assert(client.includes('aria-labelledby="workspace-config-title"') && client.includes('Créer une roadmap vide'), "La création d’une roadmap doit utiliser un dialogue accessible.");
+  assert(client.includes('event.key === "Escape"') && client.includes('event.key !== "Tab"') && client.includes("modalReturnFocusRef.current.focus()"), "Les dialogues de configuration doivent gérer Escape, confiner Tab et restituer le focus.");
   step("landmarks_and_announcements");
 
   assert(graph.includes('tabIndex={0}') && graph.includes('event.key === "Enter"') && graph.includes('edgesFocusable'), "Le graphe doit exposer un accès clavier.");

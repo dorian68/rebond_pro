@@ -54,6 +54,9 @@ export const roadmap2DriveUrlSchema = z.preprocess(
   ]),
 );
 
+export const roadmap2WorkspaceNameSchema = z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères.").max(100, "Nom trop long.");
+const roadmap2WorkspaceKeySchema = z.string().trim().min(1).max(120).regex(/^[a-z0-9-]+$/);
+
 export const roadmap2NodeInputSchema = z.object({
   title: z.string().trim().min(1, "Le titre est obligatoire.").max(200, "Titre trop long."),
   description: optionalText(6000),
@@ -114,6 +117,13 @@ export class Roadmap2SeedExistsError extends Error {
   constructor() {
     super("La roadmap contient déjà des éléments. L’initialisation n’a pas été rejouée.");
     this.name = "Roadmap2SeedExistsError";
+  }
+}
+
+export class Roadmap2WorkspaceNameExistsError extends Error {
+  constructor() {
+    super("Une roadmap porte déjà ce nom. Choisissez un nom distinct pour éviter toute confusion.");
+    this.name = "Roadmap2WorkspaceNameExistsError";
   }
 }
 
@@ -232,10 +242,19 @@ export async function ensureRoadmap2Workspace() {
   });
 }
 
-export async function getRoadmap2Data(): Promise<Roadmap2Data> {
+async function findRoadmap2Workspace(workspaceKey: string) {
+  const parsedKey = roadmap2WorkspaceKeySchema.safeParse(workspaceKey);
+  if (!parsedKey.success) throw new Roadmap2NotFoundError("Roadmap introuvable.");
+  const workspace = await prisma.roadmap2Workspace.findUnique({ where: { key: parsedKey.data } });
+  if (!workspace) throw new Roadmap2NotFoundError("Roadmap introuvable.");
+  return workspace;
+}
+
+export async function getRoadmap2Data(workspaceKey?: string): Promise<Roadmap2Data> {
   const admin = await requirePlatformAdmin();
-  const workspace = await ensureRoadmap2Workspace();
-  const [rows, edges, platformOwners, currentUser] = await Promise.all([
+  const defaultWorkspace = await ensureRoadmap2Workspace();
+  const workspace = workspaceKey ? await findRoadmap2Workspace(workspaceKey) : defaultWorkspace;
+  const [rows, edges, platformOwners, currentUser, workspaces] = await Promise.all([
     prisma.roadmap2Node.findMany({
       where: { workspaceId: workspace.id },
       include: {
@@ -251,6 +270,10 @@ export async function getRoadmap2Data(): Promise<Roadmap2Data> {
     prisma.roadmap2Edge.findMany({ where: { workspaceId: workspace.id }, orderBy: { createdAt: "asc" } }),
     prisma.user.findMany({ where: { OR: [{ platformAdmin: true }, { email: { in: platformAdminEmails(), mode: "insensitive" } }] }, select: { id: true, name: true, email: true }, orderBy: [{ name: "asc" }, { email: "asc" }] }),
     prisma.user.findUnique({ where: { id: admin.userId }, select: { id: true, name: true, email: true } }),
+    prisma.roadmap2Workspace.findMany({
+      select: { key: true, name: true, updatedAt: true, _count: { select: { nodes: true } } },
+      orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
+    }),
   ]);
   const ownerMap = new Map<string, Roadmap2Owner>();
   for (const user of [...platformOwners, ...(currentUser ? [currentUser] : [])]) {
@@ -263,7 +286,8 @@ export async function getRoadmap2Data(): Promise<Roadmap2Data> {
   const inSevenDays = new Date(now.getTime() + 7 * 86400000);
   const lastUpdated = [...active].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
   return {
-    workspace: { name: workspace.name, rootDriveUrl: workspace.rootDriveUrl, updatedAt: workspace.updatedAt.toISOString() },
+    workspace: { key: workspace.key, name: workspace.name, rootDriveUrl: workspace.rootDriveUrl, updatedAt: workspace.updatedAt.toISOString() },
+    workspaces: workspaces.map((item) => ({ key: item.key, name: item.name, nodeCount: item._count.nodes, updatedAt: item.updatedAt.toISOString() })),
     nodes,
     edges: edges.map((edge) => ({ id: edge.id, sourceNodeId: edge.sourceNodeId, targetNodeId: edge.targetNodeId, relationType: edge.relationType, createdAt: edge.createdAt.toISOString() })),
     owners: [...ownerMap.values()],
@@ -280,6 +304,30 @@ export async function getRoadmap2Data(): Promise<Roadmap2Data> {
 }
 
 export const roadmap2Repository = {
+  async createWorkspace(actorUserId: string, rawName: unknown) {
+    const name = roadmap2WorkspaceNameSchema.parse(rawName);
+    const baseKey = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 72) || "roadmap";
+    const key = `${baseKey}-${randomUUID().slice(0, 8)}`;
+    return prisma.$transaction(async (tx) => {
+      const duplicate = await tx.roadmap2Workspace.findFirst({ where: { name: { equals: name, mode: "insensitive" } }, select: { id: true } });
+      if (duplicate) throw new Roadmap2WorkspaceNameExistsError();
+      const workspace = await tx.roadmap2Workspace.create({ data: { key, name }, select: { id: true, key: true, name: true } });
+      await writeAudit(tx, workspace.id, actorUserId, "workspace.created", "Roadmap2Workspace", workspace.id);
+      return workspace;
+    }, { isolationLevel: "Serializable" });
+  },
+
+  async renameWorkspace(workspaceId: string, actorUserId: string, rawName: unknown) {
+    const name = roadmap2WorkspaceNameSchema.parse(rawName);
+    return prisma.$transaction(async (tx) => {
+      const duplicate = await tx.roadmap2Workspace.findFirst({ where: { id: { not: workspaceId }, name: { equals: name, mode: "insensitive" } }, select: { id: true } });
+      if (duplicate) throw new Roadmap2WorkspaceNameExistsError();
+      const workspace = await tx.roadmap2Workspace.update({ where: { id: workspaceId }, data: { name }, select: { id: true, key: true, name: true } });
+      await writeAudit(tx, workspaceId, actorUserId, "workspace.renamed", "Roadmap2Workspace", workspaceId);
+      return workspace;
+    }, { isolationLevel: "Serializable" });
+  },
+
   async createNode(workspaceId: string, actorUserId: string, rawInput: unknown) {
     const input = roadmap2NodeInputSchema.parse(rawInput);
     await assertAllowedOwner(actorUserId, input.ownerUserId);
@@ -507,8 +555,8 @@ export const roadmap2Repository = {
   },
 };
 
-export async function resolveRoadmap2Context(): Promise<{ admin: PlatformAdmin; workspaceId: string }> {
+export async function resolveRoadmap2Context(workspaceKey?: string): Promise<{ admin: PlatformAdmin; workspaceId: string }> {
   const admin = await requirePlatformAdmin();
-  const workspace = await ensureRoadmap2Workspace();
+  const workspace = workspaceKey ? await findRoadmap2Workspace(workspaceKey) : await ensureRoadmap2Workspace();
   return { admin, workspaceId: workspace.id };
 }
