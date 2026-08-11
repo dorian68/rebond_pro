@@ -345,6 +345,12 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   beneficiary             Beneficiary?
+  roadmap2OwnedNodes       Roadmap2Node[]           @relation("Roadmap2NodeOwner")
+  roadmap2CreatedNodes     Roadmap2Node[]           @relation("Roadmap2NodeCreator")
+  roadmap2UpdatedNodes     Roadmap2Node[]           @relation("Roadmap2NodeUpdater")
+  roadmap2CreatedEdges     Roadmap2Edge[]           @relation("Roadmap2EdgeCreator")
+  roadmap2Updates          Roadmap2Update[]         @relation("Roadmap2UpdateAuthor")
+  roadmap2AuditLogs        Roadmap2AuditLog[]       @relation("Roadmap2AuditActor")
 }
 
 model Membership {
@@ -1132,6 +1138,178 @@ model RoadmapMilestone {
 
   @@index([status])
   @@index([sortOrder])
+}
+
+// --------------------------- ROADMAP 2 PRIVÉE ---------------------------
+
+enum Roadmap2NodeType {
+  phase
+  milestone
+  initiative
+  action
+  decision
+}
+
+enum Roadmap2Category {
+  strategy_governance
+  product_pedagogy
+  buyers_funding
+  partners_market
+  operations_compliance
+  technology_data
+  pilot_execution
+}
+
+enum Roadmap2Status {
+  not_started
+  in_progress
+  blocked
+  review
+  completed
+  archived
+}
+
+enum Roadmap2Priority {
+  P0
+  P1
+  P2
+}
+
+enum Roadmap2RelationType {
+  dependency
+  parent_child
+  blocks
+  contributes_to
+}
+
+enum Roadmap2UpdateType {
+  progress
+  decision
+  blocker
+  note
+  validation
+}
+
+/**
+ * Workspace privé de pilotage plateforme. Sa clé est résolue côté serveur :
+ * le client ne fournit jamais workspaceId comme preuve d'autorisation.
+ */
+model Roadmap2Workspace {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  name         String
+  rootDriveUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  nodes     Roadmap2Node[]
+  edges     Roadmap2Edge[]
+  updates   Roadmap2Update[]
+  auditLogs Roadmap2AuditLog[]
+}
+
+model Roadmap2Node {
+  id               String           @id @default(cuid())
+  workspaceId      String
+  title            String
+  description      String?
+  expectedOutcome  String?
+  type             Roadmap2NodeType
+  category         Roadmap2Category
+  status           Roadmap2Status   @default(not_started)
+  priority         Roadmap2Priority @default(P1)
+  progressPercent  Int              @default(0)
+  ownerUserId      String?
+  startDate        DateTime?
+  dueDate          DateTime?
+  nextAction       String?
+  decisionRequired Boolean          @default(false)
+  definitionOfDone String?
+  driveFolderUrl   String?
+  trackingDocUrl   String?
+  parentId         String?
+  positionX        Float            @default(0)
+  positionY        Float            @default(0)
+  width            Float?
+  seedKey          String?
+  version          Int              @default(1)
+  archivedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  createdById      String?
+  updatedById      String?
+
+  workspace     Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner         User?             @relation("Roadmap2NodeOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy     User?             @relation("Roadmap2NodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?             @relation("Roadmap2NodeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  parent        Roadmap2Node?     @relation("Roadmap2NodeParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children      Roadmap2Node[]    @relation("Roadmap2NodeParent")
+  outgoingEdges Roadmap2Edge[]    @relation("Roadmap2EdgeSource")
+  incomingEdges Roadmap2Edge[]    @relation("Roadmap2EdgeTarget")
+  updates       Roadmap2Update[]
+
+  @@unique([workspaceId, seedKey])
+  @@index([workspaceId, archivedAt])
+  @@index([workspaceId, status])
+  @@index([workspaceId, category])
+  @@index([workspaceId, ownerUserId])
+  @@index([parentId])
+}
+
+model Roadmap2Edge {
+  id           String               @id @default(cuid())
+  workspaceId  String
+  sourceNodeId String
+  targetNodeId String
+  relationType Roadmap2RelationType
+  createdAt    DateTime             @default(now())
+  createdById  String?
+
+  workspace Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source    Roadmap2Node      @relation("Roadmap2EdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  target    Roadmap2Node      @relation("Roadmap2EdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  createdBy User?             @relation("Roadmap2EdgeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, sourceNodeId, targetNodeId, relationType])
+  @@index([workspaceId, sourceNodeId])
+  @@index([workspaceId, targetNodeId])
+}
+
+model Roadmap2Update {
+  id           String             @id @default(cuid())
+  workspaceId  String
+  nodeId       String
+  authorUserId String?
+  updateType   Roadmap2UpdateType
+  body         String
+  createdAt    DateTime           @default(now())
+  editedAt     DateTime?
+
+  workspace Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  node      Roadmap2Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  author    User?             @relation("Roadmap2UpdateAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, nodeId, createdAt])
+}
+
+/**
+ * Audit volontairement minimal : aucune URL Drive ni note privée.
+ */
+model Roadmap2AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  createdAt   DateTime @default(now())
+
+  workspace Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actor     User?             @relation("Roadmap2AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([entityType, entityId])
 }
 
 // --------------------------- JOBS ASYNCHRONES ---------------------------

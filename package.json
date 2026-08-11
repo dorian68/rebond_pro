@@ -50,6 +50,9 @@
     "smoke:document-intake": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-document-intake.ts",
     "smoke:admin-agents": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-admin-agents-sandbox.ts",
     "smoke:roadmap": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap.ts",
+    "smoke:roadmap-2": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2.ts",
+    "smoke:roadmap-2:a11y": "node scripts/smoke-roadmap-2-a11y.mjs",
+    "smoke:roadmap-2:http": "node scripts/smoke-roadmap-2-http.mjs",
     "smoke:connectors": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-connectors.ts",
     "smoke:beneficiary": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-beneficiary.ts",
     "smoke:platform-beneficiaries": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-platform-beneficiaries.ts",
@@ -81,6 +84,7 @@
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-slot": "^1.2.5",
     "@react-pdf/renderer": "^4.5.1",
+    "@xyflow/react": "^12.11.2",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -89,7 +93,7 @@
     "emailjs": "^5.0.1",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
-    "next": "16.2.10",
+    "next": "16.3.0",
     "next-auth": "^5.0.0-beta.31",
     "openai": "^6.42.0",
     "pdfjs-dist": "^6.0.227",
@@ -111,13 +115,13 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.0",
     "pdf-parse": "^2.4.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "8.5.17"
+    "postcss": "8.5.26"
   }
 }
