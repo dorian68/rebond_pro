@@ -113,6 +113,7 @@ export type Roadmap2NodeDto = {
   positionX: number;
   positionY: number;
   width: number | null;
+  isWorkspaceRoot: boolean;
   archivedAt: string | null;
   version: number;
   createdAt: string;

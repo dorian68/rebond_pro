@@ -10,11 +10,16 @@ import {
   extractRoadmap2DriveFolderId,
   unwrapRoadmap2DriveResult,
   type Roadmap2DriveDriver,
+  type Roadmap2DrivePreviewPayload,
 } from "../src/server/roadmap2-drive";
 import { assert, runner, step } from "./_tenant";
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const DOC_MIME = "application/vnd.google-apps.document";
+
+function driveNode(id: string, title: string, category: "strategy_governance" | "product_pedagogy" = "strategy_governance", overrides: Partial<import("../src/server/roadmap2-drive").Roadmap2DriveNodeContext> = {}): import("../src/server/roadmap2-drive").Roadmap2DriveNodeContext {
+  return { id, title, type: "action", category, status: "not_started", parentId: null, driveFolderUrl: null, trackingDocUrl: null, isWorkspaceRoot: false, ...overrides };
+}
 
 type FakeItem = {
   id: string;
@@ -27,11 +32,15 @@ type FakeItem = {
   size: string | null;
   owners?: Array<{ emailAddress: string }>;
   permissions?: Array<{ id: string; emailAddress: string; role: string; type: string }>;
+  capabilities?: { canDownload: boolean };
 };
 
 class FakeDrive implements Roadmap2DriveDriver {
   items = new Map<string, FakeItem>();
   uploads = 0;
+  downloadCalls: Array<{ fileId: string; mimeType: string | null }> = [];
+  downloadUrl = "https://storage.composio.dev/roadmap2-preview";
+  failNextRename = false;
   private sequence = 0;
 
   constructor() {
@@ -61,6 +70,15 @@ class FakeDrive implements Roadmap2DriveDriver {
   async uploadFile(file: File) {
     this.uploads += 1;
     return { name: file.name, mimetype: file.type, s3key: `roadmap2/${file.name}` };
+  }
+
+  addFile(name: string, mimeType: string, parentId: string) {
+    const id = `file-${++this.sequence}`;
+    const created = this.item(id, name, mimeType, [parentId]);
+    created.webViewLink = `https://drive.google.com/file/d/${id}/view`;
+    created.size = "128";
+    this.items.set(id, created);
+    return created;
   }
 
   async execute(_entityId: string, tool: string, args: Record<string, unknown>): Promise<unknown> {
@@ -116,6 +134,39 @@ class FakeDrive implements Roadmap2DriveDriver {
       permission.role = payload.role ?? permission.role;
       return { successful: true, data: permission };
     }
+    if (tool === "GOOGLEDRIVE_MOVE_FILE") {
+      const item = this.items.get(String(args.file_id));
+      if (!item) return { successful: false, error: "not found" };
+      const removed = String(args.remove_parents ?? "").split(",").filter(Boolean);
+      item.parents = item.parents.filter((parent) => !removed.includes(parent));
+      const added = String(args.add_parents ?? "").split(",").filter(Boolean);
+      for (const parentId of added) if (!item.parents.includes(parentId)) item.parents.push(parentId);
+      return { successful: true, data: item };
+    }
+    if (tool === "GOOGLEDRIVE_UPDATE_FILE_METADATA_PATCH") {
+      const item = this.items.get(String(args.fileId));
+      if (!item) return { successful: false, error: "not found" };
+      if (this.failNextRename) { this.failNextRename = false; return { successful: false, error: "simulated rename failure" }; }
+      item.name = String(args.title);
+      return { successful: true, data: item };
+    }
+    if (tool === "GOOGLEDRIVE_DOWNLOAD_FILE") {
+      const fileId = String(args.fileId);
+      const item = this.items.get(fileId);
+      if (!item) return { successful: false, error: "not found" };
+      const exportedAsPdf = typeof args.mime_type === "string";
+      this.downloadCalls.push({ fileId, mimeType: exportedAsPdf ? String(args.mime_type) : null });
+      return {
+        successful: true,
+        data: {
+          downloaded_file_content: {
+            name: exportedAsPdf ? `${item.name}.pdf` : item.name,
+            mimetype: exportedAsPdf ? "application/pdf" : item.mimeType,
+            s3url: this.downloadUrl,
+          },
+        },
+      };
+    }
     return { successful: false, error: `unsupported ${tool}` };
   }
 }
@@ -135,6 +186,18 @@ runner("roadmap_2_drive_smoke", async () => {
   assert(first.rootCreated && first.foldersCreated === expectedFolders, `L’arborescence complète doit être créée (${expectedFolders} dossiers attendus).`);
   const second = await drive.provisionWorkspace({ workspaceId, workspaceName: "LE BON REBOND", rootDriveUrl: first.rootDriveUrl });
   assert(!second.rootCreated && second.foldersCreated === 0 && second.rootId === first.rootId, "Une seconde initialisation doit réutiliser l’arborescence sans doublon.");
+  let rootAsNodeRejected = false;
+  try {
+    await drive.createNodeResources({
+      workspaceId,
+      rootDriveUrl: first.rootDriveUrl,
+      node: driveNode("node-root-alias", "Alias racine", "strategy_governance", { driveFolderUrl: first.rootDriveUrl }),
+      allNodes: [],
+    });
+  } catch (error) {
+    rootAsNodeRejected = error instanceof Roadmap2DriveValidationError;
+  }
+  assert(rootAsNodeRejected && ![...driver.items.values()].some((item) => item.parents.includes(first.rootId) && item.mimeType === DOC_MIME && item.name === "00 - SUIVI & DÉCISIONS"), "La racine workspace ne doit jamais être acceptée comme dossier de nœud ni recevoir son document de suivi.");
   step("folder_tree_idempotent", { folders: expectedFolders });
 
   const rootListing = await drive.listFiles({ workspaceId, rootDriveUrl: first.rootDriveUrl });
@@ -148,13 +211,55 @@ runner("roadmap_2_drive_smoke", async () => {
   assert(unrelatedRejected, "L’explorateur doit refuser tout dossier extérieur à la racine Roadmap 2.");
   step("root_scoped_explorer");
 
-  const resources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeId: "node-audit-1", nodeTitle: "Audit association", category: "strategy_governance" });
-  const repeatedResources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeId: "node-audit-1", nodeTitle: "Audit association renommé", category: "strategy_governance" });
+  const auditNode = driveNode("node-audit-1", "Audit association");
+  const resources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: auditNode, allNodes: [auditNode] });
+  const renamedAuditNode = { ...auditNode, title: "Audit association renommé", driveFolderUrl: resources.driveFolderUrl, trackingDocUrl: resources.trackingDocUrl };
+  const repeatedResources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: renamedAuditNode, allNodes: [renamedAuditNode], existingTrackingDocUrl: resources.trackingDocUrl });
   assert(resources.driveFolderUrl === repeatedResources.driveFolderUrl && resources.trackingDocUrl === repeatedResources.trackingDocUrl, "Les ressources d’un nœud doivent être retrouvées plutôt que dupliquées.");
   assert(driver.uploads === 1 && resources.trackingPopulated, "Le modèle de suivi doit être importé une seule fois dans un Google Doc natif.");
-  const sameTitleOtherNode = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeId: "node-audit-2", nodeTitle: "Audit association", category: "strategy_governance" });
+  const secondAuditNode = driveNode("node-audit-2", "Audit association");
+  const sameTitleOtherNode = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: secondAuditNode, allNodes: [auditNode, secondAuditNode] });
   assert(sameTitleOtherNode.driveFolderUrl !== resources.driveFolderUrl, "Deux nœuds distincts de même titre doivent conserver des dossiers Drive distincts.");
   step("node_folder_and_tracking_doc_idempotent");
+
+  const rootNode = driveNode("node-root", "LE BON REBOND", "strategy_governance", { type: "initiative", isWorkspaceRoot: true });
+  const rootResources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: rootNode, allNodes: [rootNode] });
+  const phaseNode = driveNode("node-phase-product", "PRODUIT & PÉDAGOGIE", "product_pedagogy", { type: "phase", parentId: rootNode.id });
+  const phaseResources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: phaseNode, allNodes: [rootNode, phaseNode] });
+  const initiativeNode = driveNode("node-offer", "Finaliser l’offre", "product_pedagogy", { type: "initiative", parentId: phaseNode.id });
+  const initiativeResources = await drive.createNodeResources({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: initiativeNode, allNodes: [rootNode, { ...phaseNode, driveFolderUrl: phaseResources.driveFolderUrl }, initiativeNode] });
+  const rootFolder = driver.items.get(extractRoadmap2DriveFolderId(rootResources.driveFolderUrl)!);
+  const phaseFolder = driver.items.get(extractRoadmap2DriveFolderId(phaseResources.driveFolderUrl)!);
+  const initiativeFolder = driver.items.get(extractRoadmap2DriveFolderId(initiativeResources.driveFolderUrl)!);
+  assert(rootFolder?.name.startsWith("ROADMAP —") && phaseFolder?.name.startsWith("PHASE —") && initiativeFolder?.parents.includes(phaseFolder!.id), "Le root, la phase et son initiative doivent suivre la hiérarchie canonique.");
+  const movedNode = { ...initiativeNode, title: "Offre achetable", category: "strategy_governance" as const, parentId: null, driveFolderUrl: initiativeResources.driveFolderUrl, trackingDocUrl: initiativeResources.trackingDocUrl };
+  const drift = await drive.previewNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: movedNode, allNodes: [rootNode, phaseNode, movedNode] });
+  assert(!drift.inSync && drift.willMove && drift.willRename, "Un reparenting et renommage doivent produire un aperçu sans déplacer silencieusement le dossier.");
+  let stalePlanRejected = false;
+  try {
+    await drive.reconcileNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: movedNode, allNodes: [rootNode, phaseNode, movedNode], allowLinkedFolder: false, confirmedExpectedPath: `${drift.expectedPath} / ancien` });
+  } catch (error) {
+    stalePlanRejected = error instanceof Roadmap2DriveValidationError;
+  }
+  assert(stalePlanRejected, "Un chemin de classement différent de celui confirmé doit être refusé avant toute mutation Drive.");
+  const reconciled = await drive.reconcileNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: movedNode, allNodes: [rootNode, phaseNode, movedNode], allowLinkedFolder: false, confirmedExpectedPath: drift.expectedPath });
+  assert(reconciled.inSync && initiativeFolder?.name.includes("Offre achetable"), "La confirmation doit converger vers le chemin canonique et renommer le dossier géré.");
+  const rollbackNode = { ...movedNode, title: "Renommage interrompu", category: "product_pedagogy" as const };
+  const originalName = initiativeFolder?.name;
+  const originalParents = [...(initiativeFolder?.parents ?? [])];
+  const rollbackPreview = await drive.previewNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: rollbackNode, allNodes: [rootNode, phaseNode, rollbackNode] });
+  driver.failNextRename = true;
+  let compensatedFailure = false;
+  try {
+    await drive.reconcileNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: rollbackNode, allNodes: [rootNode, phaseNode, rollbackNode], allowLinkedFolder: false, confirmedExpectedPath: rollbackPreview.expectedPath });
+  } catch (error) {
+    compensatedFailure = error instanceof Roadmap2DriveError;
+  }
+  assert(compensatedFailure && initiativeFolder?.name === originalName && JSON.stringify(initiativeFolder?.parents) === JSON.stringify(originalParents), "Un échec de renommage après déplacement doit restaurer le dossier à son emplacement initial.");
+  const archivedNode = { ...movedNode, status: "archived" };
+  const archived = await drive.reconcileNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: archivedNode, allNodes: [rootNode, phaseNode, archivedNode], allowLinkedFolder: false });
+  assert(archived.inSync && archived.expectedPath.startsWith("10_Archives / 01_Strategie_Gouvernance"), "L’archivage doit déplacer le dossier sous 10_Archives et sa catégorie.");
+  step("hierarchical_layout_preview_reconcile_and_archive");
 
   const beforeUpload = await drive.listNodeFiles({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl });
   assert(beforeUpload.files.some((file) => file.url === resources.trackingDocUrl), "Le contenu du dossier d’un nœud doit être listable sans sortir de sa racine.");
@@ -185,6 +290,83 @@ runner("roadmap_2_drive_smoke", async () => {
   assert(oversizedUploadRejected, "Un fichier de plus de 10 Mo doit être refusé avant transfert.");
   step("node_files_list_and_upload");
 
+  const previewFetches: Array<{ url: string; declaredType: string; declaredName: string }> = [];
+  const previewBytes = new TextEncoder().encode("roadmap-2-private-preview");
+  const previewFetcher = async (input: { url: string; declaredType: string; declaredName: string }): Promise<Roadmap2DrivePreviewPayload> => {
+    previewFetches.push(input);
+    return { bytes: previewBytes, contentType: input.declaredType as Roadmap2DrivePreviewPayload["contentType"], fileName: input.declaredName };
+  };
+  const previewDrive = createRoadmap2DriveAutomation(driver, previewFetcher);
+  const pdfPreview = await previewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: uploaded.id });
+  assert(pdfPreview.contentType === "application/pdf" && pdfPreview.bytes.byteLength === previewBytes.byteLength, "Le lecteur doit transmettre un PDF direct via le fetch serveur borné.");
+  assert(previewFetches.at(-1)?.declaredType === "application/pdf" && previewFetches.at(-1)?.declaredName === "decision.pdf", "Le fetcher privé doit recevoir le type et le nom issus des métadonnées Drive.");
+
+  const trackingDocId = [...driver.items.values()].find((item) => item.webViewLink === resources.trackingDocUrl)?.id;
+  assert(Boolean(trackingDocId), "Le Google Doc de suivi doit exister dans le faux Drive.");
+  const docPreview = await previewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: trackingDocId! });
+  assert(docPreview.contentType === "application/pdf" && driver.downloadCalls.at(-1)?.mimeType === "application/pdf", "Un Google Doc doit être explicitement exporté en PDF pour l’aperçu isolé.");
+
+  const siblingDocId = [...driver.items.values()].find((item) => item.webViewLink === sameTitleOtherNode.trackingDocUrl)?.id;
+  const downloadsBeforeSiblingAttempt = driver.downloadCalls.length;
+  let siblingPreviewRejected = false;
+  try {
+    await previewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: siblingDocId! });
+  } catch (error) {
+    siblingPreviewRejected = error instanceof Roadmap2DriveError;
+  }
+  assert(siblingPreviewRejected && driver.downloadCalls.length === downloadsBeforeSiblingAttempt, "Un fichier d’un nœud frère doit être refusé avant tout téléchargement fournisseur (anti-IDOR).");
+
+  const protectedFile = driver.addFile("lecture-interdite.pdf", "application/pdf", extractRoadmap2DriveFolderId(resources.driveFolderUrl)!);
+  protectedFile.capabilities = { canDownload: false };
+  const downloadsBeforeProtectedAttempt = driver.downloadCalls.length;
+  let protectedPreviewRejected = false;
+  try {
+    await previewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: protectedFile.id });
+  } catch (error) {
+    protectedPreviewRejected = error instanceof Roadmap2DriveValidationError;
+  }
+  assert(protectedPreviewRejected && driver.downloadCalls.length === downloadsBeforeProtectedAttempt, "Le lecteur doit respecter canDownload=false avant tout transfert fournisseur.");
+
+  const auditFolderId = extractRoadmap2DriveFolderId(resources.driveFolderUrl)!;
+  const officeFile = driver.addFile("budget.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", auditFolderId);
+  const formFile = driver.addFile("Questionnaire", "application/vnd.google-apps.form", auditFolderId);
+  for (const candidate of [officeFile, formFile]) {
+    let unsupportedPreviewRejected = false;
+    try {
+      await previewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: candidate.id });
+    } catch (error) {
+      unsupportedPreviewRejected = error instanceof Roadmap2DriveValidationError;
+    }
+    assert(unsupportedPreviewRejected, `${candidate.name} doit rester consultable dans Drive sans être injecté dans le lecteur interne.`);
+  }
+
+  const defaultPreviewDrive = createRoadmap2DriveAutomation(driver);
+  const originalFetch = globalThis.fetch;
+  try {
+    driver.downloadUrl = "https://malveillant.example/preview.pdf";
+    let forbiddenHostRejected = false;
+    try {
+      await defaultPreviewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: uploaded.id });
+    } catch (error) {
+      forbiddenHostRejected = error instanceof Roadmap2DriveError;
+    }
+    assert(forbiddenHostRejected, "Le lecteur doit refuser une URL temporaire située hors de l’allowlist serveur.");
+
+    driver.downloadUrl = "https://storage.composio.dev/oversized-preview.pdf";
+    globalThis.fetch = async () => new Response(new Uint8Array(0), { status: 200, headers: { "content-length": String(10 * 1024 * 1024 + 1), "content-type": "application/pdf" } });
+    let oversizedPreviewRejected = false;
+    try {
+      await defaultPreviewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: uploaded.id });
+    } catch (error) {
+      oversizedPreviewRejected = error instanceof Roadmap2DriveValidationError;
+    }
+    assert(oversizedPreviewRejected, "Le lecteur doit refuser un contenu annoncé au-delà de 10 Mo avant de le mettre en mémoire.");
+  } finally {
+    globalThis.fetch = originalFetch;
+    driver.downloadUrl = "https://storage.composio.dev/roadmap2-preview";
+  }
+  step("private_file_reader_and_idor_guards");
+
   const permissions = await drive.syncPermissions({ workspaceId, rootDriveUrl: first.rootDriveUrl, emails: ["owner@example.com", "mathurin@example.com", "dorian@example.com"] });
   assert(permissions.created === 1 && permissions.updated === 1 && permissions.unchanged === 1, "La synchronisation doit créer, promouvoir ou conserver chaque permission selon son état.");
   const permissionsAgain = await drive.syncPermissions({ workspaceId, rootDriveUrl: first.rootDriveUrl, emails: ["owner@example.com", "mathurin@example.com", "dorian@example.com"] });
@@ -201,18 +383,21 @@ runner("roadmap_2_drive_smoke", async () => {
   const detail = readFileSync(join(process.cwd(), "src/app/admin/roadmap-2/roadmap2-detail.tsx"), "utf8");
   const callback = readFileSync(join(process.cwd(), "src/app/admin/roadmap-2/google-drive/callback/page.tsx"), "utf8");
   const uploadRoute = readFileSync(join(process.cwd(), "src/app/api/admin/roadmap-2/drive/upload/route.ts"), "utf8");
-  const actionNames = ["getRoadmap2DriveStatus", "connectRoadmap2Drive", "provisionRoadmap2Drive", "listRoadmap2DriveFiles", "listRoadmap2NodeDriveFiles", "uploadRoadmap2NodeDriveFile", "createRoadmap2NodeDriveResources", "syncRoadmap2DrivePermissions"];
+  const previewRoute = readFileSync(join(process.cwd(), "src/app/api/admin/roadmap-2/drive/preview/route.ts"), "utf8");
+  const actionNames = ["getRoadmap2DriveStatus", "connectRoadmap2Drive", "provisionRoadmap2Drive", "listRoadmap2DriveFiles", "listRoadmap2NodeDriveFiles", "uploadRoadmap2NodeDriveFile", "createRoadmap2NodeDriveResources", "previewRoadmap2NodeDriveLayout", "reconcileRoadmap2NodeDriveLayout", "syncRoadmap2DrivePermissions"];
   for (const name of actionNames) assert(actions.includes(`function ${name}`), `Action Drive manquante : ${name}`);
   assert((actions.match(/resolveRoadmap2Context\(workspaceKey\)/g) ?? []).length === actionNames.length, "Chaque action Drive doit recalculer côté serveur le workspace et le rôle admin.");
   assert(!actions.includes("console.") && !client.includes("COMPOSIO_API_KEY"), "Les secrets et réponses Drive ne doivent pas être journalisés ni envoyés au client.");
   assert(uploadRoute.includes("getPlatformAdmin") && uploadRoute.indexOf("getPlatformAdmin") < uploadRoute.indexOf("request.formData()"), "La route d’upload doit refuser un utilisateur non admin avant de lire son fichier.");
   assert(uploadRoute.includes("uploadRoadmap2NodeDriveFile") && uploadRoute.includes('"Cache-Control": "private, no-store"'), "L’upload doit passer par une route admin privée sans cache et réutiliser les gardes serveur.");
   assert(detail.includes('/api/admin/roadmap-2/drive/upload') && !detail.includes("COMPOSIO_API_KEY"), "Le navigateur ne doit transmettre le fichier qu’à la route admin privée, jamais directement au fournisseur avec un secret.");
+  assert(detail.includes("onDrop={handleDrop}") && detail.includes("Glissez-déposez vos fichiers") && detail.includes("Aperçu privé · Google Drive"), "Le détail doit exposer une vraie dropzone clavier/souris et un lecteur identifiable.");
+  assert(previewRoute.includes("getPlatformAdmin") && previewRoute.indexOf("getPlatformAdmin") < previewRoute.indexOf("request.json()") && previewRoute.includes('"Cache-Control": "private, no-store') && previewRoute.includes('"X-Content-Type-Options": "nosniff"'), "Le lecteur doit authentifier avant le payload et renvoyer des octets privés sans sniffing.");
   assert(driveService.includes("/admin/roadmap-2/google-drive/callback") && !driveService.includes("/integrations/composio/callback?connector=google_drive"), "Le retour OAuth doit rester dans le layout admin privé, même sans tenant centre.");
   assert(callback.includes("drive=setup") && callback.includes("Créer l’arborescence Drive"), "Après OAuth, l’utilisateur doit revenir directement dans le parcours de configuration Drive.");
   assert(callback.includes("getRoadmap2DriveStatus") && callback.includes("verified.data.connected") && callback.includes("{0,119}"), "Le callback doit vérifier la connexion active et accepter toute clé de workspace valide avant d’annoncer un succès.");
   assert(client.includes("Connecté") && client.includes("Reconnexion requise") && client.includes("Changer / reconnecter") && client.includes("Afficher le contenu"), "Le statut Drive doit être visible en permanence et le parcours de reconnexion explicite.");
-  assert(detail.includes("Ajouter des fichiers") && detail.includes("Fichiers du nœud") && detail.includes("Préparer l’espace Drive") && detail.includes("Roadmap 2 ne conserve aucune copie"), "Le détail d’un nœud doit permettre de préparer, alimenter et consulter son espace Drive.");
+  assert(detail.includes("Choisir des fichiers") && detail.includes("Fichiers du nœud") && detail.includes("Préparer l’espace Drive") && detail.includes("aucune copie persistée"), "Le détail d’un nœud doit permettre de préparer, alimenter et consulter son espace Drive.");
   assert(client.includes("Aucun accès Drive existant ne sera retiré") && client.includes("Ajouter / mettre à niveau") && client.includes('useState("")'), "Le partage doit être explicitement additif et ne pas préremplir arbitrairement les deux premiers comptes.");
   step("server_guards_and_ui_contract");
 });

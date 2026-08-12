@@ -6,6 +6,12 @@ import { ROADMAP2_TRACKING_DOC_TEMPLATE, type Roadmap2Category } from "@/lib/roa
 const DRIVE_TOOLKIT = "googledrive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const DOC_MIME = "application/vnd.google-apps.document";
+const GOOGLE_WORKSPACE_PREVIEW_TYPES = new Set([
+  DOC_MIME,
+  "application/vnd.google-apps.spreadsheet",
+  "application/vnd.google-apps.presentation",
+  "application/vnd.google-apps.drawing",
+]);
 const FILE_ID = /^[A-Za-z0-9_-]{3,200}$/;
 
 export const ROADMAP2_DRIVE_MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -45,8 +51,14 @@ const TOOLS = {
   updatePermission: "GOOGLEDRIVE_UPDATE_PERMISSION",
   findFile: "GOOGLEDRIVE_FIND_FILE",
   metadata: "GOOGLEDRIVE_GET_FILE_METADATA",
+  moveFile: "GOOGLEDRIVE_MOVE_FILE",
+  renameFile: "GOOGLEDRIVE_UPDATE_FILE_METADATA_PATCH",
+  downloadFile: "GOOGLEDRIVE_DOWNLOAD_FILE",
 } as const;
 
+const ROADMAP2_DRIVE_TOOLKIT_VERSION = process.env.COMPOSIO_TOOLKIT_VERSION_GOOGLEDRIVE || "20260811_00";
+
+/** Arborescence documentaire de référence. Elle reste additive et n'efface jamais l'existant. */
 export const ROADMAP2_DRIVE_STRUCTURE = [
   { name: "00_ROADMAP", children: ["Roadmap_Le_Bon_Rebond", "00_Suivi_Global"] },
   { name: "01_Strategie_Gouvernance" },
@@ -63,12 +75,24 @@ export const ROADMAP2_DRIVE_STRUCTURE = [
 
 const CATEGORY_FOLDER: Record<Roadmap2Category, string> = {
   strategy_governance: "01_Strategie_Gouvernance",
+  operations_compliance: "02_Juridique_Association_Optiquant",
   product_pedagogy: "03_Offres_Produits",
   buyers_funding: "04_Financements_FSE",
   partners_market: "06_Partenaires",
-  operations_compliance: "02_Juridique_Association_Optiquant",
-  technology_data: "08_Technologie_Data",
   pilot_execution: "07_Pilote_EmploiTon",
+  technology_data: "08_Technologie_Data",
+};
+
+export type Roadmap2DriveNodeContext = {
+  id: string;
+  title: string;
+  type: "phase" | "milestone" | "initiative" | "action" | "decision";
+  category: Roadmap2Category;
+  status: string;
+  parentId: string | null;
+  driveFolderUrl: string | null;
+  trackingDocUrl?: string | null;
+  isWorkspaceRoot: boolean;
 };
 
 export type Roadmap2DriveFile = {
@@ -85,6 +109,22 @@ export type Roadmap2DriveStatus = {
   enabled: boolean;
   connected: boolean;
   status: string;
+};
+
+export type Roadmap2DriveLayoutPreview = {
+  inSync: boolean;
+  currentPath: string;
+  expectedPath: string;
+  willMove: boolean;
+  willRename: boolean;
+  managed: boolean;
+  warning: string | null;
+};
+
+export type Roadmap2DrivePreviewPayload = {
+  bytes: Uint8Array;
+  contentType: "application/pdf" | "image/jpeg" | "image/png" | "image/webp" | "text/plain" | "text/csv";
+  fileName: string;
 };
 
 type DriveRecord = Record<string, unknown>;
@@ -123,7 +163,7 @@ let client: Composio | null = null;
 
 function composio() {
   if (!process.env.COMPOSIO_API_KEY) throw new Roadmap2DriveError("L’intégration Google Drive n’est pas configurée sur le serveur.");
-  if (!client) client = new Composio({ apiKey: process.env.COMPOSIO_API_KEY });
+  if (!client) client = new Composio({ apiKey: process.env.COMPOSIO_API_KEY, toolkitVersions: { [DRIVE_TOOLKIT]: ROADMAP2_DRIVE_TOOLKIT_VERSION } });
   return client;
 }
 
@@ -294,17 +334,22 @@ async function findOrCreateFolder(driver: Roadmap2DriveDriver, workspaceId: stri
   return { id: created.id, created: true };
 }
 
-function nodeFolderName(title: string, nodeId: string) {
+function nodeFolderName(title: string, nodeId: string, type: Roadmap2DriveNodeContext["type"] = "initiative", isWorkspaceRoot = false) {
   const marker = nodeFolderMarker(nodeId);
-  const titleLimit = Math.max(24, 120 - marker.length - 3);
-  return `${safeResourceName(title).slice(0, titleLimit)} · ${marker}`;
+  const prefix = isWorkspaceRoot ? "ROADMAP" : type === "phase" ? "PHASE" : type === "milestone" ? "JALON" : type === "decision" ? "DÉCISION" : type === "action" ? "ACTION" : "PROJET";
+  const titleLimit = Math.max(24, 120 - marker.length - prefix.length - 6);
+  return `${prefix} — ${safeResourceName(title).slice(0, titleLimit)} · ${marker}`;
+}
+
+function isManagedNodeFolderName(name: unknown, nodeId: string) {
+  return typeof name === "string" && name.endsWith(nodeFolderMarker(nodeId));
 }
 
 function nodeFolderMarker(nodeId: string) {
   return `[RM2-${createHash("sha256").update(requireFileId(nodeId, "Nœud")).digest("hex").slice(0, 10)}]`;
 }
 
-async function findOrCreateNodeFolder(driver: Roadmap2DriveDriver, workspaceId: string, parentId: string, nodeId: string, title: string) {
+async function findOrCreateNodeFolder(driver: Roadmap2DriveDriver, workspaceId: string, parentId: string, nodeId: string, title: string, type: Roadmap2DriveNodeContext["type"] = "initiative", isWorkspaceRoot = false) {
   const marker = nodeFolderMarker(nodeId);
   const result = unwrapRoadmap2DriveResult(await driver.execute(entityId(workspaceId), TOOLS.findFile, {
     folder_id: requireFileId(parentId, "Dossier de catégorie"),
@@ -316,7 +361,7 @@ async function findOrCreateNodeFolder(driver: Roadmap2DriveDriver, workspaceId: 
   }));
   const existing = parseFiles(result).find((file) => file.isFolder && file.name.endsWith(marker));
   if (existing) return { id: existing.id, created: false };
-  const created = await createFolder(driver, workspaceId, nodeFolderName(title, nodeId), parentId);
+  const created = await createFolder(driver, workspaceId, nodeFolderName(title, nodeId, type, isWorkspaceRoot), parentId);
   return { id: created.id, created: true };
 }
 
@@ -336,7 +381,143 @@ async function assertWithinRoot(driver: Roadmap2DriveDriver, workspaceId: string
   throw new Roadmap2DriveError("Ce dossier n’appartient pas à la roadmap sélectionnée.");
 }
 
-export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = composioDriver) {
+function nodeContextMap(nodes: Roadmap2DriveNodeContext[]) {
+  return new Map(nodes.map((node) => [node.id, node]));
+}
+
+function nodeAncestors(node: Roadmap2DriveNodeContext, nodes: Map<string, Roadmap2DriveNodeContext>) {
+  const result: Roadmap2DriveNodeContext[] = [];
+  const visited = new Set([node.id]);
+  let parentId = node.parentId;
+  while (parentId) {
+    if (visited.has(parentId)) throw new Roadmap2DriveError("La hiérarchie de la roadmap contient une boucle.");
+    visited.add(parentId);
+    const parent = nodes.get(parentId);
+    if (!parent) break;
+    result.unshift(parent);
+    parentId = parent.parentId;
+  }
+  return result;
+}
+
+async function ensureCanonicalNodeParent(driver: Roadmap2DriveDriver, workspaceId: string, rootId: string, node: Roadmap2DriveNodeContext, allNodes: Roadmap2DriveNodeContext[]) {
+  if (node.status === "archived") {
+    const archives = await findOrCreateFolder(driver, workspaceId, rootId, "10_Archives");
+    return findOrCreateFolder(driver, workspaceId, archives.id, CATEGORY_FOLDER[node.category]);
+  }
+  if (node.isWorkspaceRoot) return findOrCreateFolder(driver, workspaceId, rootId, "00_ROADMAP");
+  const map = nodeContextMap(allNodes);
+  const ancestors = nodeAncestors(node, map);
+  const parent = node.parentId ? map.get(node.parentId) : null;
+  if (!parent || parent.isWorkspaceRoot) return findOrCreateFolder(driver, workspaceId, rootId, CATEGORY_FOLDER[node.category]);
+
+  let parentFolderId = (await findOrCreateFolder(driver, workspaceId, rootId, CATEGORY_FOLDER[node.category])).id;
+  for (const ancestor of ancestors.filter((candidate) => !candidate.isWorkspaceRoot)) {
+    const existingId = extractRoadmap2DriveFolderId(ancestor.driveFolderUrl);
+    if (existingId) {
+      await assertWithinRoot(driver, workspaceId, rootId, existingId);
+      const existing = await metadata(driver, workspaceId, existingId, "id,name,mimeType,parents,trashed");
+      if (existing.mimeType === FOLDER_MIME && existing.trashed !== true) {
+        const expectedName = nodeFolderName(ancestor.title, ancestor.id, ancestor.type, ancestor.isWorkspaceRoot);
+        const existingParents = Array.isArray(existing.parents) ? existing.parents.filter((value): value is string => typeof value === "string" && FILE_ID.test(value)) : [];
+        if (!isManagedNodeFolderName(existing.name, ancestor.id) || existing.name !== expectedName || existingParents.length !== 1 || !existingParents.includes(parentFolderId)) {
+          throw new Roadmap2DriveValidationError(`Réorganisez d’abord le dossier parent « ${ancestor.title} » dans Roadmap 2.`);
+        }
+        parentFolderId = existingId;
+        continue;
+      }
+    }
+    parentFolderId = (await findOrCreateNodeFolder(driver, workspaceId, parentFolderId, ancestor.id, ancestor.title, ancestor.type, ancestor.isWorkspaceRoot)).id;
+  }
+  return { id: parentFolderId, created: false };
+}
+
+function safePathLabel(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "Dossier Drive";
+}
+
+function canonicalPathSegments(node: Roadmap2DriveNodeContext, allNodes: Roadmap2DriveNodeContext[]) {
+  if (node.status === "archived") return ["10_Archives", CATEGORY_FOLDER[node.category], nodeFolderName(node.title, node.id, node.type, node.isWorkspaceRoot)];
+  if (node.isWorkspaceRoot) return ["00_ROADMAP", nodeFolderName(node.title, node.id, node.type, true)];
+  const map = nodeContextMap(allNodes);
+  const ancestors = nodeAncestors(node, map).filter((candidate) => !candidate.isWorkspaceRoot);
+  return [CATEGORY_FOLDER[node.category], ...ancestors.map((candidate) => nodeFolderName(candidate.title, candidate.id, candidate.type, candidate.isWorkspaceRoot)), nodeFolderName(node.title, node.id, node.type, node.isWorkspaceRoot)];
+}
+
+async function resolveExistingCanonicalParent(driver: Roadmap2DriveDriver, workspaceId: string, rootId: string, node: Roadmap2DriveNodeContext, allNodes: Roadmap2DriveNodeContext[]) {
+  const segments = canonicalPathSegments(node, allNodes).slice(0, -1);
+  let currentId = rootId;
+  for (const segment of segments) {
+    const existing = await findChild(driver, workspaceId, currentId, segment, FOLDER_MIME);
+    if (!existing) return null;
+    currentId = existing.id;
+  }
+  return currentId;
+}
+
+async function describeCanonicalLayout(driver: Roadmap2DriveDriver, workspaceId: string, rootId: string, node: Roadmap2DriveNodeContext, allNodes: Roadmap2DriveNodeContext[]): Promise<Roadmap2DriveLayoutPreview> {
+  const expectedParentId = await resolveExistingCanonicalParent(driver, workspaceId, rootId, node, allNodes);
+  const expectedName = nodeFolderName(node.title, node.id, node.type, node.isWorkspaceRoot);
+  const expectedPath = canonicalPathSegments(node, allNodes).join(" / ");
+  const folderId = extractRoadmap2DriveFolderId(node.driveFolderUrl);
+  if (!folderId) {
+    return { inSync: false, currentPath: "Aucun dossier associé", expectedPath, willMove: false, willRename: false, managed: true, warning: null };
+  }
+  await assertWithinRoot(driver, workspaceId, rootId, folderId);
+  const current = await metadata(driver, workspaceId, folderId, "id,name,mimeType,parents,trashed");
+  if (current.mimeType !== FOLDER_MIME || current.trashed === true) throw new Roadmap2DriveError("Le dossier Drive associé au nœud n’est plus accessible.");
+  const parents = Array.isArray(current.parents) ? current.parents.filter((value): value is string => typeof value === "string" && FILE_ID.test(value)) : [];
+  const currentParent = parents[0] ? await metadata(driver, workspaceId, parents[0], "id,name,mimeType,trashed") : null;
+  const managed = isManagedNodeFolderName(current.name, node.id);
+  const willMove = expectedParentId === null || !parents.includes(expectedParentId) || parents.length !== 1;
+  const willRename = current.name !== expectedName;
+  return {
+    inSync: !willMove && !willRename,
+    currentPath: `${safePathLabel(currentParent?.name)} / ${safePathLabel(current.name)}`,
+    expectedPath,
+    willMove,
+    willRename,
+    managed,
+    warning: managed ? null : "Ce dossier a été lié manuellement. Roadmap 2 ne le déplacera et ne le renommera qu’après votre confirmation explicite.",
+  };
+}
+
+export type Roadmap2DrivePreviewFetcher = (input: { url: string; declaredType: string; declaredName: string }) => Promise<Roadmap2DrivePreviewPayload>;
+
+async function fetchBoundedPreviewFile({ url: s3url, declaredType, declaredName }: Parameters<Roadmap2DrivePreviewFetcher>[0]): Promise<Roadmap2DrivePreviewPayload> {
+  const parsed = new URL(s3url);
+  if (parsed.protocol !== "https:" || !/(^|\.)(composio\.dev|amazonaws\.com|amazonaws\.com\.cn|blob\.core\.windows\.net)$/.test(parsed.hostname.toLowerCase())) {
+    throw new Roadmap2DriveError("Le fournisseur a retourné un fichier temporaire invalide.");
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const response = await fetch(parsed, { redirect: "error", cache: "no-store", signal: controller.signal });
+    if (!response.ok || !response.body) throw new Roadmap2DriveError("Le fichier ne peut pas être prévisualisé pour le moment.");
+    const announced = Number(response.headers.get("content-length") ?? 0);
+    if (announced > ROADMAP2_DRIVE_MAX_FILE_BYTES) throw new Roadmap2DriveValidationError("Aperçu limité à 10 Mo.");
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > ROADMAP2_DRIVE_MAX_FILE_BYTES) { await reader.cancel(); throw new Roadmap2DriveValidationError("Aperçu limité à 10 Mo."); }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const allowed = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "text/plain", "text/csv"]);
+    const contentType = (allowed.has(declaredType) ? declaredType : "application/pdf") as Roadmap2DrivePreviewPayload["contentType"];
+    return { bytes, contentType, fileName: safeResourceName(declaredName) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = composioDriver, previewFetcher: Roadmap2DrivePreviewFetcher = fetchBoundedPreviewFile) {
   return {
     async status(workspaceId: string): Promise<Roadmap2DriveStatus> {
       if (!driver.enabled()) return { enabled: false, connected: false, status: "DISABLED" };
@@ -404,6 +585,8 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
     async listNodeFiles(input: { workspaceId: string; rootDriveUrl: string | null; nodeFolderUrl: string | null }) {
       const nodeFolderId = extractRoadmap2DriveFolderId(input.nodeFolderUrl);
       if (!nodeFolderId) throw new Roadmap2DriveError("Préparez d’abord l’espace Drive de ce nœud.");
+      const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
+      if (rootId && nodeFolderId === rootId) throw new Roadmap2DriveValidationError("Le dossier du nœud ne peut pas être la racine Drive.");
       return this.listFiles({ workspaceId: input.workspaceId, rootDriveUrl: input.rootDriveUrl, folderId: nodeFolderId });
     },
 
@@ -413,6 +596,7 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
       if (!rootId) throw new Roadmap2DriveError("Créez d’abord l’arborescence Drive de la roadmap.");
       const nodeFolderId = extractRoadmap2DriveFolderId(input.nodeFolderUrl);
       if (!nodeFolderId) throw new Roadmap2DriveError("Préparez d’abord l’espace Drive de ce nœud.");
+      if (nodeFolderId === rootId) throw new Roadmap2DriveValidationError("Le dossier du nœud ne peut pas être la racine Drive.");
       await assertWithinRoot(driver, input.workspaceId, rootId, nodeFolderId);
       const folder = await metadata(driver, input.workspaceId, nodeFolderId, "id,mimeType,trashed");
       if (folder.mimeType !== FOLDER_MIME || folder.trashed === true) throw new Roadmap2DriveError("Le dossier Drive de ce nœud n’est plus disponible.");
@@ -439,18 +623,125 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
       } satisfies Roadmap2DriveFile;
     },
 
-    async createNodeResources(input: { workspaceId: string; rootDriveUrl: string | null; nodeId: string; nodeTitle: string; category: Roadmap2Category; existingFolderUrl?: string | null; existingTrackingDocUrl?: string | null }) {
+    async previewNodeLayout(input: { workspaceId: string; rootDriveUrl: string | null; node: Roadmap2DriveNodeContext; allNodes: Roadmap2DriveNodeContext[] }) {
       await ensureConnected(driver, input.workspaceId);
       const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
       if (!rootId) throw new Roadmap2DriveError("Créez d’abord l’arborescence Drive de la roadmap.");
-      let nodeFolderId = extractRoadmap2DriveFolderId(input.existingFolderUrl);
+      return describeCanonicalLayout(driver, input.workspaceId, rootId, input.node, input.allNodes);
+    },
+
+    async reconcileNodeLayout(input: { workspaceId: string; rootDriveUrl: string | null; node: Roadmap2DriveNodeContext; allNodes: Roadmap2DriveNodeContext[]; allowLinkedFolder: boolean; confirmedExpectedPath?: string }) {
+      await ensureConnected(driver, input.workspaceId);
+      const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
+      if (!rootId) throw new Roadmap2DriveError("Créez d’abord l’arborescence Drive de la roadmap.");
+      const before = await describeCanonicalLayout(driver, input.workspaceId, rootId, input.node, input.allNodes);
+      if (input.confirmedExpectedPath !== undefined && input.confirmedExpectedPath !== before.expectedPath) {
+        throw new Roadmap2DriveValidationError("L’organisation proposée a changé depuis votre confirmation. Vérifiez à nouveau le classement Drive.");
+      }
+      if (!before.managed && !input.allowLinkedFolder) throw new Roadmap2DriveValidationError("Confirmez explicitement la réorganisation de ce dossier lié manuellement.");
+      const folderId = extractRoadmap2DriveFolderId(input.node.driveFolderUrl);
+      if (!folderId) throw new Roadmap2DriveError("Préparez d’abord l’espace Drive de ce nœud.");
+      if (folderId === rootId) throw new Roadmap2DriveValidationError("Le dossier d’un nœud ne peut pas être la racine Drive de la roadmap.");
+      const destination = await ensureCanonicalNodeParent(driver, input.workspaceId, rootId, input.node, input.allNodes);
+      const current = await metadata(driver, input.workspaceId, folderId, "id,name,mimeType,parents,trashed");
+      const currentParents = Array.isArray(current.parents) ? current.parents.filter((value): value is string => typeof value === "string" && FILE_ID.test(value)) : [];
+      for (const parentId of currentParents) await assertWithinRoot(driver, input.workspaceId, rootId, parentId);
+      const expectedName = nodeFolderName(input.node.title, input.node.id, input.node.type, input.node.isWorkspaceRoot);
+      const shouldMove = !currentParents.includes(destination.id) || currentParents.length !== 1;
+      const shouldRename = current.name !== expectedName;
+      let moved = false;
+      let renamed = false;
+      try {
+        if (shouldMove) {
+          await assertWithinRoot(driver, input.workspaceId, rootId, destination.id);
+          unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.moveFile, {
+            file_id: folderId,
+            add_parents: destination.id,
+            remove_parents: currentParents.join(","),
+            supports_all_drives: true,
+          }));
+          moved = true;
+        }
+        if (shouldRename) {
+          unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.renameFile, { fileId: folderId, title: expectedName, supportsAllDrives: true }));
+          renamed = true;
+        }
+        const verified = await describeCanonicalLayout(driver, input.workspaceId, rootId, input.node, input.allNodes);
+        if (!verified.inSync) throw new Roadmap2DriveError("Google Drive n’a pas confirmé toute la réorganisation.");
+        return verified;
+      } catch (error) {
+        let rollbackFailed = false;
+        if (renamed) {
+          try {
+            unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.renameFile, { fileId: folderId, title: safePathLabel(current.name), supportsAllDrives: true }));
+          } catch {
+            rollbackFailed = true;
+          }
+        }
+        if (moved) {
+          try {
+            const movedMetadata = await metadata(driver, input.workspaceId, folderId, "id,parents");
+            let movedParents = Array.isArray(movedMetadata.parents) ? movedMetadata.parents.filter((value): value is string => typeof value === "string" && FILE_ID.test(value)) : [];
+            // Le contrat Composio n’accepte qu’un parent destination par appel.
+            // On restaure donc les parents historiques un par un, sans compter sur
+            // une chaîne CSV que le faux fournisseur pourrait accepter à tort.
+            for (const [index, originalParentId] of currentParents.entries()) {
+              unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.moveFile, {
+                file_id: folderId,
+                add_parents: originalParentId,
+                remove_parents: index === 0 ? movedParents.join(",") : "",
+                supports_all_drives: true,
+              }));
+              movedParents = [];
+            }
+            if (currentParents.length === 0) throw new Roadmap2DriveError("Le dossier n’avait aucun parent restaurable.");
+          } catch {
+            rollbackFailed = true;
+          }
+        }
+        if (rollbackFailed) throw new Roadmap2DriveError("La réorganisation Drive n’a pas pu être annulée complètement. Vérifiez le dossier avant de réessayer.");
+        throw error;
+      }
+    },
+
+    async previewNodeFile(input: { workspaceId: string; rootDriveUrl: string | null; nodeFolderUrl: string | null; fileId: string }) {
+      await ensureConnected(driver, input.workspaceId);
+      const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
+      const nodeFolderId = extractRoadmap2DriveFolderId(input.nodeFolderUrl);
+      if (!rootId || !nodeFolderId) throw new Roadmap2DriveError("Le dossier Drive du nœud n’est pas configuré.");
+      if (nodeFolderId === rootId) throw new Roadmap2DriveValidationError("Le dossier du nœud ne peut pas être la racine Drive.");
+      await assertWithinRoot(driver, input.workspaceId, rootId, nodeFolderId);
+      const fileId = requireFileId(input.fileId, "Fichier");
+      const file = await metadata(driver, input.workspaceId, fileId, "id,name,mimeType,parents,trashed,size,capabilities(canDownload)");
+      const parents = Array.isArray(file.parents) ? file.parents.filter((value): value is string => typeof value === "string") : [];
+      if (!parents.includes(nodeFolderId) || file.trashed === true || file.mimeType === FOLDER_MIME) throw new Roadmap2DriveError("Ce fichier n’appartient pas au dossier de ce nœud.");
+      if (record(file.capabilities)?.canDownload === false) throw new Roadmap2DriveValidationError("Google Drive n’autorise pas l’aperçu de ce fichier. Ouvrez-le directement dans Drive.");
+      const nativeType = optionalString(file.mimeType) ?? "application/octet-stream";
+      const previewable = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "text/plain", "text/csv"]);
+      const googleWorkspace = GOOGLE_WORKSPACE_PREVIEW_TYPES.has(nativeType);
+      if (!previewable.has(nativeType) && !googleWorkspace) throw new Roadmap2DriveValidationError("Ce format s’ouvre directement dans Google Drive.");
+      const result = unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.downloadFile, { fileId, ...(googleWorkspace ? { mime_type: "application/pdf" } : {}) }));
+      const downloadable = record(result.downloaded_file_content);
+      if (!downloadable || result.export_size_limit_exceeded === true) throw new Roadmap2DriveValidationError("Ce fichier est trop volumineux pour l’aperçu. Ouvrez-le dans Google Drive.");
+      const temporaryUrl = optionalString(downloadable.s3url);
+      if (!temporaryUrl) throw new Roadmap2DriveError("Le fournisseur n’a pas retourné le contenu du fichier.");
+      const contentType = googleWorkspace ? "application/pdf" : optionalString(downloadable.mimetype) ?? nativeType;
+      return previewFetcher({ url: temporaryUrl, declaredType: contentType, declaredName: optionalString(downloadable.name) ?? safePathLabel(file.name) });
+    },
+
+    async createNodeResources(input: { workspaceId: string; rootDriveUrl: string | null; node: Roadmap2DriveNodeContext; allNodes: Roadmap2DriveNodeContext[]; existingTrackingDocUrl?: string | null }) {
+      await ensureConnected(driver, input.workspaceId);
+      const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
+      if (!rootId) throw new Roadmap2DriveError("Créez d’abord l’arborescence Drive de la roadmap.");
+      let nodeFolderId = extractRoadmap2DriveFolderId(input.node.driveFolderUrl);
       if (nodeFolderId) {
+        if (nodeFolderId === rootId) throw new Roadmap2DriveValidationError("Le dossier d’un nœud ne peut pas être la racine Drive de la roadmap.");
         await assertWithinRoot(driver, input.workspaceId, rootId, nodeFolderId);
         const existingFolder = await metadata(driver, input.workspaceId, nodeFolderId, "id,mimeType,trashed");
         if (existingFolder.mimeType !== FOLDER_MIME || existingFolder.trashed === true) throw new Roadmap2DriveError("Le dossier Drive associé au nœud n’est plus accessible.");
       } else {
-        const category = await findOrCreateFolder(driver, input.workspaceId, rootId, CATEGORY_FOLDER[input.category]);
-        nodeFolderId = (await findOrCreateNodeFolder(driver, input.workspaceId, category.id, input.nodeId, input.nodeTitle)).id;
+        const parent = await ensureCanonicalNodeParent(driver, input.workspaceId, rootId, input.node, input.allNodes);
+        nodeFolderId = (await findOrCreateNodeFolder(driver, input.workspaceId, parent.id, input.node.id, input.node.title, input.node.type, input.node.isWorkspaceRoot)).id;
       }
       const trackingName = "00 - SUIVI & DÉCISIONS";
       let tracking = input.existingTrackingDocUrl ? { url: input.existingTrackingDocUrl } : await findChild(driver, input.workspaceId, nodeFolderId, trackingName, DOC_MIME);

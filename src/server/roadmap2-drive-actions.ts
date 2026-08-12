@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Roadmap2ConflictError, Roadmap2NotFoundError, resolveRoadmap2Context, roadmap2Repository } from "@/server/roadmap2";
-import { Roadmap2DriveAuthRequiredError, Roadmap2DriveError, Roadmap2DriveValidationError, roadmap2DriveAutomation, type Roadmap2DriveFile, type Roadmap2DriveStatus } from "@/server/roadmap2-drive";
+import { Roadmap2DriveAuthRequiredError, Roadmap2DriveError, Roadmap2DriveValidationError, roadmap2DriveAutomation, type Roadmap2DriveFile, type Roadmap2DriveLayoutPreview, type Roadmap2DriveStatus } from "@/server/roadmap2-drive";
 
 type DriveFailureCode = "AUTH_REQUIRED" | "CONFLICT" | "NOT_FOUND" | "VALIDATION" | "UNAVAILABLE";
 
@@ -99,23 +99,55 @@ export async function uploadRoadmap2NodeDriveFile(workspaceKey: string, nodeId: 
 export async function createRoadmap2NodeDriveResources(workspaceKey: string, nodeId: string, expectedVersion: number): Promise<Roadmap2DriveActionResult<{ version: number; driveFolderUrl: string; trackingDocUrl: string; trackingPopulated: boolean }>> {
   const { admin, workspaceId } = await resolveRoadmap2Context(workspaceKey);
   try {
-    const [workspace, node] = await Promise.all([
+    const [workspace, node, hierarchy] = await Promise.all([
       roadmap2Repository.getWorkspaceDriveContext(workspaceId),
       roadmap2Repository.getNodeDriveContext(workspaceId, nodeId),
+      roadmap2Repository.getDriveHierarchy(workspaceId),
     ]);
     if (node.version !== expectedVersion) throw new Roadmap2ConflictError();
     const resources = await roadmap2DriveAutomation.createNodeResources({
       workspaceId,
       rootDriveUrl: workspace.rootDriveUrl,
-      nodeId: node.id,
-      nodeTitle: node.title,
-      category: node.category,
-      existingFolderUrl: node.driveFolderUrl,
+      node,
+      allNodes: hierarchy,
       existingTrackingDocUrl: node.trackingDocUrl,
     });
     const attached = await roadmap2Repository.attachDriveResources(workspaceId, admin.userId, nodeId, expectedVersion, resources.driveFolderUrl, resources.trackingDocUrl);
     refresh();
     return { ok: true, data: { version: attached.version, driveFolderUrl: attached.driveFolderUrl!, trackingDocUrl: attached.trackingDocUrl!, trackingPopulated: resources.trackingPopulated } };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function previewRoadmap2NodeDriveLayout(workspaceKey: string, nodeId: string, expectedVersion: number): Promise<Roadmap2DriveActionResult<Roadmap2DriveLayoutPreview>> {
+  const { workspaceId } = await resolveRoadmap2Context(workspaceKey);
+  try {
+    const [workspace, node, hierarchy] = await Promise.all([
+      roadmap2Repository.getWorkspaceDriveContext(workspaceId),
+      roadmap2Repository.getNodeDriveContext(workspaceId, nodeId),
+      roadmap2Repository.getDriveHierarchy(workspaceId),
+    ]);
+    if (node.version !== expectedVersion) throw new Roadmap2ConflictError();
+    return { ok: true, data: await roadmap2DriveAutomation.previewNodeLayout({ workspaceId, rootDriveUrl: workspace.rootDriveUrl, node, allNodes: hierarchy }) };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function reconcileRoadmap2NodeDriveLayout(workspaceKey: string, nodeId: string, expectedVersion: number, confirmedExpectedPath: string, allowLinkedFolder = false): Promise<Roadmap2DriveActionResult<Roadmap2DriveLayoutPreview>> {
+  const { admin, workspaceId } = await resolveRoadmap2Context(workspaceKey);
+  try {
+    const confirmedPath = z.string().trim().min(1, "Vérifiez d’abord l’organisation proposée.").max(1_500, "Chemin Drive trop long.").parse(confirmedExpectedPath);
+    const [workspace, node, hierarchy] = await Promise.all([
+      roadmap2Repository.getWorkspaceDriveContext(workspaceId),
+      roadmap2Repository.getNodeDriveContext(workspaceId, nodeId),
+      roadmap2Repository.getDriveHierarchy(workspaceId),
+    ]);
+    if (node.version !== expectedVersion) throw new Roadmap2ConflictError();
+    const result = await roadmap2DriveAutomation.reconcileNodeLayout({ workspaceId, rootDriveUrl: workspace.rootDriveUrl, node, allNodes: hierarchy, allowLinkedFolder, confirmedExpectedPath: confirmedPath });
+    await roadmap2Repository.recordNodeDriveAudit(workspaceId, admin.userId, node.id, "node.drive_layout_reconciled");
+    return { ok: true, data: result };
   } catch (error) {
     return failure(error);
   }

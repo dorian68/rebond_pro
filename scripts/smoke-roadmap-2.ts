@@ -7,6 +7,7 @@ import { prisma } from "../src/lib/prisma";
 import {
   Roadmap2ConflictError,
   Roadmap2NotFoundError,
+  Roadmap2ValidationError,
   Roadmap2WorkspaceNameExistsError,
   roadmap2DriveUrlSchema,
   roadmap2Repository,
@@ -113,10 +114,25 @@ runner("roadmap_2_smoke", async () => {
     const child = await roadmap2Repository.createNode(workspaceA.id, userId, { ...baseNode, title: "Sous-nœud smoke", type: "action", parentId: root.id, positionX: 380 });
     const parentEdge = await prisma.roadmap2Edge.findFirst({ where: { workspaceId: workspaceA.id, sourceNodeId: root.id, targetNodeId: child.id, relationType: "parent_child" } });
     assert(parentEdge, "La création d'un sous-nœud doit persister la relation parent_child.");
+    assert((await prisma.roadmap2Node.findUniqueOrThrow({ where: { id: child.id } })).category === rootRow.category, "Un sous-nœud doit hériter de la catégorie de son parent.");
+    let cycleRejected = false;
+    try {
+      await roadmap2Repository.updateNode(workspaceA.id, userId, root.id, root.version, { ...baseNode, parentId: child.id });
+    } catch {
+      cycleRejected = true;
+    }
+    assert(cycleRejected, "Une boucle parent-enfant doit être refusée.");
     step("node_and_subnode_created", { rootId: root.id, childId: child.id });
 
     const dependency = await roadmap2Repository.createEdge(workspaceA.id, userId, { sourceNodeId: child.id, targetNodeId: root.id, relationType: "dependency" });
     assert(await prisma.roadmap2Edge.findFirst({ where: { id: dependency.id, workspaceId: workspaceA.id } }), "Dépendance non persistée.");
+    let unversionedHierarchyRejected = false;
+    try {
+      await roadmap2Repository.createEdge(workspaceA.id, userId, { sourceNodeId: root.id, targetNodeId: child.id, relationType: "parent_child" });
+    } catch (error) {
+      unversionedHierarchyRejected = error instanceof Roadmap2ValidationError;
+    }
+    assert(unversionedHierarchyRejected, "Un reparenting sans version cible doit être refusé pour éviter les écrasements silencieux.");
     step("dependency_created", { edgeId: dependency.id });
 
     const moved = await roadmap2Repository.updatePosition(workspaceA.id, userId, child.id, child.version, 612.5, 284.25);
@@ -139,6 +155,14 @@ runner("roadmap_2_smoke", async () => {
     const note = await roadmap2Repository.addUpdate(workspaceA.id, userId, { nodeId: child.id, nodeVersion: updated.version, updateType: "blocker", body: "Attente de confirmation DEETS." });
     assert(await prisma.roadmap2Update.findFirst({ where: { id: note.id, workspaceId: workspaceA.id, body: "Attente de confirmation DEETS." } }), "Mise à jour non persistée.");
     step("node_update_and_followup", { version: note.version });
+
+    let archiveByGenericUpdateRejected = false;
+    try {
+      await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, note.version, { ...baseNode, title: "Archivage interdit", parentId: root.id, status: "archived" });
+    } catch {
+      archiveByGenericUpdateRejected = true;
+    }
+    assert(archiveByGenericUpdateRejected, "L’archivage ne doit jamais contourner l’action de cycle de vie dédiée.");
 
     let idorRejected = false;
     try {
@@ -171,7 +195,19 @@ runner("roadmap_2_smoke", async () => {
     const archived = await roadmap2Repository.archiveNode(workspaceA.id, userId, child.id, note.version);
     const archivedRow = await prisma.roadmap2Node.findUniqueOrThrow({ where: { id: archived.id } });
     assert(archivedRow.status === "archived" && archivedRow.archivedAt, "Archivage incomplet.");
-    await roadmap2Repository.deleteNode(workspaceA.id, userId, child.id);
+    const restored = await roadmap2Repository.restoreNode(workspaceA.id, userId, child.id, archivedRow.version);
+    const restoredRow = await prisma.roadmap2Node.findUniqueOrThrow({ where: { id: restored.id } });
+    assert(restoredRow.status === "in_progress" && restoredRow.archivedAt === null, "La restauration doit retrouver le statut actif antérieur.");
+    await roadmap2Repository.archiveNode(workspaceA.id, userId, child.id, restored.version);
+    const archivedVersion = restored.version + 1;
+    let staleDeleteRejected = false;
+    try {
+      await roadmap2Repository.deleteNode(workspaceA.id, userId, child.id, restored.version);
+    } catch (error) {
+      staleDeleteRejected = error instanceof Roadmap2ConflictError;
+    }
+    assert(staleDeleteRejected, "Une suppression avec une version obsolète doit être refusée.");
+    await roadmap2Repository.deleteNode(workspaceA.id, userId, child.id, archivedVersion);
     assert(!await prisma.roadmap2Node.findUnique({ where: { id: child.id } }), "Suppression définitive non persistée.");
     step("archive_and_delete");
 

@@ -27,6 +27,7 @@ import {
   initializeRoadmap2,
   moveRoadmap2Node,
   renameRoadmap2Workspace,
+  restoreRoadmap2Node,
   setRoadmap2RootDriveUrl,
   updateRoadmap2Node,
   type Roadmap2ActionResult,
@@ -47,7 +48,7 @@ import { Roadmap2List } from "./roadmap2-list";
 import { Roadmap2Detail } from "./roadmap2-detail";
 import styles from "./roadmap2.module.css";
 
-type EditorState = { mode: "edit"; nodeId: string } | { mode: "create"; parentId?: string; type?: Roadmap2NodeDto["type"] } | null;
+type EditorState = { mode: "edit"; nodeId: string } | { mode: "create"; parentId?: string; type?: Roadmap2NodeDto["type"]; category?: Roadmap2NodeDto["category"] } | null;
 type DriveStatus = Extract<Awaited<ReturnType<typeof getRoadmap2DriveStatus>>, { ok: true }>["data"];
 type DriveListing = Extract<Awaited<ReturnType<typeof listRoadmap2DriveFiles>>, { ok: true }>["data"];
 type DriveNodeResources = Extract<Awaited<ReturnType<typeof createRoadmap2NodeDriveResources>>, { ok: true }>["data"];
@@ -57,6 +58,7 @@ export type Roadmap2UiActions = {
   quickUpdate: (node: Roadmap2NodeDto, patch: Partial<Roadmap2NodeInput>) => Promise<Roadmap2ActionResult>;
   moveNode: (node: Roadmap2NodeDto, positionX: number, positionY: number) => Promise<Roadmap2ActionResult>;
   archiveNode: (node: Roadmap2NodeDto) => Promise<Roadmap2ActionResult>;
+  restoreNode: (node: Roadmap2NodeDto) => Promise<Roadmap2ActionResult>;
   removeNode: (node: Roadmap2NodeDto) => Promise<Roadmap2ActionResult>;
   duplicateNode: (node: Roadmap2NodeDto) => Promise<Roadmap2ActionResult>;
   createEdge: (sourceNodeId: string, targetNodeId: string, relationType: Roadmap2RelationType) => Promise<Roadmap2ActionResult>;
@@ -185,6 +187,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   }, [router]);
 
   const saveNode = useCallback(async (node: Roadmap2NodeDto | null, input: Roadmap2NodeInput) => {
+    if (input.status === "archived") return showResult({ ok: false, code: "VALIDATION", error: "Utilisez l’action Archiver dédiée." }, "");
     const result = node ? await updateRoadmap2Node(workspace.key, node.id, node.version, input) : await createRoadmap2Node(workspace.key, input);
     if (result.ok) {
       const now = new Date().toISOString();
@@ -208,8 +211,9 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
           createdAt: now,
           updatedAt: now,
           updatedBy: owner,
-          updates: [],
-        }]);
+           updates: [],
+            isWorkspaceRoot: false,
+         }]);
         if (input.parentId) {
           setEdges((current) => [...current, { id: `pending-${result.id}`, sourceNodeId: input.parentId!, targetNodeId: result.id!, relationType: "parent_child", createdAt: now }]);
         }
@@ -222,6 +226,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
 
   const quickUpdate = useCallback(async (node: Roadmap2NodeDto, patch: Partial<Roadmap2NodeInput>) => {
     const input = { ...nodeToInput(node), ...patch };
+    if (input.status === "archived" || node.status === "archived") return showResult({ ok: false, code: "VALIDATION", error: "Utilisez les actions Archiver ou Restaurer dédiées." }, "");
     const result = await updateRoadmap2Node(workspace.key, node.id, node.version, input);
     if (result.ok) {
       const owner = initialData.owners.find((candidate) => candidate.id === input.ownerUserId) ?? null;
@@ -240,7 +245,11 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   }, [showResult, workspace.key]);
 
   const archiveNode = useCallback(async (node: Roadmap2NodeDto) => {
-    const result = await archiveRoadmap2Node(workspace.key, node.id, node.version);
+    const message = node.driveFolderUrl
+      ? `Archiver « ${node.title} » ? Son dossier et tous ses fichiers seront déplacés dans 10_Archives. Aucun document ne sera supprimé.`
+      : `Archiver « ${node.title} » ?`;
+    if (!window.confirm(message)) return { ok: false, code: "VALIDATION", error: "Archivage annulé." } satisfies Roadmap2ActionResult;
+    const result = await archiveRoadmap2Node(workspace.key, node.id, node.version, Boolean(node.driveFolderUrl));
     if (result.ok) {
       const now = new Date().toISOString();
       setNodes((current) => current.map((candidate) => candidate.id === node.id ? { ...candidate, status: "archived", archivedAt: now, version: candidate.version + 1, updatedAt: now } : candidate));
@@ -249,8 +258,21 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
     return showResult(result, "Élément archivé.");
   }, [showResult, workspace.key]);
 
+  const restoreNode = useCallback(async (node: Roadmap2NodeDto) => {
+    const message = node.driveFolderUrl
+      ? `Restaurer « ${node.title} » ? Son dossier et ses fichiers seront replacés dans la branche active de la roadmap.`
+      : `Restaurer « ${node.title} » ?`;
+    if (!window.confirm(message)) return { ok: false, code: "VALIDATION", error: "Restauration annulée." } satisfies Roadmap2ActionResult;
+    const result = await restoreRoadmap2Node(workspace.key, node.id, node.version, Boolean(node.driveFolderUrl));
+    if (result.ok) {
+      setEditor(null);
+      router.refresh();
+    }
+    return showResult(result, "Élément restauré.");
+  }, [router, showResult, workspace.key]);
+
   const removeNode = useCallback(async (node: Roadmap2NodeDto) => {
-    const result = await deleteRoadmap2Node(workspace.key, node.id);
+    const result = await deleteRoadmap2Node(workspace.key, node.id, node.version, "preserve_drive_and_delete_node");
     if (result.ok) {
       setNodes((current) => current.filter((candidate) => candidate.id !== node.id));
       setEdges((current) => current.filter((edge) => edge.sourceNodeId !== node.id && edge.targetNodeId !== node.id));
@@ -266,13 +288,15 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   }, [router, showResult, workspace.key]);
 
   const createEdge = useCallback(async (sourceNodeId: string, targetNodeId: string, relationType: Roadmap2RelationType) => {
-    const result = await createRoadmap2Edge(workspace.key, { sourceNodeId, targetNodeId, relationType });
+    const target = nodes.find((node) => node.id === targetNodeId);
+    const result = await createRoadmap2Edge(workspace.key, { sourceNodeId, targetNodeId, relationType }, relationType === "parent_child" ? target?.version : undefined);
     if (result.ok && result.id) {
-      setEdges((current) => [...current, { id: result.id!, sourceNodeId, targetNodeId, relationType, createdAt: new Date().toISOString() }]);
+      setEdges((current) => [...current.filter((edge) => relationType !== "parent_child" || edge.targetNodeId !== targetNodeId || edge.relationType !== "parent_child"), { id: result.id!, sourceNodeId, targetNodeId, relationType, createdAt: new Date().toISOString() }]);
+      if (relationType === "parent_child" && target) setNodes((current) => current.map((node) => node.id === targetNodeId ? { ...node, parentId: sourceNodeId, version: result.version ?? node.version + 1 } : node));
       router.refresh();
     }
     return showResult(result, "Relation créée.");
-  }, [router, showResult, workspace.key]);
+  }, [nodes, router, showResult, workspace.key]);
 
   const removeEdge = useCallback(async (edgeId: string) => {
     const result = await deleteRoadmap2Edge(workspace.key, edgeId);
@@ -295,7 +319,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
     return result;
   }, [router, workspace.key]);
 
-  const actions: Roadmap2UiActions = useMemo(() => ({ saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge, createDriveResources }), [saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge, createDriveResources]);
+  const actions: Roadmap2UiActions = useMemo(() => ({ saveNode, quickUpdate, moveNode, archiveNode, restoreNode, removeNode, duplicateNode, createEdge, removeEdge, createDriveResources }), [saveNode, quickUpdate, moveNode, archiveNode, restoreNode, removeNode, duplicateNode, createEdge, removeEdge, createDriveResources]);
 
   function runSeed() {
     if (!window.confirm("Créer ici une copie modifiable du modèle Le Bon Rebond (65 nœuds et 110 relations) ? Les dates, statuts, priorités et dépendances sont des propositions. Les éléments seront attribués provisoirement à l’administrateur qui lance l’initialisation.")) return;
@@ -535,16 +559,16 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
 
       {editor && (
         <Roadmap2Detail
-          key={editor.mode === "edit" ? `edit-${editor.nodeId}` : `create-${editor.parentId ?? "root"}-${editor.type ?? "initiative"}`}
+          key={editor.mode === "edit" ? `edit-${editor.nodeId}` : `create-${editor.parentId ?? "root"}-${editor.type ?? "initiative"}-${editor.category ?? "default"}`}
           node={selectedNode}
           workspaceKey={workspace.key}
-          createDefaults={editor.mode === "create" ? { parentId: editor.parentId, type: editor.type } : undefined}
+          createDefaults={editor.mode === "create" ? { parentId: editor.parentId, type: editor.type, category: editor.category } : undefined}
           nodes={nodes}
           edges={edges}
           owners={initialData.owners}
           actions={actions}
           onClose={closeEditor}
-          onCreateChild={(parentId) => setEditor({ mode: "create", parentId, type: "action" })}
+          onCreateChild={(parentId) => setEditor({ mode: "create", parentId, type: "action", category: nodes.find((candidate) => candidate.id === parentId)?.category })}
           onLocalNode={(node) => setNodes((current) => current.map((candidate) => candidate.id === node.id ? node : candidate))}
           onLocalEdge={(edge: Roadmap2EdgeDto) => setEdges((current) => [...current, edge])}
           onLocalEdgeRemoved={(edgeId) => setEdges((current) => current.filter((edge) => edge.id !== edgeId))}

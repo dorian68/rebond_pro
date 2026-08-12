@@ -81,7 +81,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.101.0",
     "@auth/prisma-adapter": "^2.11.2",
-    "@composio/core": "^0.13.1",
+    "@composio/core": "0.16.0",
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-slot": "^1.2.5",
     "@react-pdf/renderer": "^4.5.1",

@@ -28,6 +28,8 @@ try {
 
   assert(graph.includes('tabIndex={0}') && graph.includes('event.key === "Enter"') && graph.includes('edgesFocusable'), "Le graphe doit exposer un accès clavier.");
   assert(detail.includes('event.key === "Escape"') && detail.includes('event.key !== "Tab"') && detail.includes("previousFocusRef.current?.focus()") && detail.includes('aria-modal="true"') && detail.includes('aria-label="Fermer le panneau"'), "Le panneau doit confiner Tab, restaurer le focus, être fermable au clavier et annoncé comme modal.");
+  assert(detail.includes("onDrop={handleDrop}") && detail.includes('role="button"') && detail.includes("tabIndex={nodeDriveBusy ? -1 : 0}") && detail.includes('aria-disabled={Boolean(nodeDriveBusy)}'), "La zone de dépôt doit rester utilisable et désactivable de façon sémantique au clavier.");
+  assert(detail.includes('event.key === "Enter" || event.key === " "') && detail.includes('type="file" multiple') && detail.includes('aria-label="Sélectionner les fichiers à ajouter au dossier Google Drive de ce nœud"'), "Entrée, Espace et le sélecteur multiple doivent offrir une alternative complète au glisser-déposer.");
   assert(list.includes("alternative accessible au glisser-déposer") && list.includes("aria-label={`Statut de"), "La Liste doit fournir l'alternative accessible aux interactions de graphe.");
   step("keyboard_alternative");
 
@@ -46,7 +48,10 @@ try {
   assert(client.includes('driveStatus?.connected ? "Gérer"') && client.includes("setDriveConfigOpen(true)"), "Le dossier Drive racine doit rester gérable après sa configuration.");
   assert(client.includes("Connecter Google Drive") && client.includes("Aucun token Google n’est envoyé au navigateur"), "La connexion Google doit être explicite et rassurante sur la conservation des jetons.");
   assert(detail.includes("Préparer l’espace Drive") && detail.includes("Liens Drive et aide avancée"), "La création Drive doit être accessible dans le détail du nœud sans supprimer la saisie manuelle.");
-  assert(detail.includes("Ajouter des fichiers") && detail.includes('aria-label={`Consulter ${file.name}`}'), "L’ajout et la consultation des fichiers du nœud doivent être libellés et accessibles.");
+  assert(detail.includes("Glissez-déposez vos fichiers") && detail.includes('aria-label={`Afficher un aperçu de ${file.name}`}') && detail.includes('aria-label={`Ouvrir ${file.name} dans Google Drive`}'), "L’ajout, l’aperçu privé et l’ouverture Drive doivent être trois actions compréhensibles et nommées.");
+  assert(detail.includes('role="dialog" aria-modal="true" aria-labelledby="roadmap2-file-preview-title" aria-describedby="roadmap2-file-preview-help"'), "Le lecteur de fichier doit être annoncé comme un dialogue privé avec titre et aide.");
+  assert((detail.match(/<iframe sandbox="" referrerPolicy="no-referrer"/g) ?? []).length >= 2, "Les lecteurs PDF et texte doivent interdire les scripts et supprimer le référent.");
+  assert(detail.includes('document.addEventListener("keydown", handlePreviewKeys, true)') && detail.includes("event.stopPropagation()") && detail.includes("trigger?.focus()") && detail.includes("Échap ferme uniquement cet aperçu"), "Échap doit fermer le lecteur avant le panneau et restituer le focus au fichier sélectionné.");
   assert(detail.includes("Vérification de Google Drive") && detail.includes("momentanément indisponible") && css.includes("label:focus-within"), "La vérification Drive et le focus du sélecteur de fichiers doivent être perceptibles sans faux état de déconnexion.");
   assert(css.includes(".workspace [data-private-export]") && css.includes("display: none !important"), "L'export de synthèse doit exclure les contenus privés.");
   step("private_links_and_export");

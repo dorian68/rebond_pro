@@ -760,6 +760,26 @@
 .nodeDriveHeading label:focus-within { outline: 3px solid var(--rm-coral); outline-offset: 2px; }
 .uploadDisabled { opacity: .55; cursor: wait !important; }
 .visuallyHidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.nodeDriveDropzone { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; margin: 12px; padding: 18px; border: 1.5px dashed #8dad98; border-radius: 12px; background: #f7fbf7; color: var(--rm-green-dark); cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+.nodeDriveDropzone:hover,
+.nodeDriveDropzone:focus-visible,
+.nodeDriveDropzoneActive { border-color: var(--rm-coral); background: #fff6ed; outline: none; transform: translateY(-1px); }
+.nodeDriveDropzone > span:nth-child(2) { min-width: 0; display: grid; gap: 3px; }
+.nodeDriveDropzone strong { font-size: 13px; }
+.nodeDriveDropzone small { color: var(--rm-muted); font-size: 10px; }
+.nodeDriveDropIcon { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 12px; background: var(--rm-green); color: white; }
+.nodeDriveDropAction { padding: 7px 9px; border: 1px solid #a9c0b0; border-radius: 8px; background: white; font-size: 9.5px; font-weight: 800; }
+.driveLayoutBar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 12px 12px; padding: 10px 11px; border: 1px solid #e0d7cb; border-radius: 9px; background: #faf7f1; }
+.driveLayoutBar > div { min-width: 0; display: grid; gap: 2px; }
+.driveLayoutBar strong { color: var(--rm-green-dark); font-size: 10.5px; }
+.driveLayoutBar small { color: var(--rm-muted); font-size: 9px; line-height: 1.4; }
+.driveLayoutBar button { border: 0; background: transparent; color: var(--rm-green); padding: 5px; font-size: 9.5px; font-weight: 800; cursor: pointer; }
+.driveLayoutDiff { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 9px; margin: -3px 12px 12px; padding: 12px; border: 1px solid #d8b16e; border-radius: 9px; background: #fff7e7; }
+.driveLayoutDiff span { min-width: 0; display: grid; gap: 3px; }
+.driveLayoutDiff small { color: #8a6b36; font-size: 8px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.driveLayoutDiff strong { overflow-wrap: anywhere; color: #624719; font-size: 9.5px; line-height: 1.45; }
+.driveLayoutDiff p { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; margin: 0; color: #795721; font-size: 9.5px; }
+.driveLayoutDiff .secondaryButton { grid-column: 1 / -1; justify-self: end; }
 .trackingDocCard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 12px 12px 0; padding: 11px; border: 1px solid #d5c9b8; border-radius: 9px; background: #f7f1e8; color: var(--rm-ink); text-decoration: none; }
 .trackingDocCard > span:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
 .trackingDocCard strong { overflow: hidden; color: var(--rm-green-dark); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
@@ -771,6 +791,16 @@
 .nodeFilesEmpty { margin: 0 12px; padding: 17px 13px; border: 1px dashed #d4c8b8; border-radius: 9px; color: var(--rm-muted); font-size: 10.5px; line-height: 1.5; text-align: center; }
 .nodeDriveFileList { max-height: 230px; margin: 0 12px; border: 1px solid #e0d7cb; border-radius: 9px; }
 .nodeDriveFileList li:last-child { border-bottom: 0; }
+.driveFileIdentity { min-width: 0; display: grid; gap: 2px; }
+.driveFileIdentity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.driveFileActions { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.driveFileActions button,
+.driveFileActions a { min-height: 30px; display: inline-flex !important; grid-auto-flow: column; place-items: center; gap: 4px !important; border: 1px solid #d4cabd !important; border-radius: 7px; background: var(--rm-paper) !important; color: var(--rm-green) !important; padding: 5px 8px !important; font-family: inherit; font-size: 9.5px; font-weight: 780; line-height: 1; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.driveFileActions button:hover,
+.driveFileActions button:focus-visible,
+.driveFileActions a:hover,
+.driveFileActions a:focus-visible { border-color: var(--rm-coral) !important; background: #f5f0e7 !important; outline: 2px solid var(--rm-coral); outline-offset: 1px; }
+.driveFileActions button:disabled { cursor: wait; opacity: .58; }
 .nodeDriveWorkspace .formError { margin: 10px 12px 0; }
 .nodeDriveWorkspace .formError span { flex: 1; }
 .nodeDriveWorkspace .formError button { border: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
@@ -803,10 +833,31 @@
 .formError { display: flex; align-items: center; gap: 7px; margin: 14px 0; padding: 10px 12px; border-radius: 8px; background: #fbe8e4; color: #8d372e; font-size: 11px; font-weight: 700; }
 .conflictNotice { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; margin: 0 0 14px; padding: 11px 12px; border: 1px solid #d6a14e; border-radius: 9px; background: #fff3d8; color: #704a12; font-size: 11px; font-weight: 700; }
 .conflictNotice button { min-height: 30px; border: 1px solid #c58c35; border-radius: 7px; background: #fffaf0; color: #704a12; padding: 5px 8px; font: inherit; cursor: pointer; }
+.archivedNotice { display: flex; align-items: center; gap: 10px; margin: 5px 0 14px; padding: 12px 13px; border: 1px solid #cabfaf; border-radius: 9px; background: #eee8de; color: #625d55; font-size: 10.5px; }
+.archivedNotice > span { display: grid; gap: 2px; }
+.archivedNotice strong { color: var(--rm-green-dark); font-size: 11px; }
+.lifecycleFields { min-width: 0; margin: 0; padding: 0; border: 0; }
+.lifecycleFields:disabled { opacity: .78; }
+.lifecycleFields:disabled input,
+.lifecycleFields:disabled select,
+.lifecycleFields:disabled textarea { color: var(--rm-ink); -webkit-text-fill-color: var(--rm-ink); cursor: default; }
 .stickySave { position: sticky; bottom: 0; z-index: 10; display: flex; gap: 8px; padding: 14px 0; background: linear-gradient(180deg, rgba(251,247,239,0), #fbf7ef 18%); }
 .detailActions { display: flex; flex-wrap: wrap; gap: 7px; padding: 16px 26px 30px; border-top: 1px solid var(--rm-line); }
 .detailActions button { min-height: 34px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rm-line); border-radius: 8px; background: var(--rm-paper); color: var(--rm-muted); padding: 7px 9px; font-size: 10.5px; font-weight: 730; cursor: pointer; }
 .detailActions .dangerAction { margin-left: auto; color: var(--rm-red); border-color: #dfb9b2; }
+.filePreviewBackdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(20, 31, 28, .68); backdrop-filter: blur(5px); }
+.filePreviewPanel { width: min(1050px, 94vw); height: min(780px, 90vh); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border-radius: 16px; background: #f9f5ed; box-shadow: 0 28px 80px rgba(14, 27, 23, .35); }
+.filePreviewPanel header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--rm-line); }
+.filePreviewPanel header > div:first-child { min-width: 0; }
+.filePreviewPanel header span { color: var(--rm-muted); font-size: 8.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.filePreviewPanel h3 { overflow: hidden; margin: 3px 0 0; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.filePreviewPanel header > div:last-child { display: flex; align-items: center; gap: 7px; }
+.filePreviewPanel header a,
+.filePreviewPanel header button { min-height: 34px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--rm-line); border-radius: 8px; background: white; color: var(--rm-green); padding: 7px 9px; text-decoration: none; font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
+.filePreviewPanel iframe { width: 100%; height: 100%; border: 0; background: white; }
+.filePreviewImage { min-height: 0; display: grid; place-items: center; overflow: auto; padding: 20px; background: #292e2c; }
+.filePreviewImage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.filePreviewPanel > footer { padding: 8px 14px; border-top: 1px solid var(--rm-line); color: var(--rm-muted); font-size: 9px; text-align: center; }
 
 .modalBackdrop { align-items: center; justify-content: center; }
 .driveModal { position: relative; width: min(520px, calc(100vw - 28px)); padding: 27px; border: 1px solid var(--rm-line); border-radius: 15px; background: #fbf7ef; box-shadow: 0 25px 70px rgba(24, 33, 30, .25); }
@@ -897,6 +948,10 @@
   .viewTabs button { flex: 1; }
   .filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .filters select { flex: 0 0 auto; }
+  .pilotStrip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+  .pilotStrip > span { min-width: 0; white-space: normal; }
+  .pilotStrip > span:nth-child(3) { border-right: 0; }
+  .pilotStrip > span:nth-child(n + 4) { border-top: 1px solid var(--rm-line); }
   .pilotStrip .lastUpdate { margin-left: 0; }
   .emptyState { grid-template-columns: 70px 1fr; min-height: 470px; padding: 30px; gap: 20px; }
   .emptyCompass { width: 64px; height: 64px; }
@@ -946,7 +1001,11 @@
   .heroActions > * { width: 100%; }
   .heroActions .driveButton { grid-column: 1 / -1; }
   .heroActions .driveHeaderStatus { grid-column: 1 / -1; width: 100%; }
+  .pilotStrip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pilotStrip > span { padding-inline: 10px; }
+  .pilotStrip > span:nth-child(3) { border-right: 1px solid var(--rm-line); }
+  .pilotStrip > span:nth-child(even) { border-right: 0; }
+  .pilotStrip > span:nth-child(n + 3) { border-top: 1px solid var(--rm-line); }
   .emptyState { display: block; min-height: 0; padding: 28px 20px; }
   .emptyCompass { margin-bottom: 20px; }
   .emptyState h2 { font-size: 25px; }
@@ -976,6 +1035,19 @@
   .nodeDriveHeading { align-items: stretch; flex-direction: column; }
   .nodeDriveHeading > div:last-child { display: grid; grid-template-columns: 1fr; }
   .nodeDriveHeading > div:last-child > * { width: 100%; }
+  .nodeDriveDropzone { grid-template-columns: auto 1fr; padding: 14px; }
+  .nodeDriveDropAction { grid-column: 1 / -1; text-align: center; }
+  .nodeDriveFileList li { grid-template-columns: auto minmax(0, 1fr); }
+  .driveFileActions { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+  .driveLayoutBar { align-items: stretch; flex-direction: column; }
+  .driveLayoutBar button { align-self: flex-start; }
+  .driveLayoutDiff { grid-template-columns: 1fr; }
+  .driveLayoutDiff > svg { transform: rotate(90deg); }
+  .filePreviewBackdrop { padding: 0; }
+  .filePreviewPanel { width: 100vw; height: 100dvh; border-radius: 0; }
+  .filePreviewPanel header { align-items: flex-start; }
+  .filePreviewPanel header a { padding-inline: 7px; font-size: 9px; }
+  .filePreviewPanel header a svg { width: 17px; height: 17px; }
   .driveConnection { grid-template-columns: auto 1fr; }
   .driveConnection .primaryButton { grid-column: 1 / -1; width: 100%; }
   .driveIntegrationActions { display: grid; }

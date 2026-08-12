@@ -1232,6 +1232,8 @@ model Roadmap2Node {
   positionY        Float            @default(0)
   width            Float?
   seedKey          String?
+  isWorkspaceRoot  Boolean          @default(false)
+  preArchiveStatus Roadmap2Status?
   version          Int              @default(1)
   archivedAt       DateTime?
   createdAt        DateTime         @default(now())
