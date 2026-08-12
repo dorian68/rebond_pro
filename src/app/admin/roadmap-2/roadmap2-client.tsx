@@ -88,6 +88,8 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   const [workspaceNameInput, setWorkspaceNameInput] = useState("");
   const [driveInput, setDriveInput] = useState(initialData.workspace.rootDriveUrl ?? "");
   const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
+  const [driveStatusLoading, setDriveStatusLoading] = useState(true);
+  const [driveStatusError, setDriveStatusError] = useState<string | null>(null);
   const [driveListing, setDriveListing] = useState<DriveListing | null>(null);
   const [driveHistory, setDriveHistory] = useState<Array<{ id: string; name: string }>>([]);
   const [driveCollaborators, setDriveCollaborators] = useState("");
@@ -123,21 +125,29 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  const refreshDriveStatus = useCallback(async (showError = false) => {
+    setDriveStatusLoading(true);
+    const result = await getRoadmap2DriveStatus(workspace.key);
+    if (result.ok) {
+      setDriveStatus(result.data);
+      setDriveStatusError(null);
+    } else {
+      setDriveStatus(null);
+      setDriveStatusError(result.error);
+      if (showError) setDriveError(result.error);
+    }
+    setDriveStatusLoading(false);
+    return result;
+  }, [workspace.key]);
+
   useEffect(() => {
-    if (!driveConfigOpen) return;
-    let active = true;
-    const timer = window.setTimeout(() => {
-      if (!active) return;
-      setDriveBusy("status");
-      setDriveError(null);
-      void getRoadmap2DriveStatus(workspace.key).then((result) => {
-        if (!active) return;
-        if (result.ok) setDriveStatus(result.data);
-        else setDriveError(result.error);
-      }).finally(() => { if (active) setDriveBusy(null); });
-    }, 0);
-    return () => { active = false; window.clearTimeout(timer); };
-  }, [driveConfigOpen, workspace.key]);
+    const initialTimer = window.setTimeout(() => void refreshDriveStatus(false), 0);
+    const timer = window.setInterval(() => void refreshDriveStatus(false), 60000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
+  }, [refreshDriveStatus]);
 
   useEffect(() => {
     if (!driveConfigOpen && !workspaceModal) return;
@@ -315,11 +325,16 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
 
   function openDriveConfig() {
     modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setDriveStatus(null);
     setDriveListing(null);
     setDriveHistory([]);
     setDriveError(null);
     setDriveConfigOpen(true);
+    void refreshDriveStatus(true);
+  }
+
+  function manageDriveFromNode() {
+    setEditor(null);
+    openDriveConfig();
   }
 
   async function connectDrive() {
@@ -444,14 +459,12 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
             <button className={styles.iconButtonText} onClick={() => view === "graph" ? window.dispatchEvent(new CustomEvent("roadmap2-fit-view")) : setView("graph")} title="Ajuster la vue"><Icon name="target" size={16} /> Ajuster la vue</button>
             <button className={styles.iconButtonText} onClick={focusSearch}><Icon name="search" size={16} /> Rechercher</button>
             <button className={`${styles.iconButtonText} ${styles.exportButton}`} onClick={() => window.print()}><Icon name="download" size={16} /> Exporter</button>
-            {workspace.rootDriveUrl ? (
-              <>
-                <a className={styles.driveButton} href={workspace.rootDriveUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" size={16} /> Dossier Drive racine</a>
-                <button className={styles.iconButtonText} onClick={openDriveConfig}><Icon name="edit-3" size={16} /> Modifier Drive</button>
-              </>
-            ) : (
-              <button className={styles.driveButton} onClick={openDriveConfig}><Icon name="plus" size={16} /> Configurer Drive</button>
-            )}
+            <div className={`${styles.driveHeaderStatus} ${driveStatus?.connected ? styles.driveHeaderConnected : driveStatusError || driveStatus?.enabled === false ? styles.driveHeaderUnavailable : workspace.rootDriveUrl ? styles.driveHeaderWarning : ""}`} role="status" aria-label={driveStatusLoading ? "Vérification de Google Drive" : driveStatusError || driveStatus?.enabled === false ? "Google Drive momentanément indisponible" : driveStatus?.connected ? "Google Drive connecté" : workspace.rootDriveUrl ? "Google Drive à reconnecter" : "Google Drive à connecter"} data-private-export>
+              <span className={`${styles.driveStatusDot} ${driveStatus?.connected ? styles.driveStatusConnected : ""}`} aria-hidden="true" />
+              <span><small>Google Drive</small><strong>{driveStatusLoading ? "Vérification…" : driveStatusError || driveStatus?.enabled === false ? "Indisponible" : driveStatus?.connected ? "Connecté" : workspace.rootDriveUrl ? "Reconnexion requise" : "À connecter"}</strong></span>
+              {driveStatus?.connected && workspace.rootDriveUrl && <a href={workspace.rootDriveUrl} target="_blank" rel="noopener noreferrer" aria-label="Ouvrir le dossier Drive racine"><Icon name="external" size={15} /> Ouvrir</a>}
+              <button type="button" onClick={driveStatusError ? () => void refreshDriveStatus(false) : openDriveConfig}>{driveStatusError ? "Réessayer" : driveStatus?.connected ? "Gérer" : workspace.rootDriveUrl ? "Reconnecter" : "Connecter"}</button>
+            </div>
           </div>
         </div>
 
@@ -536,6 +549,12 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
           onLocalEdge={(edge: Roadmap2EdgeDto) => setEdges((current) => [...current, edge])}
           onLocalEdgeRemoved={(edgeId) => setEdges((current) => current.filter((edge) => edge.id !== edgeId))}
           announce={(tone, message) => setToast({ tone, message })}
+          driveStatus={driveStatus}
+          driveStatusLoading={driveStatusLoading}
+          driveStatusError={driveStatusError}
+          hasRootDrive={Boolean(workspace.rootDriveUrl)}
+          onManageDrive={manageDriveFromNode}
+          onRefreshDrive={() => void refreshDriveStatus(false)}
         />
       )}
 
@@ -550,10 +569,10 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
             <div className={styles.driveConnection} aria-live="polite">
               <span className={`${styles.driveStatusDot} ${driveStatus?.connected ? styles.driveStatusConnected : ""}`} aria-hidden="true" />
               <div>
-                <strong>{driveBusy === "status" ? "Vérification de la connexion…" : driveStatus?.connected ? "Google Drive est connecté" : driveStatus?.enabled === false ? "Intégration serveur indisponible" : "Google Drive n’est pas encore connecté"}</strong>
+                <strong>{driveStatusLoading ? "Vérification de la connexion…" : driveStatus?.connected ? "Google Drive est connecté" : driveStatus?.enabled === false ? "Intégration serveur indisponible" : workspace.rootDriveUrl ? "Google Drive doit être reconnecté" : "Google Drive n’est pas encore connecté"}</strong>
                 <small>{driveStatus?.connected ? "L’identité du compte reste chez Google. Vérifiez le bon compte en ouvrant le dossier, ou reconnectez-en un autre. Aucun token Google n’est envoyé au navigateur." : "Connectez le compte Google qui doit posséder le dossier de travail."}</small>
               </div>
-              <button type="button" className={driveStatus?.connected ? styles.secondaryButton : styles.primaryButton} disabled={Boolean(driveBusy) || driveStatus?.enabled === false} onClick={() => void connectDrive()}>{driveBusy === "connect" ? "Redirection…" : driveStatus?.connected ? "Changer / reconnecter" : "Connecter Google Drive"}</button>
+              <button type="button" className={driveStatus?.connected ? styles.secondaryButton : styles.primaryButton} disabled={Boolean(driveBusy) || driveStatusLoading || driveStatus?.enabled === false} onClick={() => void connectDrive()}>{driveBusy === "connect" ? "Redirection…" : driveStatus?.connected ? "Changer / reconnecter" : workspace.rootDriveUrl ? "Reconnecter Google Drive" : "Connecter Google Drive"}</button>
             </div>
 
             {driveStatus?.connected && (

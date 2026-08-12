@@ -156,6 +156,18 @@
 
 .driveButton:hover { background: #e3efe6; }
 
+.driveHeaderStatus { min-height: 42px; display: flex; align-items: center; gap: 9px; padding: 5px 6px 5px 10px; border: 1px solid #d6ccbd; border-radius: 11px; background: var(--rm-paper); }
+.driveHeaderStatus > span:nth-child(2) { display: grid; min-width: 88px; gap: 1px; line-height: 1.05; }
+.driveHeaderStatus small { color: var(--rm-muted); font-size: 8px; font-weight: 760; letter-spacing: .055em; text-transform: uppercase; }
+.driveHeaderStatus strong { color: var(--rm-ink); font-size: 11px; }
+.driveHeaderStatus > a,
+.driveHeaderStatus > button { min-height: 30px; display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 7px; padding: 5px 8px; background: transparent; color: var(--rm-green); font-size: 10.5px; font-weight: 780; text-decoration: none; cursor: pointer; }
+.driveHeaderStatus > a:hover,
+.driveHeaderStatus > button:hover { background: rgba(31, 88, 79, .08); }
+.driveHeaderConnected { border-color: #b9d1c2; background: #edf5ef; }
+.driveHeaderWarning { border-color: #d7a95e; background: #fff7e6; }
+.driveHeaderUnavailable { border-color: #c9c2b7; background: #f1eee8; }
+
 .pilotStrip {
   display: flex;
   align-items: center;
@@ -733,6 +745,36 @@
 .driveFieldActions button,
 .driveMissing button { border: 0; background: transparent; padding: 2px; color: var(--rm-green); display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 760; cursor: pointer; }
 .driveMissing { justify-content: space-between; color: var(--rm-muted); font-size: 10.5px; }
+.nodeDriveState { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 15px; border: 1px solid #bfd3c5; border-radius: 12px; background: #eef5ef; }
+.nodeDriveStateWarning { border-color: #d8b16e; background: #fff7e7; }
+.nodeDriveState > div { display: grid; gap: 3px; }
+.nodeDriveState strong { color: var(--rm-green-dark); font-size: 12.5px; }
+.nodeDriveState small { color: var(--rm-muted); font-size: 10.5px; line-height: 1.45; }
+.nodeDriveWorkspace { overflow: hidden; border: 1px solid #bfd3c5; border-radius: 13px; background: #fffdf9; }
+.nodeDriveHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; background: #edf5ef; border-bottom: 1px solid #d7e1d9; }
+.nodeDriveHeading > div { display: flex; align-items: center; gap: 9px; }
+.nodeDriveHeading > div:first-child > span:last-child { display: grid; gap: 2px; }
+.nodeDriveHeading strong { color: var(--rm-green-dark); font-size: 12.5px; }
+.nodeDriveHeading small { color: var(--rm-muted); font-size: 9.5px; }
+.nodeDriveHeading label { cursor: pointer; }
+.nodeDriveHeading label:focus-within { outline: 3px solid var(--rm-coral); outline-offset: 2px; }
+.uploadDisabled { opacity: .55; cursor: wait !important; }
+.visuallyHidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.trackingDocCard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 12px 12px 0; padding: 11px; border: 1px solid #d5c9b8; border-radius: 9px; background: #f7f1e8; color: var(--rm-ink); text-decoration: none; }
+.trackingDocCard > span:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
+.trackingDocCard strong { overflow: hidden; color: var(--rm-green-dark); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.trackingDocCard small { color: var(--rm-muted); font-size: 9px; }
+.trackingDocCard > svg { color: var(--rm-green); }
+.nodeFilesHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 13px 7px; }
+.nodeFilesHeader span { color: var(--rm-muted); font-size: 9px; font-weight: 820; letter-spacing: .07em; text-transform: uppercase; }
+.nodeFilesHeader button { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--rm-green); padding: 4px; font-size: 9.5px; font-weight: 760; cursor: pointer; }
+.nodeFilesEmpty { margin: 0 12px; padding: 17px 13px; border: 1px dashed #d4c8b8; border-radius: 9px; color: var(--rm-muted); font-size: 10.5px; line-height: 1.5; text-align: center; }
+.nodeDriveFileList { max-height: 230px; margin: 0 12px; border: 1px solid #e0d7cb; border-radius: 9px; }
+.nodeDriveFileList li:last-child { border-bottom: 0; }
+.nodeDriveWorkspace .formError { margin: 10px 12px 0; }
+.nodeDriveWorkspace .formError span { flex: 1; }
+.nodeDriveWorkspace .formError button { border: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.nodeDriveHint { margin: 10px 13px 13px; color: var(--rm-muted); font-size: 9px; line-height: 1.45; }
 .helpDetails { margin-top: 15px; border-top: 1px solid var(--rm-line); padding-top: 12px; color: var(--rm-muted); font-size: 11px; }
 .helpDetails summary { color: var(--rm-green); font-weight: 760; cursor: pointer; }
 .helpDetails > p { margin: 8px 0; }
@@ -778,7 +820,9 @@
 .driveConnection strong { color: var(--rm-green-dark); font-size: 12.5px; }
 .driveConnection small { color: var(--rm-muted); font-size: 10.5px; line-height: 1.4; }
 .driveStatusDot { width: 10px; height: 10px; border: 2px solid #9d9487; border-radius: 50%; background: transparent; }
+.driveStatusChecking { border-color: var(--rm-coral); animation: driveStatusPulse 1.2s ease-in-out infinite; }
 .driveStatusConnected { border-color: #3c7868; background: #3c7868; box-shadow: 0 0 0 4px rgba(60, 120, 104, .12); }
+@keyframes driveStatusPulse { 50% { background: var(--rm-coral); box-shadow: 0 0 0 4px rgba(209, 111, 78, .12); } }
 .driveIntegrationActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
 .driveExplorer { margin-top: 14px; border: 1px solid var(--rm-line); border-radius: 12px; background: #fffdf9; overflow: hidden; }
 .driveExplorerHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid var(--rm-line); background: #eee8de; }
@@ -901,6 +945,7 @@
   .heroActions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
   .heroActions > * { width: 100%; }
   .heroActions .driveButton { grid-column: 1 / -1; }
+  .heroActions .driveHeaderStatus { grid-column: 1 / -1; width: 100%; }
   .pilotStrip > span { padding-inline: 10px; }
   .emptyState { display: block; min-height: 0; padding: 28px 20px; }
   .emptyCompass { margin-bottom: 20px; }
@@ -926,6 +971,11 @@
   .conflictNotice button { grid-column: 1 / -1; }
   .detailActions .dangerAction { margin-left: 0; }
   .driveAutomationCallout { align-items: stretch; flex-direction: column; }
+  .nodeDriveState { grid-template-columns: auto 1fr; }
+  .nodeDriveState .primaryButton { grid-column: 1 / -1; width: 100%; }
+  .nodeDriveHeading { align-items: stretch; flex-direction: column; }
+  .nodeDriveHeading > div:last-child { display: grid; grid-template-columns: 1fr; }
+  .nodeDriveHeading > div:last-child > * { width: 100%; }
   .driveConnection { grid-template-columns: auto 1fr; }
   .driveConnection .primaryButton { grid-column: 1 / -1; width: 100%; }
   .driveIntegrationActions { display: grid; }
@@ -938,6 +988,7 @@
   .primaryButton,
   .secondaryButton,
   .iconButtonText { transition: none; }
+  .driveStatusChecking { animation: none; }
 }
 
 @media print {

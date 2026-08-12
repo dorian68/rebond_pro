@@ -43,9 +43,11 @@ try {
   step("responsive_and_reduced_motion");
 
   assert(detail.includes('target="_blank" rel="noopener noreferrer"'), "Les liens Drive doivent s'ouvrir de manière sécurisée.");
-  assert(client.includes("Modifier Drive") && client.includes("setDriveConfigOpen(true)"), "Le dossier Drive racine doit rester modifiable après sa configuration.");
+  assert(client.includes('driveStatus?.connected ? "Gérer"') && client.includes("setDriveConfigOpen(true)"), "Le dossier Drive racine doit rester gérable après sa configuration.");
   assert(client.includes("Connecter Google Drive") && client.includes("Aucun token Google n’est envoyé au navigateur"), "La connexion Google doit être explicite et rassurante sur la conservation des jetons.");
-  assert(detail.includes("Créer automatiquement") && detail.includes("Vérifier / compléter"), "La création Drive doit être accessible dans le détail du nœud sans supprimer la saisie manuelle.");
+  assert(detail.includes("Préparer l’espace Drive") && detail.includes("Liens Drive et aide avancée"), "La création Drive doit être accessible dans le détail du nœud sans supprimer la saisie manuelle.");
+  assert(detail.includes("Ajouter des fichiers") && detail.includes('aria-label={`Consulter ${file.name}`}'), "L’ajout et la consultation des fichiers du nœud doivent être libellés et accessibles.");
+  assert(detail.includes("Vérification de Google Drive") && detail.includes("momentanément indisponible") && css.includes("label:focus-within"), "La vérification Drive et le focus du sélecteur de fichiers doivent être perceptibles sans faux état de déconnexion.");
   assert(css.includes(".workspace [data-private-export]") && css.includes("display: none !important"), "L'export de synthèse doit exclure les contenus privés.");
   step("private_links_and_export");
 

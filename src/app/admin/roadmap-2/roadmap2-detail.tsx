@@ -26,6 +26,8 @@ import {
 } from "@/lib/roadmap2";
 import type { Roadmap2NodeInput } from "@/server/roadmap2";
 import { addRoadmap2Update } from "@/server/roadmap2-actions";
+import { listRoadmap2NodeDriveFiles, type Roadmap2DriveActionResult } from "@/server/roadmap2-drive-actions";
+import type { Roadmap2DriveFile, Roadmap2DriveStatus } from "@/server/roadmap2-drive";
 import type { Roadmap2UiActions } from "./roadmap2-client";
 import { nodeToInput } from "./roadmap2-ui";
 import styles from "./roadmap2.module.css";
@@ -71,7 +73,7 @@ function nullable(value: string) {
   return value.trim() ? value : null;
 }
 
-export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edges, owners, actions, onClose, onCreateChild, onLocalNode, announce }: {
+export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edges, owners, actions, onClose, onCreateChild, onLocalNode, announce, driveStatus, driveStatusLoading, driveStatusError, hasRootDrive, onManageDrive, onRefreshDrive }: {
   workspaceKey: string;
   node: Roadmap2NodeDto | null;
   createDefaults?: { parentId?: string; type?: Roadmap2NodeDto["type"] };
@@ -85,11 +87,18 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
   onLocalEdge: (edge: Roadmap2EdgeDto) => void;
   onLocalEdgeRemoved: (edgeId: string) => void;
   announce: (tone: "success" | "error" | "info", message: string) => void;
+  driveStatus: Roadmap2DriveStatus | null;
+  driveStatusLoading: boolean;
+  driveStatusError: string | null;
+  hasRootDrive: boolean;
+  onManageDrive: () => void;
+  onRefreshDrive: () => void;
 }) {
   const router = useRouter();
   const titleRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<Roadmap2NodeInput>(() => node ? nodeToInput(node) : emptyInput(createDefaults));
   const [baseVersion, setBaseVersion] = useState<number | null>(() => node?.version ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +106,9 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
   const [relationType, setRelationType] = useState<Roadmap2RelationType>("dependency");
   const [updateType, setUpdateType] = useState<Roadmap2UpdateType>("note");
   const [updateBody, setUpdateBody] = useState("");
+  const [nodeFiles, setNodeFiles] = useState<Roadmap2DriveFile[] | null>(null);
+  const [nodeDriveError, setNodeDriveError] = useState<string | null>(null);
+  const [nodeDriveBusy, setNodeDriveBusy] = useState<"list" | "upload" | null>(null);
   const [pending, startTransition] = useTransition();
   const remoteVersionChanged = Boolean(node && baseVersion !== null && node.version !== baseVersion);
 
@@ -127,6 +139,41 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
 
   const connected = useMemo(() => edges.filter((edge) => edge.sourceNodeId === node?.id || edge.targetNodeId === node?.id), [edges, node?.id]);
   const nodeMap = useMemo(() => new Map(nodes.map((candidate) => [candidate.id, candidate])), [nodes]);
+  const visibleNodeFiles = useMemo(() => nodeFiles?.filter((file) => file.name !== "00 - SUIVI & DÉCISIONS" && file.url !== form.trackingDocUrl) ?? [], [form.trackingDocUrl, nodeFiles]);
+
+  async function loadNodeFiles() {
+    if (!node?.driveFolderUrl || !driveStatus?.connected) return;
+    setNodeDriveBusy("list");
+    setNodeDriveError(null);
+    const result = await listRoadmap2NodeDriveFiles(workspaceKey, node.id);
+    if (result.ok) setNodeFiles(result.data.files);
+    else {
+      setNodeFiles(null);
+      setNodeDriveError(result.error);
+    }
+    setNodeDriveBusy(null);
+  }
+
+  useEffect(() => {
+    if (!node?.driveFolderUrl || !driveStatus?.connected) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setNodeDriveBusy("list");
+      setNodeDriveError(null);
+      void listRoadmap2NodeDriveFiles(workspaceKey, node.id).then((result) => {
+        if (!active) return;
+        if (result.ok) setNodeFiles(result.data.files);
+        else {
+          setNodeFiles(null);
+          setNodeDriveError(result.error);
+        }
+      }).finally(() => { if (active) setNodeDriveBusy(null); });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [driveStatus?.connected, node?.driveFolderUrl, node?.id, workspaceKey]);
 
   function field<K extends keyof Roadmap2NodeInput>(key: K, value: Roadmap2NodeInput[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -194,7 +241,39 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
       setBaseVersion(result.data.version);
       setError(null);
       onLocalNode(updatedNode);
+      setNodeFiles([]);
     });
+  }
+
+  async function uploadFiles(files: FileList | null) {
+    if (!node || !files?.length) return;
+    setNodeDriveBusy("upload");
+    setNodeDriveError(null);
+    let uploaded = 0;
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("workspaceKey", workspaceKey);
+      formData.set("nodeId", node.id);
+      let result: Roadmap2DriveActionResult<{ file: Roadmap2DriveFile }>;
+      try {
+        const response = await fetch("/api/admin/roadmap-2/drive/upload", { method: "POST", body: formData });
+        result = await response.json() as Roadmap2DriveActionResult<{ file: Roadmap2DriveFile }>;
+      } catch {
+        result = { ok: false, code: "UNAVAILABLE", error: "L’ajout à Google Drive a échoué. Réessayez." };
+      }
+      if (!result.ok) {
+        setNodeDriveError(result.error);
+        break;
+      }
+      uploaded += 1;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setNodeDriveBusy(null);
+    if (uploaded) {
+      announce("success", `${uploaded} fichier${uploaded === 1 ? "" : "s"} ajouté${uploaded === 1 ? "" : "s"} au dossier Drive du nœud.`);
+      await loadNodeFiles();
+    }
   }
 
   return (
@@ -251,19 +330,61 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
           </section>
 
           <section className={`${styles.editorialSection} ${styles.privateSection}`} data-private-export>
-            <div className={styles.sectionKicker}>Documents · privé</div>
-            {node && (
-              <div className={styles.driveAutomationCallout}>
-                <div>
-                  <strong>Ressources Drive de ce résultat</strong>
-                  <span>Roadmap 2 réutilise les dossiers existants et crée uniquement ce qui manque.</span>
+            <div className={styles.sectionKicker}>Documents Google Drive · privé</div>
+            {!node ? (
+              <p className={styles.inlineEmpty}>Créez d’abord le nœud. Vous pourrez ensuite préparer son dossier Drive et y ajouter des fichiers.</p>
+            ) : driveStatusLoading ? (
+              <div className={styles.nodeDriveState} role="status">
+                <span className={`${styles.driveStatusDot} ${styles.driveStatusChecking}`} aria-hidden="true" />
+                <div><strong>Vérification de Google Drive…</strong><small>Nous vérifions la connexion avant d’afficher les documents de ce résultat.</small></div>
+              </div>
+            ) : driveStatusError || driveStatus?.enabled === false ? (
+              <div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`} role="alert">
+                <span className={styles.driveStatusDot} aria-hidden="true" />
+                <div><strong>Google Drive est momentanément indisponible</strong><small>Votre dossier n’est pas déconnecté. Réessayez la vérification dans quelques instants.</small></div>
+                <button type="button" className={styles.secondaryButton} onClick={onRefreshDrive}>Réessayer</button>
+              </div>
+            ) : !driveStatus?.connected ? (
+              <div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`}>
+                <span className={styles.driveStatusDot} aria-hidden="true" />
+                <div><strong>{hasRootDrive ? "Google Drive doit être reconnecté" : "Google Drive n’est pas connecté"}</strong><small>Connectez le compte Drive pour afficher et ajouter les fichiers de ce résultat.</small></div>
+                <button type="button" className={styles.primaryButton} onClick={onManageDrive}>{hasRootDrive ? "Reconnecter Drive" : "Connecter Drive"}</button>
+              </div>
+            ) : !hasRootDrive ? (
+              <div className={styles.nodeDriveState}>
+                <span className={`${styles.driveStatusDot} ${styles.driveStatusConnected}`} aria-hidden="true" />
+                <div><strong>Drive connecté · arborescence à préparer</strong><small>Créez ou choisissez le dossier racine avant d’associer ce nœud.</small></div>
+                <button type="button" className={styles.primaryButton} onClick={onManageDrive}>Préparer Drive</button>
+              </div>
+            ) : !form.driveFolderUrl ? (
+              <div className={styles.nodeDriveState}>
+                <span className={`${styles.driveStatusDot} ${styles.driveStatusConnected}`} aria-hidden="true" />
+                <div><strong>Drive connecté · dossier du nœud à créer</strong><small>Roadmap 2 créera un dossier dédié et le document « 00 - SUIVI & DÉCISIONS ».</small></div>
+                <button type="button" className={styles.primaryButton} disabled={pending || remoteVersionChanged} onClick={createDriveResources}><Icon name="plus" size={15} /> Préparer l’espace Drive</button>
+              </div>
+            ) : (
+              <div className={styles.nodeDriveWorkspace}>
+                <div className={styles.nodeDriveHeading}>
+                  <div><span className={`${styles.driveStatusDot} ${styles.driveStatusConnected}`} aria-hidden="true" /><span><strong>Dossier du nœud prêt</strong><small>Les fichiers ci-dessous restent stockés dans Google Drive.</small></span></div>
+                  <div>
+                    <label className={`${styles.primaryButton} ${nodeDriveBusy ? styles.uploadDisabled : ""}`}><Icon name="paperclip" size={15} /> {nodeDriveBusy === "upload" ? "Ajout en cours…" : "Ajouter des fichiers"}<input ref={fileInputRef} className={styles.visuallyHidden} type="file" multiple disabled={Boolean(nodeDriveBusy)} accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.webp" onChange={(event) => void uploadFiles(event.target.files)} /></label>
+                    <a className={styles.secondaryButton} href={form.driveFolderUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" size={15} /> Ouvrir dans Drive</a>
+                  </div>
                 </div>
-                <button type="button" className={styles.secondaryButton} disabled={pending || remoteVersionChanged} onClick={createDriveResources}><Icon name="plus" size={15} /> {form.driveFolderUrl && form.trackingDocUrl ? "Vérifier / compléter" : "Créer automatiquement"}</button>
+
+                {form.trackingDocUrl && <a className={styles.trackingDocCard} href={form.trackingDocUrl} target="_blank" rel="noopener noreferrer"><span className={styles.driveFileIcon}><Icon name="file-text" size={17} /></span><span><strong>00 - SUIVI & DÉCISIONS</strong><small>Document de référence · toujours disponible en tête</small></span><Icon name="external" size={14} /></a>}
+
+                <div className={styles.nodeFilesHeader}><span>Fichiers du nœud</span><button type="button" disabled={Boolean(nodeDriveBusy)} onClick={() => void loadNodeFiles()}><Icon name="refresh" size={14} /> Actualiser</button></div>
+                {nodeDriveBusy === "list" && nodeFiles === null ? <p className={styles.driveExplorerEmpty} role="status">Chargement des fichiers Drive…</p> : visibleNodeFiles.length === 0 ? <p className={styles.nodeFilesEmpty}>Aucun autre fichier. Ajoutez ici vos devis, tableaux, présentations ou preuves de décision.</p> : (
+                  <ul className={`${styles.driveFileList} ${styles.nodeDriveFileList}`}>
+                    {visibleNodeFiles.map((file) => <li key={file.id}><span className={styles.driveFileIcon}><Icon name={file.isFolder ? "layers" : "file-text"} size={16} /></span><a href={file.url} target="_blank" rel="noopener noreferrer"><strong>{file.name}</strong><small>{file.isFolder ? "Dossier Drive" : file.modifiedAt ? `Modifié ${new Date(file.modifiedAt).toLocaleDateString("fr-FR")}` : "Fichier Drive"}</small></a><a href={file.url} target="_blank" rel="noopener noreferrer" aria-label={`Consulter ${file.name}`}><Icon name="eye" size={14} /></a></li>)}
+                  </ul>
+                )}
+                {nodeDriveError && <div className={styles.formError} role="alert"><Icon name="alert-circle" size={16} /> <span>{nodeDriveError}</span><button type="button" onClick={onManageDrive}>Gérer la connexion</button></div>}
+                <p className={styles.nodeDriveHint}>PDF, Office, CSV, TXT et images · 10 Mo maximum par fichier. Roadmap 2 ne conserve aucune copie.</p>
               </div>
             )}
-            <DriveField label="Dossier Google Drive" value={form.driveFolderUrl ?? ""} onChange={(value) => field("driveFolderUrl", nullable(value))} placeholder="https://drive.google.com/drive/folders/…" onCopy={copy} emptyText="Aucun dossier Drive associé" actionText="Ajouter un lien" />
-            <DriveField label="Document Suivi & décisions" value={form.trackingDocUrl ?? ""} onChange={(value) => field("trackingDocUrl", nullable(value))} placeholder="https://docs.google.com/document/d/…" onCopy={copy} emptyText="Aucun document Suivi & décisions" actionText="Renseigner le document" />
-            <details className={styles.helpDetails}><summary>Structure Drive et modèle recommandés</summary><p>L’intégration peut créer cette structure et un document de suivi par nœud. Le modèle reste une recommandation et les liens peuvent toujours être renseignés manuellement.</p><div className={styles.helpColumns}><pre>{ROADMAP2_DRIVE_HELP}</pre><pre>{ROADMAP2_TRACKING_DOC_TEMPLATE}</pre></div></details>
+            <details className={styles.driveManualConfig}><summary>Liens Drive et aide avancée</summary><p>Vous pouvez conserver un dossier existant en renseignant ses URL manuellement. Enregistrez ensuite le nœud.</p><DriveField label="Dossier Google Drive" value={form.driveFolderUrl ?? ""} onChange={(value) => field("driveFolderUrl", nullable(value))} placeholder="https://drive.google.com/drive/folders/…" onCopy={copy} emptyText="Aucun dossier Drive associé" actionText="Ajouter un lien" /><DriveField label="Document Suivi & décisions" value={form.trackingDocUrl ?? ""} onChange={(value) => field("trackingDocUrl", nullable(value))} placeholder="https://docs.google.com/document/d/…" onCopy={copy} emptyText="Aucun document Suivi & décisions" actionText="Renseigner le document" /><details className={styles.helpDetails}><summary>Structure et modèle recommandés</summary><div className={styles.helpColumns}><pre>{ROADMAP2_DRIVE_HELP}</pre><pre>{ROADMAP2_TRACKING_DOC_TEMPLATE}</pre></div></details></details>
           </section>
 
           {node && (

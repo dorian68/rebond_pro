@@ -545,6 +545,13 @@ export const roadmap2Repository = {
     await prisma.$transaction((tx) => writeAudit(tx, workspaceId, actorUserId, safeAction, "Roadmap2Workspace", workspaceId));
   },
 
+  async recordNodeDriveAudit(workspaceId: string, actorUserId: string, nodeId: string, action: string) {
+    const safeAction = z.string().regex(/^node\.drive_[a-z_]+$/).max(80).parse(action);
+    const exists = await prisma.roadmap2Node.count({ where: { id: nodeId, workspaceId } });
+    if (!exists) throw new Roadmap2NotFoundError();
+    await prisma.$transaction((tx) => writeAudit(tx, workspaceId, actorUserId, safeAction, "Roadmap2Node", nodeId));
+  },
+
   async seedWorkspace(workspaceId: string, actorUserId: string) {
     const seed = buildRoadmap2Seed();
     return prisma.$transaction(async (tx) => {

@@ -8,6 +8,36 @@ const FOLDER_MIME = "application/vnd.google-apps.folder";
 const DOC_MIME = "application/vnd.google-apps.document";
 const FILE_ID = /^[A-Za-z0-9_-]{3,200}$/;
 
+export const ROADMAP2_DRIVE_MAX_FILE_BYTES = 10 * 1024 * 1024;
+export const ROADMAP2_DRIVE_ALLOWED_FILE_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.ms-excel",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "text/csv",
+  "text/plain",
+]);
+const ROADMAP2_DRIVE_ALLOWED_EXTENSIONS: Record<string, ReadonlySet<string>> = {
+  "application/pdf": new Set(["pdf"]),
+  "application/msword": new Set(["doc"]),
+  "application/vnd.ms-excel": new Set(["xls"]),
+  "application/vnd.ms-powerpoint": new Set(["ppt"]),
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": new Set(["docx"]),
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": new Set(["xlsx"]),
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": new Set(["pptx"]),
+  "image/jpeg": new Set(["jpg", "jpeg"]),
+  "image/png": new Set(["png"]),
+  "image/webp": new Set(["webp"]),
+  "text/csv": new Set(["csv"]),
+  "text/plain": new Set(["txt"]),
+};
+
 const TOOLS = {
   createFile: "GOOGLEDRIVE_CREATE_FILE",
   createFolder: "GOOGLEDRIVE_CREATE_FOLDER",
@@ -65,12 +95,20 @@ export type Roadmap2DriveDriver = {
   authLink(entityId: string, callbackUrl: string): Promise<string>;
   execute(entityId: string, tool: string, args: Record<string, unknown>): Promise<unknown>;
   uploadText(name: string, content: string): Promise<{ name: string; mimetype: string; s3key: string }>;
+  uploadFile(file: File): Promise<{ name: string; mimetype: string; s3key: string }>;
 };
 
 export class Roadmap2DriveError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "Roadmap2DriveError";
+  }
+}
+
+export class Roadmap2DriveValidationError extends Roadmap2DriveError {
+  constructor(message: string) {
+    super(message);
+    this.name = "Roadmap2DriveValidationError";
   }
 }
 
@@ -116,6 +154,7 @@ const composioDriver: Roadmap2DriveDriver = {
     const file = new File([content], `${name}.txt`, { type: "text/plain;charset=utf-8" });
     return composio().files.upload({ file, toolSlug: TOOLS.createFile, toolkitSlug: DRIVE_TOOLKIT });
   },
+  uploadFile: (file) => composio().files.upload({ file, toolSlug: TOOLS.createFile, toolkitSlug: DRIVE_TOOLKIT }),
 };
 
 function record(value: unknown): DriveRecord | null {
@@ -177,6 +216,20 @@ function escapedDriveQuery(value: string) {
 
 function safeResourceName(value: string) {
   return value.replace(/[\\/:*?"<>|\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Sans titre";
+}
+
+function validatedUpload(file: File) {
+  if (file.size <= 0) throw new Roadmap2DriveValidationError("Le fichier sélectionné est vide.");
+  if (file.size > ROADMAP2_DRIVE_MAX_FILE_BYTES) throw new Roadmap2DriveValidationError("Fichier trop volumineux (10 Mo maximum).");
+  const mimeType = file.type.toLowerCase().split(";", 1)[0] || "";
+  if (!ROADMAP2_DRIVE_ALLOWED_FILE_TYPES.has(mimeType)) {
+    throw new Roadmap2DriveValidationError("Format non pris en charge. Utilisez PDF, Word, Excel, PowerPoint, CSV, TXT, JPG, PNG ou WEBP.");
+  }
+  const extension = file.name.toLowerCase().match(/\.([a-z0-9]{1,8})$/)?.[1] ?? "";
+  if (!ROADMAP2_DRIVE_ALLOWED_EXTENSIONS[mimeType]?.has(extension)) {
+    throw new Roadmap2DriveValidationError("L’extension du fichier ne correspond pas à son format.");
+  }
+  return { name: safeResourceName(file.name), mimeType };
 }
 
 function parseFiles(data: DriveRecord): Roadmap2DriveFile[] {
@@ -346,6 +399,44 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
         files: parseFiles(result).sort((a, b) => Number(b.isFolder) - Number(a.isFolder) || a.name.localeCompare(b.name, "fr")),
         rootId,
       };
+    },
+
+    async listNodeFiles(input: { workspaceId: string; rootDriveUrl: string | null; nodeFolderUrl: string | null }) {
+      const nodeFolderId = extractRoadmap2DriveFolderId(input.nodeFolderUrl);
+      if (!nodeFolderId) throw new Roadmap2DriveError("Préparez d’abord l’espace Drive de ce nœud.");
+      return this.listFiles({ workspaceId: input.workspaceId, rootDriveUrl: input.rootDriveUrl, folderId: nodeFolderId });
+    },
+
+    async uploadNodeFile(input: { workspaceId: string; rootDriveUrl: string | null; nodeFolderUrl: string | null; file: File }) {
+      await ensureConnected(driver, input.workspaceId);
+      const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
+      if (!rootId) throw new Roadmap2DriveError("Créez d’abord l’arborescence Drive de la roadmap.");
+      const nodeFolderId = extractRoadmap2DriveFolderId(input.nodeFolderUrl);
+      if (!nodeFolderId) throw new Roadmap2DriveError("Préparez d’abord l’espace Drive de ce nœud.");
+      await assertWithinRoot(driver, input.workspaceId, rootId, nodeFolderId);
+      const folder = await metadata(driver, input.workspaceId, nodeFolderId, "id,mimeType,trashed");
+      if (folder.mimeType !== FOLDER_MIME || folder.trashed === true) throw new Roadmap2DriveError("Le dossier Drive de ce nœud n’est plus disponible.");
+
+      const validated = validatedUpload(input.file);
+      const staged = await driver.uploadFile(new File([await input.file.arrayBuffer()], validated.name, { type: validated.mimeType }));
+      const created = unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.createFile, {
+        name: validated.name,
+        mimeType: validated.mimeType,
+        parents: [nodeFolderId],
+        file_to_upload: staged,
+        description: "Fichier ajouté depuis Roadmap 2.",
+        fields: "id,name,mimeType,webViewLink,modifiedTime,size",
+      }));
+      const id = requireFileId(created.id, "Fichier Drive créé");
+      return {
+        id,
+        name: optionalString(created.name) ?? validated.name,
+        mimeType: optionalString(created.mimeType) ?? validated.mimeType,
+        url: optionalString(created.webViewLink) ?? optionalString(created.display_url) ?? fileUrl(id, validated.mimeType),
+        isFolder: false,
+        modifiedAt: optionalString(created.modifiedTime) ?? new Date().toISOString(),
+        size: optionalString(created.size) ?? String(input.file.size),
+      } satisfies Roadmap2DriveFile;
     },
 
     async createNodeResources(input: { workspaceId: string; rootDriveUrl: string | null; nodeId: string; nodeTitle: string; category: Roadmap2Category; existingFolderUrl?: string | null; existingTrackingDocUrl?: string | null }) {
