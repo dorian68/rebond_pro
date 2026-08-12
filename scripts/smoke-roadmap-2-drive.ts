@@ -205,6 +205,7 @@ runner("roadmap_2_drive_smoke", async () => {
   for (const name of actionNames) assert(actions.includes(`function ${name}`), `Action Drive manquante : ${name}`);
   assert((actions.match(/resolveRoadmap2Context\(workspaceKey\)/g) ?? []).length === actionNames.length, "Chaque action Drive doit recalculer côté serveur le workspace et le rôle admin.");
   assert(!actions.includes("console.") && !client.includes("COMPOSIO_API_KEY"), "Les secrets et réponses Drive ne doivent pas être journalisés ni envoyés au client.");
+  assert(uploadRoute.includes("getPlatformAdmin") && uploadRoute.indexOf("getPlatformAdmin") < uploadRoute.indexOf("request.formData()"), "La route d’upload doit refuser un utilisateur non admin avant de lire son fichier.");
   assert(uploadRoute.includes("uploadRoadmap2NodeDriveFile") && uploadRoute.includes('"Cache-Control": "private, no-store"'), "L’upload doit passer par une route admin privée sans cache et réutiliser les gardes serveur.");
   assert(detail.includes('/api/admin/roadmap-2/drive/upload') && !detail.includes("COMPOSIO_API_KEY"), "Le navigateur ne doit transmettre le fichier qu’à la route admin privée, jamais directement au fournisseur avec un secret.");
   assert(driveService.includes("/admin/roadmap-2/google-drive/callback") && !driveService.includes("/integrations/composio/callback?connector=google_drive"), "Le retour OAuth doit rester dans le layout admin privé, même sans tenant centre.");
