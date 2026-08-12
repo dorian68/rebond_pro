@@ -178,6 +178,25 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
     announce("success", `${label} copié.`);
   }
 
+  function createDriveResources() {
+    if (!node || remoteVersionChanged) return;
+    if (!window.confirm(`Créer ou retrouver dans Google Drive le dossier « ${node.title} » et son document « 00 - SUIVI & DÉCISIONS » ?`)) return;
+    startTransition(async () => {
+      const versionedNode = { ...node, version: baseVersion ?? node.version };
+      const result = await actions.createDriveResources(versionedNode);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      const now = new Date().toISOString();
+      const updatedNode = { ...node, driveFolderUrl: result.data.driveFolderUrl, trackingDocUrl: result.data.trackingDocUrl, version: result.data.version, updatedAt: now };
+      setForm((current) => ({ ...current, driveFolderUrl: result.data.driveFolderUrl, trackingDocUrl: result.data.trackingDocUrl }));
+      setBaseVersion(result.data.version);
+      setError(null);
+      onLocalNode(updatedNode);
+    });
+  }
+
   return (
     <div className={styles.detailBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <aside ref={panelRef} className={styles.detailPanel} role="dialog" aria-modal="true" aria-labelledby="roadmap2-detail-title">
@@ -233,9 +252,18 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
 
           <section className={`${styles.editorialSection} ${styles.privateSection}`} data-private-export>
             <div className={styles.sectionKicker}>Documents · privé</div>
+            {node && (
+              <div className={styles.driveAutomationCallout}>
+                <div>
+                  <strong>Ressources Drive de ce résultat</strong>
+                  <span>Roadmap 2 réutilise les dossiers existants et crée uniquement ce qui manque.</span>
+                </div>
+                <button type="button" className={styles.secondaryButton} disabled={pending || remoteVersionChanged} onClick={createDriveResources}><Icon name="plus" size={15} /> {form.driveFolderUrl && form.trackingDocUrl ? "Vérifier / compléter" : "Créer automatiquement"}</button>
+              </div>
+            )}
             <DriveField label="Dossier Google Drive" value={form.driveFolderUrl ?? ""} onChange={(value) => field("driveFolderUrl", nullable(value))} placeholder="https://drive.google.com/drive/folders/…" onCopy={copy} emptyText="Aucun dossier Drive associé" actionText="Ajouter un lien" />
             <DriveField label="Document Suivi & décisions" value={form.trackingDocUrl ?? ""} onChange={(value) => field("trackingDocUrl", nullable(value))} placeholder="https://docs.google.com/document/d/…" onCopy={copy} emptyText="Aucun document Suivi & décisions" actionText="Renseigner le document" />
-            <details className={styles.helpDetails}><summary>Structure Drive et modèle recommandés</summary><p>Ce modèle est indicatif : Roadmap 2 ne crée ni dossier ni document.</p><div className={styles.helpColumns}><pre>{ROADMAP2_DRIVE_HELP}</pre><pre>{ROADMAP2_TRACKING_DOC_TEMPLATE}</pre></div></details>
+            <details className={styles.helpDetails}><summary>Structure Drive et modèle recommandés</summary><p>L’intégration peut créer cette structure et un document de suivi par nœud. Le modèle reste une recommandation et les liens peuvent toujours être renseignés manuellement.</p><div className={styles.helpColumns}><pre>{ROADMAP2_DRIVE_HELP}</pre><pre>{ROADMAP2_TRACKING_DOC_TEMPLATE}</pre></div></details>
           </section>
 
           {node && (

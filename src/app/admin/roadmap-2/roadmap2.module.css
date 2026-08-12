@@ -721,6 +721,11 @@
 .checkField { display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--rm-ink); font-size: 12px; }
 .checkField input { accent-color: var(--rm-green); }
 .privateSection { background: #f3eee5; margin-inline: -26px; padding-inline: 26px; }
+.driveAutomationCallout { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; padding: 13px 14px; border: 1px solid #c8d8ce; border-radius: 11px; background: #eef5ef; }
+.driveAutomationCallout > div { min-width: 0; display: grid; gap: 3px; }
+.driveAutomationCallout strong { color: var(--rm-green-dark); font-size: 12px; }
+.driveAutomationCallout span { color: var(--rm-muted); font-size: 10.5px; line-height: 1.4; }
+.driveAutomationCallout button { flex: 0 0 auto; }
 .driveField { margin-top: 13px; padding: 12px; border: 1px solid #d9cfbf; border-radius: 11px; background: rgba(255, 253, 248, .75); }
 .driveFieldActions,
 .driveMissing { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 7px; }
@@ -767,6 +772,47 @@
 .driveModal h2 { margin-top: 6px; font-size: 24px; color: var(--rm-green-dark); }
 .driveModal > p { margin: 8px 0 17px; color: var(--rm-muted); font-size: 12px; line-height: 1.55; }
 .driveModal .modalActions { justify-content: flex-start; margin-top: 16px; }
+.driveIntegrationModal { width: min(780px, calc(100vw - 28px)); max-height: min(880px, calc(100vh - 28px)); overflow-y: auto; }
+.driveConnection { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--rm-line); border-radius: 12px; background: var(--rm-paper); }
+.driveConnection > div { display: grid; gap: 3px; }
+.driveConnection strong { color: var(--rm-green-dark); font-size: 12.5px; }
+.driveConnection small { color: var(--rm-muted); font-size: 10.5px; line-height: 1.4; }
+.driveStatusDot { width: 10px; height: 10px; border: 2px solid #9d9487; border-radius: 50%; background: transparent; }
+.driveStatusConnected { border-color: #3c7868; background: #3c7868; box-shadow: 0 0 0 4px rgba(60, 120, 104, .12); }
+.driveIntegrationActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.driveExplorer { margin-top: 14px; border: 1px solid var(--rm-line); border-radius: 12px; background: #fffdf9; overflow: hidden; }
+.driveExplorerHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid var(--rm-line); background: #eee8de; }
+.driveExplorerHeader > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.driveExplorerHeader span { color: var(--rm-muted); font-size: 8.5px; font-weight: 820; letter-spacing: .08em; text-transform: uppercase; }
+.driveExplorerHeader strong { overflow: hidden; color: var(--rm-green-dark); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.driveExplorerHeader > div:last-child { display: flex; gap: 5px; }
+.driveExplorerHeader button { min-height: 30px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d4cabd; border-radius: 7px; background: var(--rm-paper); color: var(--rm-green); padding: 5px 8px; font-size: 10px; font-weight: 760; cursor: pointer; }
+.driveFileList { max-height: 265px; overflow-y: auto; list-style: none; }
+.driveFileList li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 48px; padding: 7px 12px; border-bottom: 1px solid #eee7dd; }
+.driveFileList li:last-child { border-bottom: 0; }
+.driveFileList li > button,
+.driveFileList li > a { min-width: 0; display: grid; gap: 2px; border: 0; background: transparent; padding: 0; color: var(--rm-ink); text-align: left; text-decoration: none; cursor: pointer; }
+.driveFileList li > a:last-child { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 7px; color: var(--rm-green); }
+.driveFileList li > a:last-child:hover { border-color: var(--rm-line); background: #f5f0e7; }
+.driveFileList strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.driveFileList small { color: var(--rm-muted); font-size: 9px; }
+.driveFileIcon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 8px; background: #edf2ed; color: var(--rm-green); }
+.driveExplorerEmpty { padding: 22px; color: var(--rm-muted); font-size: 11px; text-align: center; }
+.driveSharing { display: grid; grid-template-columns: minmax(160px, .8fr) minmax(220px, 1.2fr) auto; align-items: end; gap: 12px; margin-top: 14px; padding: 14px; border: 1px solid #d9cfbf; border-radius: 12px; background: #f5f0e7; }
+.driveSharing > div { align-self: center; display: grid; gap: 3px; }
+.driveSharing strong { color: var(--rm-green-dark); font-size: 11.5px; }
+.driveSharing small { color: var(--rm-muted); font-size: 9.5px; line-height: 1.4; }
+.driveManualConfig { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--rm-line); color: var(--rm-muted); font-size: 10.5px; }
+.driveManualConfig summary { color: var(--rm-green); font-weight: 760; cursor: pointer; }
+.driveManualConfig > p { margin: 8px 0 10px; line-height: 1.45; }
+.driveSecurityNote { display: flex; align-items: flex-start; gap: 7px; margin: 14px 0 0 !important; padding: 10px 11px; border-radius: 8px; background: #eef2ef; color: #53645f !important; font-size: 9.5px !important; }
+.driveSecurityNote svg { flex: 0 0 auto; }
+.driveProgress { margin: 12px 0 0 !important; color: var(--rm-green) !important; font-weight: 750; }
+.driveCallback { max-width: 620px; margin: min(14vh, 120px) auto; padding: 42px; border: 1px solid var(--rm-line); border-radius: 18px; background: var(--rm-paper); color: var(--rm-ink); text-align: center; box-shadow: 0 20px 60px rgba(24, 33, 30, .1); }
+.driveCallbackMark { width: 66px; height: 66px; display: grid; place-items: center; margin: 0 auto 16px; border-radius: 50%; background: #e7f0e9; color: var(--rm-green); }
+.driveCallback h1 { margin: 8px 0 10px; color: var(--rm-green-dark); font-size: clamp(28px, 5vw, 40px); letter-spacing: -.04em; }
+.driveCallback p { max-width: 500px; margin: 0 auto 22px; color: var(--rm-muted); font-size: 13px; line-height: 1.6; }
+.driveCallback a { text-decoration: none; }
 
 .toast {
   position: fixed;
@@ -817,6 +863,7 @@
   .timelineLegend { width: 100%; margin-left: 0; }
   .formGrid3 { grid-template-columns: 1fr 1fr; }
   .helpColumns { grid-template-columns: 1fr; }
+  .driveSharing { grid-template-columns: 1fr; align-items: stretch; }
 }
 
 @media (max-width: 700px) {
@@ -878,6 +925,11 @@
   .conflictNotice { grid-template-columns: auto 1fr; }
   .conflictNotice button { grid-column: 1 / -1; }
   .detailActions .dangerAction { margin-left: 0; }
+  .driveAutomationCallout { align-items: stretch; flex-direction: column; }
+  .driveConnection { grid-template-columns: auto 1fr; }
+  .driveConnection .primaryButton { grid-column: 1 / -1; width: 100%; }
+  .driveIntegrationActions { display: grid; }
+  .driveIntegrationActions > * { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

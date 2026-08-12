@@ -12,8 +12,10 @@
 - PostgreSQL/Prisma reste l'unique source de vérité.
 - `Roadmap2Node`, `Roadmap2Edge` et `Roadmap2Update` utilisent des relations explicites ; les dépendances ne sont pas stockées dans un JSON opaque.
 - Le sens d'une arête est toujours `source → cible`. Pour `dependency`, la source est le prérequis et la cible le résultat conditionné ; l'interface affiche donc « Prérequis pour » et contextualise les relations entrantes.
-- `Roadmap2Workspace` contient uniquement la configuration privée du workspace, dont l'URL du dossier Drive racine.
-- Google Drive reste la source documentaire : le MVP ne stocke que deux URL HTTPS autorisées par nœud et n'appelle aucune API Google.
+- `Roadmap2Workspace` contient la configuration privée du workspace, dont l'URL du dossier Drive racine. Les jetons OAuth sont gérés par Composio sous une identité isolée par workspace et ne sont pas stockés dans l'application.
+- Google Drive reste la source documentaire : Roadmap 2 stocke deux URL HTTPS autorisées par nœud et utilise les outils Google Drive côté serveur pour créer, lister et partager les ressources. Aucun contenu de fichier n'est copié dans PostgreSQL.
+- L'arborescence recommandée est créée de manière idempotente. Chaque dossier de nœud porte un marqueur stable dérivé du `nodeId`, ce qui évite qu'un renommage ou deux titres identiques fusionnent les preuves documentaires.
+- L'exploration est enfermée sous le dossier racine par une vérification d'ascendance serveur. Le partage est additif uniquement : Roadmap 2 ne retire jamais une permission Drive sans fonctionnalité dédiée et confirmation explicite.
 
 ## Collaboration et conflits
 

@@ -31,6 +31,15 @@ import {
   updateRoadmap2Node,
   type Roadmap2ActionResult,
 } from "@/server/roadmap2-actions";
+import {
+  connectRoadmap2Drive,
+  createRoadmap2NodeDriveResources,
+  getRoadmap2DriveStatus,
+  listRoadmap2DriveFiles,
+  provisionRoadmap2Drive,
+  syncRoadmap2DrivePermissions,
+  type Roadmap2DriveActionResult,
+} from "@/server/roadmap2-drive-actions";
 import { EMPTY_FILTERS, filterRoadmap2Nodes, nodeToInput, type Roadmap2Filters, type Roadmap2View } from "./roadmap2-ui";
 import { Roadmap2Graph } from "./roadmap2-graph";
 import { Roadmap2Timeline } from "./roadmap2-timeline";
@@ -39,6 +48,9 @@ import { Roadmap2Detail } from "./roadmap2-detail";
 import styles from "./roadmap2.module.css";
 
 type EditorState = { mode: "edit"; nodeId: string } | { mode: "create"; parentId?: string; type?: Roadmap2NodeDto["type"] } | null;
+type DriveStatus = Extract<Awaited<ReturnType<typeof getRoadmap2DriveStatus>>, { ok: true }>["data"];
+type DriveListing = Extract<Awaited<ReturnType<typeof listRoadmap2DriveFiles>>, { ok: true }>["data"];
+type DriveNodeResources = Extract<Awaited<ReturnType<typeof createRoadmap2NodeDriveResources>>, { ok: true }>["data"];
 
 export type Roadmap2UiActions = {
   saveNode: (node: Roadmap2NodeDto | null, input: Roadmap2NodeInput) => Promise<Roadmap2ActionResult>;
@@ -49,6 +61,7 @@ export type Roadmap2UiActions = {
   duplicateNode: (node: Roadmap2NodeDto) => Promise<Roadmap2ActionResult>;
   createEdge: (sourceNodeId: string, targetNodeId: string, relationType: Roadmap2RelationType) => Promise<Roadmap2ActionResult>;
   removeEdge: (edgeId: string) => Promise<Roadmap2ActionResult>;
+  createDriveResources: (node: Roadmap2NodeDto) => Promise<Roadmap2DriveActionResult<DriveNodeResources>>;
 };
 
 function relativeTime(iso: string | null) {
@@ -61,7 +74,7 @@ function relativeTime(iso: string | null) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 }
 
-export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
+export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initialData: Roadmap2Data; openDriveOnLoad?: boolean }) {
   const router = useRouter();
   const [nodes, setNodes] = useState(initialData.nodes);
   const [edges, setEdges] = useState(initialData.edges);
@@ -70,10 +83,16 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
   const [view, setView] = useState<Roadmap2View>("graph");
   const [filters, setFilters] = useState<Roadmap2Filters>(EMPTY_FILTERS);
   const [editor, setEditor] = useState<EditorState>(null);
-  const [driveConfigOpen, setDriveConfigOpen] = useState(false);
+  const [driveConfigOpen, setDriveConfigOpen] = useState(openDriveOnLoad);
   const [workspaceModal, setWorkspaceModal] = useState<"create" | "rename" | null>(null);
   const [workspaceNameInput, setWorkspaceNameInput] = useState("");
   const [driveInput, setDriveInput] = useState(initialData.workspace.rootDriveUrl ?? "");
+  const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
+  const [driveListing, setDriveListing] = useState<DriveListing | null>(null);
+  const [driveHistory, setDriveHistory] = useState<Array<{ id: string; name: string }>>([]);
+  const [driveCollaborators, setDriveCollaborators] = useState("");
+  const [driveError, setDriveError] = useState<string | null>(null);
+  const [driveBusy, setDriveBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tone: "success" | "error" | "info"; message: string } | null>(null);
   const [busy, startTransition] = useTransition();
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
@@ -103,6 +122,22 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
     const timer = window.setTimeout(() => setToast(null), 4200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (!driveConfigOpen) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      if (!active) return;
+      setDriveBusy("status");
+      setDriveError(null);
+      void getRoadmap2DriveStatus(workspace.key).then((result) => {
+        if (!active) return;
+        if (result.ok) setDriveStatus(result.data);
+        else setDriveError(result.error);
+      }).finally(() => { if (active) setDriveBusy(null); });
+    }, 0);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [driveConfigOpen, workspace.key]);
 
   useEffect(() => {
     if (!driveConfigOpen && !workspaceModal) return;
@@ -238,7 +273,19 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
     return showResult(result, "Relation supprimée.");
   }, [router, showResult, workspace.key]);
 
-  const actions: Roadmap2UiActions = useMemo(() => ({ saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge }), [saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge]);
+  const createDriveResources = useCallback(async (node: Roadmap2NodeDto) => {
+    const result = await createRoadmap2NodeDriveResources(workspace.key, node.id, node.version);
+    if (!result.ok) {
+      setToast({ tone: "error", message: result.error });
+      if (result.code === "CONFLICT") router.refresh();
+      return result;
+    }
+    setToast({ tone: "success", message: result.data.trackingPopulated ? "Dossier et document de suivi créés dans Drive." : "Dossier et document créés. Le modèle de suivi reste à copier dans le document." });
+    router.refresh();
+    return result;
+  }, [router, workspace.key]);
+
+  const actions: Roadmap2UiActions = useMemo(() => ({ saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge, createDriveResources }), [saveNode, quickUpdate, moveNode, archiveNode, removeNode, duplicateNode, createEdge, removeEdge, createDriveResources]);
 
   function runSeed() {
     if (!window.confirm("Créer ici une copie modifiable du modèle Le Bon Rebond (65 nœuds et 110 relations) ? Les dates, statuts, priorités et dépendances sont des propositions. Les éléments seront attribués provisoirement à l’administrateur qui lance l’initialisation.")) return;
@@ -268,7 +315,75 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
 
   function openDriveConfig() {
     modalReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDriveStatus(null);
+    setDriveListing(null);
+    setDriveHistory([]);
+    setDriveError(null);
     setDriveConfigOpen(true);
+  }
+
+  async function connectDrive() {
+    setDriveBusy("connect");
+    setDriveError(null);
+    const result = await connectRoadmap2Drive(workspace.key);
+    if (result.ok) {
+      window.location.assign(result.data.url);
+      return;
+    }
+    setDriveError(result.error);
+    setDriveBusy(null);
+  }
+
+  async function loadDriveFolder(folderId?: string, pushHistory = false) {
+    setDriveBusy("list");
+    setDriveError(null);
+    const result = await listRoadmap2DriveFiles(workspace.key, folderId);
+    if (result.ok) {
+      if (pushHistory && driveListing) setDriveHistory((current) => [...current, { id: driveListing.folder.id, name: driveListing.folder.name }]);
+      setDriveListing(result.data);
+    } else {
+      setDriveError(result.error);
+    }
+    setDriveBusy(null);
+  }
+
+  async function provisionDrive() {
+    if (!window.confirm("Créer ou compléter l’arborescence Le Bon Rebond dans le Google Drive connecté ? Les dossiers existants portant le même nom seront réutilisés.")) return;
+    setDriveBusy("provision");
+    setDriveError(null);
+    const result = await provisionRoadmap2Drive(workspace.key);
+    if (!result.ok) {
+      setDriveError(result.error);
+      setDriveBusy(null);
+      return;
+    }
+    setDriveInput(result.data.rootDriveUrl);
+    setWorkspace((current) => ({ ...current, rootDriveUrl: result.data.rootDriveUrl, updatedAt: new Date().toISOString() }));
+    setToast({ tone: "success", message: result.data.rootCreated ? `Dossier racine et ${result.data.foldersCreated} sous-dossiers créés.` : `${result.data.foldersCreated} dossier${result.data.foldersCreated === 1 ? "" : "s"} manquant${result.data.foldersCreated === 1 ? "" : "s"} créé${result.data.foldersCreated === 1 ? "" : "s"}.` });
+    setDriveBusy(null);
+    await loadDriveFolder();
+  }
+
+  async function goBackDrive() {
+    const previous = driveHistory.at(-1);
+    if (!previous) return;
+    setDriveHistory((current) => current.slice(0, -1));
+    await loadDriveFolder(previous.id, false);
+  }
+
+  async function shareDrive() {
+    const emails = driveCollaborators.split(/[;,\n]+/).map((email) => email.trim()).filter(Boolean);
+    if (!emails.length) { setDriveError("Ajoutez au moins une adresse email."); return; }
+    if (!window.confirm(`Ajouter ou mettre à niveau un accès éditeur au dossier racine pour :\n\n${emails.join("\n")}\n\nAucun accès Drive existant ne sera retiré.`)) return;
+    setDriveBusy("share");
+    setDriveError(null);
+    const result = await syncRoadmap2DrivePermissions(workspace.key, emails);
+    if (result.ok) {
+      setToast({ tone: "success", message: `Accès Drive : ${result.data.created} ajouté(s), ${result.data.updated} mis à niveau, ${result.data.unchanged} déjà éditeur(s). Aucun accès existant n’a été retiré.` });
+    } else {
+      setDriveError(result.error);
+    }
+    setDriveBusy(null);
   }
 
   function saveWorkspace() {
@@ -426,13 +541,75 @@ export function Roadmap2Client({ initialData }: { initialData: Roadmap2Data }) {
 
       {driveConfigOpen && (
         <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDriveConfigOpen(false); }}>
-          <section ref={modalPanelRef} className={styles.driveModal} role="dialog" aria-modal="true" aria-labelledby="drive-config-title">
-            <button className={styles.closeButton} onClick={() => setDriveConfigOpen(false)} aria-label="Fermer"><Icon name="x" size={18} /></button>
-            <div className={styles.eyebrow}>Configuration privée</div>
-            <h2 id="drive-config-title">Dossier Drive racine</h2>
-            <p>Enregistrez uniquement l’URL du dossier « LE BON REBOND ». Aucun contenu n’est importé.</p>
-            <label className={styles.field}><span>URL HTTPS Google Drive</span><input autoFocus value={driveInput} onChange={(event) => setDriveInput(event.target.value)} placeholder="https://drive.google.com/drive/folders/…" /></label>
-            <div className={styles.modalActions}><button className={styles.primaryButton} disabled={busy} onClick={saveRootDrive}>Enregistrer</button><button className={styles.secondaryButton} onClick={() => setDriveConfigOpen(false)}>Annuler</button></div>
+          <section ref={modalPanelRef} className={`${styles.driveModal} ${styles.driveIntegrationModal}`} role="dialog" aria-modal="true" aria-labelledby="drive-config-title">
+            <button autoFocus className={styles.closeButton} onClick={() => setDriveConfigOpen(false)} aria-label="Fermer"><Icon name="x" size={18} /></button>
+            <div className={styles.eyebrow}>Intégration privée · {workspace.name}</div>
+            <h2 id="drive-config-title">Intégration Google Drive</h2>
+            <p>Roadmap 2 peut créer les dossiers, préparer les documents de suivi et afficher le contenu du seul dossier racine associé.</p>
+
+            <div className={styles.driveConnection} aria-live="polite">
+              <span className={`${styles.driveStatusDot} ${driveStatus?.connected ? styles.driveStatusConnected : ""}`} aria-hidden="true" />
+              <div>
+                <strong>{driveBusy === "status" ? "Vérification de la connexion…" : driveStatus?.connected ? "Google Drive est connecté" : driveStatus?.enabled === false ? "Intégration serveur indisponible" : "Google Drive n’est pas encore connecté"}</strong>
+                <small>{driveStatus?.connected ? "L’identité du compte reste chez Google. Vérifiez le bon compte en ouvrant le dossier, ou reconnectez-en un autre. Aucun token Google n’est envoyé au navigateur." : "Connectez le compte Google qui doit posséder le dossier de travail."}</small>
+              </div>
+              <button type="button" className={driveStatus?.connected ? styles.secondaryButton : styles.primaryButton} disabled={Boolean(driveBusy) || driveStatus?.enabled === false} onClick={() => void connectDrive()}>{driveBusy === "connect" ? "Redirection…" : driveStatus?.connected ? "Changer / reconnecter" : "Connecter Google Drive"}</button>
+            </div>
+
+            {driveStatus?.connected && (
+              <>
+                <div className={styles.driveIntegrationActions}>
+                  <button type="button" className={styles.primaryButton} disabled={Boolean(driveBusy)} onClick={() => void provisionDrive()}><Icon name="plus" size={15} /> {workspace.rootDriveUrl ? "Synchroniser l’arborescence" : "Créer l’arborescence"}</button>
+                  {workspace.rootDriveUrl && <button type="button" className={styles.secondaryButton} disabled={Boolean(driveBusy)} onClick={() => void loadDriveFolder()}><Icon name="eye" size={15} /> Afficher le contenu</button>}
+                  {workspace.rootDriveUrl && <a className={styles.secondaryButton} href={workspace.rootDriveUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" size={15} /> Ouvrir dans Drive</a>}
+                </div>
+
+                {driveListing && (
+                  <section className={styles.driveExplorer} aria-label="Contenu du dossier Google Drive">
+                    <div className={styles.driveExplorerHeader}>
+                      <div>
+                        <span>Contenu Drive</span>
+                        <strong>{driveListing.folder.name}</strong>
+                      </div>
+                      <div>
+                        {driveHistory.length > 0 && <button type="button" disabled={Boolean(driveBusy)} onClick={() => void goBackDrive()}><Icon name="chevron-left" size={15} /> Retour</button>}
+                        <button type="button" disabled={Boolean(driveBusy)} onClick={() => void loadDriveFolder(driveListing.folder.id)} aria-label="Actualiser le contenu Drive"><Icon name="refresh" size={15} /></button>
+                      </div>
+                    </div>
+                    {driveListing.files.length === 0 ? <p className={styles.driveExplorerEmpty}>Ce dossier est vide.</p> : (
+                      <ul className={styles.driveFileList}>
+                        {driveListing.files.map((file) => (
+                          <li key={file.id}>
+                            <span className={styles.driveFileIcon}><Icon name={file.isFolder ? "layers" : "file-text"} size={16} /></span>
+                            {file.isFolder ? <button type="button" onClick={() => void loadDriveFolder(file.id, true)}><strong>{file.name}</strong><small>Dossier</small></button> : <a href={file.url} target="_blank" rel="noopener noreferrer"><strong>{file.name}</strong><small>{file.modifiedAt ? `Modifié ${new Date(file.modifiedAt).toLocaleDateString("fr-FR")}` : "Document Drive"}</small></a>}
+                            <a href={file.url} target="_blank" rel="noopener noreferrer" aria-label={`Ouvrir ${file.name} dans Google Drive`}><Icon name="external" size={14} /></a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+
+                {workspace.rootDriveUrl && (
+                  <section className={styles.driveSharing}>
+                    <div><strong>Ajouter Dorian, Mathurin ou un collaborateur</strong><small>Roadmap 2 ajoute ou promeut ces emails au niveau éditeur. Elle ne retire jamais un accès Drive existant ; les sous-dossiers héritent du partage racine.</small></div>
+                    <label className={styles.field}><span>Emails, séparés par une virgule</span><input value={driveCollaborators} onChange={(event) => setDriveCollaborators(event.target.value)} placeholder="dorian@…, mathurin@…" /></label>
+                    <button type="button" className={styles.secondaryButton} disabled={Boolean(driveBusy)} onClick={() => void shareDrive()}><Icon name="users" size={15} /> Ajouter / mettre à niveau</button>
+                  </section>
+                )}
+              </>
+            )}
+
+            {driveError && <div className={styles.formError} role="alert"><Icon name="alert-circle" size={16} /> {driveError}</div>}
+            {driveBusy && driveBusy !== "status" && driveBusy !== "connect" && <p className={styles.driveProgress} role="status">Opération Google Drive en cours…</p>}
+
+            <details className={styles.driveManualConfig}>
+              <summary>Utiliser un dossier existant manuellement</summary>
+              <p>Renseignez une URL si le dossier racine existe déjà. L’accès à son contenu nécessite tout de même la connexion Google ci-dessus.</p>
+              <label className={styles.field}><span>URL HTTPS Google Drive</span><input value={driveInput} onChange={(event) => setDriveInput(event.target.value)} placeholder="https://drive.google.com/drive/folders/…" /></label>
+              <div className={styles.modalActions}><button type="button" className={styles.secondaryButton} disabled={busy} onClick={saveRootDrive}>Enregistrer ce dossier</button></div>
+            </details>
+            <p className={styles.driveSecurityNote}><Icon name="shield" size={15} /> Les URL et contenus restent côté admin. Roadmap 2 ne stocke ni mot de passe, ni token Google, ni copie des fichiers.</p>
           </section>
         </div>
       )}

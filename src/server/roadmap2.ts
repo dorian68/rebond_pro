@@ -509,6 +509,42 @@ export const roadmap2Repository = {
     });
   },
 
+  async getWorkspaceDriveContext(workspaceId: string) {
+    const workspace = await prisma.roadmap2Workspace.findUnique({ where: { id: workspaceId }, select: { id: true, key: true, name: true, rootDriveUrl: true } });
+    if (!workspace) throw new Roadmap2NotFoundError("Roadmap introuvable.");
+    return workspace;
+  },
+
+  async getNodeDriveContext(workspaceId: string, nodeId: string) {
+    const node = await prisma.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, title: true, category: true, version: true, driveFolderUrl: true, trackingDocUrl: true } });
+    if (!node) throw new Roadmap2NotFoundError();
+    return node;
+  },
+
+  async attachDriveResources(workspaceId: string, actorUserId: string, nodeId: string, expectedVersion: number, rawFolderUrl: unknown, rawTrackingUrl: unknown) {
+    const driveFolderUrl = roadmap2DriveUrlSchema.parse(rawFolderUrl);
+    const trackingDocUrl = roadmap2DriveUrlSchema.parse(rawTrackingUrl);
+    if (!driveFolderUrl || !trackingDocUrl) throw new Roadmap2NotFoundError("Les ressources Drive créées sont incomplètes.");
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.roadmap2Node.updateMany({
+        where: { id: nodeId, workspaceId, version: expectedVersion },
+        data: { driveFolderUrl, trackingDocUrl, updatedById: actorUserId, version: { increment: 1 } },
+      });
+      if (updated.count !== 1) {
+        const exists = await tx.roadmap2Node.count({ where: { id: nodeId, workspaceId } });
+        if (!exists) throw new Roadmap2NotFoundError();
+        throw new Roadmap2ConflictError();
+      }
+      await writeAudit(tx, workspaceId, actorUserId, "node.drive_resources_attached", "Roadmap2Node", nodeId);
+      return tx.roadmap2Node.findUniqueOrThrow({ where: { id: nodeId }, select: { id: true, version: true, driveFolderUrl: true, trackingDocUrl: true } });
+    });
+  },
+
+  async recordWorkspaceAudit(workspaceId: string, actorUserId: string, action: string) {
+    const safeAction = z.string().regex(/^workspace\.drive_[a-z_]+$/).max(80).parse(action);
+    await prisma.$transaction((tx) => writeAudit(tx, workspaceId, actorUserId, safeAction, "Roadmap2Workspace", workspaceId));
+  },
+
   async seedWorkspace(workspaceId: string, actorUserId: string) {
     const seed = buildRoadmap2Seed();
     return prisma.$transaction(async (tx) => {
@@ -551,7 +587,7 @@ export const roadmap2Repository = {
       await tx.roadmap2Edge.createMany({ data: edgeData });
       await writeAudit(tx, workspaceId, actorUserId, "workspace.seeded", "Roadmap2Workspace", workspaceId);
       return { nodes: seed.nodes.length, edges: seed.edges.length };
-    }, { timeout: 15000 });
+    }, { timeout: 30000 });
   },
 };
 

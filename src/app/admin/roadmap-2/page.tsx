@@ -10,8 +10,8 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminRoadmap2Page({ searchParams }: { searchParams: Promise<{ roadmap?: string }> }) {
-  const { roadmap } = await searchParams;
+export default async function AdminRoadmap2Page({ searchParams }: { searchParams: Promise<{ roadmap?: string; drive?: string }> }) {
+  const { roadmap, drive } = await searchParams;
   let data;
   try {
     data = await getRoadmap2Data(roadmap);
@@ -19,5 +19,5 @@ export default async function AdminRoadmap2Page({ searchParams }: { searchParams
     if (error instanceof Roadmap2NotFoundError) notFound();
     throw error;
   }
-  return <Roadmap2Client key={data.workspace.key} initialData={data} />;
+  return <Roadmap2Client key={data.workspace.key} initialData={data} openDriveOnLoad={drive === "setup"} />;
 }

@@ -23,6 +23,7 @@ try {
   assert(client.includes('aria-label="Choisir une roadmap"') && client.includes('aria-label="Renommer la roadmap active"'), "Le sélecteur de roadmap et son action de renommage doivent être nommés.");
   assert(client.includes('aria-labelledby="workspace-config-title"') && client.includes('Créer une roadmap vide'), "La création d’une roadmap doit utiliser un dialogue accessible.");
   assert(client.includes('event.key === "Escape"') && client.includes('event.key !== "Tab"') && client.includes("modalReturnFocusRef.current.focus()"), "Les dialogues de configuration doivent gérer Escape, confiner Tab et restituer le focus.");
+  assert(client.includes('aria-label="Contenu du dossier Google Drive"') && client.includes('aria-label="Actualiser le contenu Drive"'), "L’explorateur Drive doit être identifié et ses actions iconiques nommées.");
   step("landmarks_and_announcements");
 
   assert(graph.includes('tabIndex={0}') && graph.includes('event.key === "Enter"') && graph.includes('edgesFocusable'), "Le graphe doit exposer un accès clavier.");
@@ -43,6 +44,8 @@ try {
 
   assert(detail.includes('target="_blank" rel="noopener noreferrer"'), "Les liens Drive doivent s'ouvrir de manière sécurisée.");
   assert(client.includes("Modifier Drive") && client.includes("setDriveConfigOpen(true)"), "Le dossier Drive racine doit rester modifiable après sa configuration.");
+  assert(client.includes("Connecter Google Drive") && client.includes("Aucun token Google n’est envoyé au navigateur"), "La connexion Google doit être explicite et rassurante sur la conservation des jetons.");
+  assert(detail.includes("Créer automatiquement") && detail.includes("Vérifier / compléter"), "La création Drive doit être accessible dans le détail du nœud sans supprimer la saisie manuelle.");
   assert(css.includes(".workspace [data-private-export]") && css.includes("display: none !important"), "L'export de synthèse doit exclure les contenus privés.");
   step("private_links_and_export");
 

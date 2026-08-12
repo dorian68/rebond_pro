@@ -51,6 +51,7 @@
     "smoke:admin-agents": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-admin-agents-sandbox.ts",
     "smoke:roadmap": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap.ts",
     "smoke:roadmap-2": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2.ts",
+    "smoke:roadmap-2:drive": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2-drive.ts",
     "smoke:roadmap-2:a11y": "node scripts/smoke-roadmap-2-a11y.mjs",
     "smoke:roadmap-2:http": "node scripts/smoke-roadmap-2-http.mjs",
     "smoke:connectors": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-connectors.ts",
