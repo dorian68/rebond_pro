@@ -254,6 +254,17 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
 type Suggestion = { label: string; prompt: string };
 
 function agentContext(pathname: string): { intro: string; suggestions: Suggestion[] } {
+  if (pathname.startsWith("/admin/roadmap-2")) {
+    return {
+      intro: "Je pilote Roadmap 2 avec vous : nœuds, décisions, Gmail et dossiers Google. Toute modification ou tout envoi reste soumis à votre validation.",
+      suggestions: [
+        { label: "Emails projet récents", prompt: "Affiche mes emails Gmail récents liés au projet, sans modifier la roadmap." },
+        { label: "Créer depuis un email", prompt: "Montre mes emails Gmail récents afin que je choisisse celui à transformer en action Roadmap 2." },
+        { label: "Revue hebdomadaire", prompt: "Analyse Roadmap 2 et prépare ma revue hebdomadaire : blocages, décisions et prochaines actions." },
+        { label: "Préparer une relance", prompt: "Analyse Roadmap 2 et propose un email de relance pour le nœud prioritaire, sans l'envoyer avant ma validation." },
+      ],
+    };
+  }
   const seg = pathname.split("/").filter(Boolean)[0] ?? "";
 
   if (seg === "espace") {

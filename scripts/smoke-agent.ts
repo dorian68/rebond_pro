@@ -4,6 +4,7 @@ import { createTestTenant, step, assert, runner } from "./_tenant";
 import { runAgent } from "../src/server/agent/runtime";
 import { AGENT_TOOLS, getTool, isSensitive } from "../src/server/agent/tools";
 import type { AGUIEvent } from "../src/lib/ag-ui/types";
+import { signAgentApproval } from "../src/server/agent/approval-token";
 
 runner("agent_smoke", async () => {
   // 1. Registre des outils : lecture + écriture présents, sensibilité correcte
@@ -26,13 +27,15 @@ runner("agent_smoke", async () => {
     // 3. Chemin human-in-the-loop : exécution APRÈS approbation via runAgent
     const events: AGUIEvent[] = [];
     const emit = (e: AGUIEvent) => events.push(e);
-    const approvalId = "smoke-approval";
+    const approvalId = crypto.randomUUID();
+    const approvedArgs = { title: "Formation par Agent", priceEuros: 990, status: "BROUILLON" };
+    const approvalToken = signAgentApproval({ approvalId, tool: "create_formation", args: approvedArgs, userId: t.userId, persona: "center" });
     await runAgent(
       t,
       {
         threadId: "smoke-thread",
         messages: [{ id: "m1", role: "user", content: "ok" }],
-        forwardedProps: { approvedAction: { tool: "create_formation", args: { title: "Formation par Agent", priceEuros: 990, status: "BROUILLON" }, approvalId } },
+        forwardedProps: { approvedAction: { tool: "create_formation", args: approvedArgs, approvalId, approvalToken } },
       },
       emit,
     );

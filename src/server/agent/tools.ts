@@ -12,6 +12,7 @@ import { DOC_LABELS, GENERATABLE_DOCUMENT_TYPES } from "@/lib/document-types";
 import { DOCUMENT_CATALOG_BY_TYPE } from "@/lib/document-catalog";
 import { DOCUMENT_INTAKE_ROUTES, DOCUMENT_INTAKE_TARGETS, type DocumentIntakeTarget } from "@/lib/document-intake";
 import { createExternalEmailDraft, importExternalDocument, listConnectorStatuses, listExternalCalendarEvents, searchExternalDocuments } from "@/server/connectors";
+import { ROADMAP2_AGENT_TOOLS } from "@/server/agent/roadmap2-tools";
 
 export type ToolResult = { textForLLM: string; uiBlock?: UIBlock; custom?: { name: string; value: unknown } };
 
@@ -20,7 +21,7 @@ export type AgentTool = {
   description: string;
   input_schema: { type: "object"; properties: Record<string, unknown>; required?: string[] };
   sensitive?: boolean;
-  execute: (ctx: TenantContext, args: Record<string, unknown>) => Promise<ToolResult>;
+  execute: (ctx: TenantContext, args: Record<string, unknown>, execution?: { approvalId?: string }) => Promise<ToolResult>;
 };
 
 const APP_MAP = {
@@ -211,7 +212,7 @@ export const AGENT_TOOLS: AgentTool[] = [
         type: "data_table",
         title: "Connecteurs externes",
         columns: ["Connecteur", "Statut", "Politique"],
-        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"]),
+        rows: statuses.connectors.map((c) => [c.label, c.connected ? "Connecté" : c.status === "DISABLED" ? "Désactivé" : "À connecter", c.writePolicy === "READ_ONLY" ? "Lecture seule" : c.writePolicy === "SEND" ? "Envoi après validation" : "Brouillon uniquement"]),
         emptyText: "Aucun connecteur configuré.",
       };
       return { textForLLM: JSON.stringify(statuses), uiBlock: block };
@@ -478,6 +479,7 @@ export const AGENT_TOOLS: AgentTool[] = [
     },
   },
   // ---- Outils d'écriture / CRUD complet (sensibles, human-in-the-loop) ----
+  ...ROADMAP2_AGENT_TOOLS,
   ...WRITE_TOOLS,
   // ---- Outils par persona (lecture + actions ciblées) ----
   ...PERSONA_TOOLS,

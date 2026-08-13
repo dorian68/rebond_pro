@@ -111,6 +111,21 @@ export function AgentUIBlockRenderer({ block, onSuggestion, onApprove, onReject 
             <div>
               <div style={{ fontWeight: 800, fontSize: 13.5 }}>{block.title}</div>
               {block.description && <div style={{ fontSize: 12.5, color: "var(--ink-2)", marginTop: 2 }}>{block.description}</div>}
+              {block.fields && block.fields.length > 0 && (
+                <div style={{ display: "grid", gap: 5, marginTop: 10 }}>
+                  {block.fields.map((field, index) => (
+                    <div key={index} style={{ display: "grid", gridTemplateColumns: "72px 1fr", gap: 8, fontSize: 12 }}>
+                      <span style={{ color: "var(--ink-3)" }}>{field.label}</span>
+                      <strong style={{ overflowWrap: "anywhere" }}>{field.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {block.preview && (
+                <div style={{ whiteSpace: "pre-wrap", maxHeight: 180, overflowY: "auto", fontSize: 12, lineHeight: 1.5, color: "var(--ink-2)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 9, marginTop: 10 }}>
+                  {block.preview}
+                </div>
+              )}
               {block.impact && <div style={{ fontSize: 11.5, color: "var(--warn-strong)", marginTop: 4 }}>{block.impact}</div>}
             </div>
           </div>
@@ -118,6 +133,36 @@ export function AgentUIBlockRenderer({ block, onSuggestion, onApprove, onReject 
             <button className="btn btn-ghost btn-sm" onClick={onReject}>Annuler</button>
             <button className="btn btn-primary btn-sm" onClick={onApprove}><Icon name="check" size={15} /> Valider</button>
           </div>
+        </div>
+      );
+
+    case "email_list":
+      return (
+        <div className="card" style={{ padding: 12, marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 9 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--ink-2)" }}>{block.title ?? "Emails Gmail"}</div>
+            {block.mailbox && <span className="badge">{block.mailbox}</span>}
+          </div>
+          {block.emails.length === 0 ? (
+            <div className="muted-3" style={{ fontSize: 12.5 }}>{block.emptyText ?? "Aucun email."}</div>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              {block.emails.slice(0, 10).map((email) => (
+                <button
+                  key={email.messageId}
+                  onClick={() => onSuggestion?.(`Analyse l'email Gmail ${email.messageId} et propose les actions pertinentes pour Roadmap 2, sans rien modifier avant ma validation.`)}
+                  style={{ textAlign: "left", width: "100%", border: "1px solid var(--border)", background: email.unread ? "var(--primary-50)" : "var(--surface)", borderRadius: 9, padding: 9, cursor: "pointer", color: "var(--ink)" }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <strong style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email.from || "Expéditeur inconnu"}</strong>
+                    {email.receivedAt && <span style={{ fontSize: 10.5, color: "var(--ink-4)", whiteSpace: "nowrap" }}>{email.receivedAt}</span>}
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: email.unread ? 800 : 650, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email.subject || "(sans objet)"}</div>
+                  {email.snippet && <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email.snippet}</div>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       );
 
@@ -169,7 +214,7 @@ function ConnectorOAuthCard({ block }: { block: Extract<UIBlock, { type: "connec
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <div style={{ fontWeight: 800, fontSize: 13.5 }}>{block.title}</div>
             <span className="badge">{block.scope === "organization" ? "Centre" : "Personnel"}</span>
-            <span className="badge">{block.policy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"}</span>
+            <span className="badge">{block.policy === "READ_ONLY" ? "Lecture seule" : block.policy === "SEND" ? "Envoi après validation" : "Brouillon uniquement"}</span>
           </div>
           {block.description && <div style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5 }}>{block.description}</div>}
           <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 6 }}>

@@ -352,6 +352,8 @@ model User {
   roadmap2Updates          Roadmap2Update[]         @relation("Roadmap2UpdateAuthor")
   roadmap2AuditLogs        Roadmap2AuditLog[]       @relation("Roadmap2AuditActor")
   roadmap2DriveOperations  Roadmap2DriveOperation[] @relation("Roadmap2DriveOperationActor")
+  roadmap2EmailOperations  Roadmap2EmailOperation[] @relation("Roadmap2EmailOperationActor")
+  agentApprovalUses        AgentApprovalUse[]       @relation("AgentApprovalUseActor")
 }
 
 model Membership {
@@ -1212,6 +1214,15 @@ enum Roadmap2DriveOperationStatus {
   failed
 }
 
+enum Roadmap2EmailOperationStatus {
+  running
+  provider_succeeded
+  succeeded
+  retryable
+  needs_repair
+  failed
+}
+
 /**
  * Workspace privé de pilotage plateforme. Sa clé est résolue côté serveur :
  * le client ne fournit jamais workspaceId comme preuve d'autorisation.
@@ -1229,6 +1240,7 @@ model Roadmap2Workspace {
   updates         Roadmap2Update[]
   auditLogs       Roadmap2AuditLog[]
   driveOperations Roadmap2DriveOperation[]
+  emailOperations Roadmap2EmailOperation[]
 }
 
 model Roadmap2Node {
@@ -1274,6 +1286,7 @@ model Roadmap2Node {
   incomingEdges   Roadmap2Edge[]           @relation("Roadmap2EdgeTarget")
   updates         Roadmap2Update[]
   driveOperations Roadmap2DriveOperation[]
+  emailOperations Roadmap2EmailOperation[]
 
   @@unique([workspaceId, seedKey])
   @@index([workspaceId, archivedAt])
@@ -1373,6 +1386,52 @@ model Roadmap2DriveOperation {
   @@unique([workspaceId, idempotencyKey])
   @@index([workspaceId, status, nextRetryAt])
   @@index([nodeId, createdAt])
+}
+
+/**
+ * Registre idempotent des emails Gmail envoyés depuis l'agent Roadmap 2.
+ * Le payload ne contient jamais l'objet, le corps ni les adresses en clair.
+ */
+model Roadmap2EmailOperation {
+  id                String                       @id @default(cuid())
+  workspaceId       String
+  nodeId            String?
+  actorUserId       String?
+  status            Roadmap2EmailOperationStatus @default(running)
+  idempotencyKey    String
+  requestHash       String
+  payload           Json
+  providerMessageId String?
+  providerThreadId  String?
+  attemptCount      Int                          @default(1)
+  errorCode         String?
+  errorMessage      String?
+  providerAppliedAt DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  workspace Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  node      Roadmap2Node?     @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  actor     User?             @relation("Roadmap2EmailOperationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, status, createdAt])
+  @@index([nodeId, createdAt])
+}
+
+/** Jeton de validation consommé une seule fois, sans stockage des arguments. */
+model AgentApprovalUse {
+  id          String   @id @default(cuid())
+  approvalId  String   @unique
+  actorUserId String
+  tool        String
+  argsHash    String
+  createdAt   DateTime @default(now())
+
+  actor User @relation("AgentApprovalUseActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId, createdAt])
 }
 
 // --------------------------- JOBS ASYNCHRONES ---------------------------

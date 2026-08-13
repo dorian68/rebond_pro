@@ -30,7 +30,9 @@ assert(CONNECTORS.find((c) => c.key === "microsoft_calendar")?.writePolicy === "
 assert(CONNECTORS.find((c) => c.key === "google_drive")?.writePolicy === "READ_ONLY", "Google Drive doit rester sans écriture.");
 assert(CONNECTORS.find((c) => c.key === "onedrive")?.writePolicy === "READ_ONLY", "OneDrive doit rester sans écriture.");
 assert(CONNECTORS.find((c) => c.key === "sharepoint")?.writePolicy === "READ_ONLY", "SharePoint doit rester sans écriture.");
-assert(CONNECTORS.find((c) => c.key === "gmail")?.writePolicy === "DRAFT_ONLY", "Gmail doit rester en brouillon uniquement.");
+assert(CONNECTORS.find((c) => c.key === "gmail")?.writePolicy === "SEND", "Gmail doit permettre l'envoi contrôlé Roadmap 2.");
+assert(CONNECTORS.find((c) => c.key === "gmail")?.capabilities.includes("email_read"), "Gmail doit exposer la lecture contrôlée.");
+assert(CONNECTORS.find((c) => c.key === "gmail")?.capabilities.includes("email_send"), "Gmail doit exposer l'envoi validé.");
 assert(CONNECTORS.find((c) => c.key === "outlook")?.writePolicy === "DRAFT_ONLY", "Outlook doit rester en brouillon uniquement.");
 assert(CONNECTORS.find((c) => c.key === "gmail")?.scopes.join(",") === "personal", "Gmail doit être uniquement personnel.");
 assert(CONNECTORS.find((c) => c.key === "google_drive")?.defaultScope === "organization", "Google Drive doit privilégier le centre.");
@@ -43,6 +45,14 @@ for (const name of [
   "search_external_documents",
   "import_external_document",
   "create_external_email_draft",
+  "list_external_gmail_emails",
+  "read_external_gmail_email",
+  "send_external_gmail",
+  "list_roadmap2_nodes",
+  "read_roadmap2_node",
+  "create_roadmap2_node",
+  "update_roadmap2_node",
+  "add_roadmap2_update",
   "list_document_templates",
   "preflight_document_generation",
   "generate_document",
@@ -60,12 +70,17 @@ for (const name of [
 
 assert(isSensitive("import_external_document"), "L'import de document externe doit exiger validation humaine.");
 assert(isSensitive("create_external_email_draft"), "La création de brouillon email doit exiger validation humaine.");
+assert(isSensitive("send_external_gmail"), "L'envoi Gmail doit exiger validation humaine.");
+assert(isSensitive("create_roadmap2_node") && isSensitive("update_roadmap2_node") && isSensitive("add_roadmap2_update"), "Toute mutation Roadmap 2 doit exiger validation humaine.");
+assert(!isSensitive("list_external_gmail_emails") && !isSensitive("read_external_gmail_email"), "La lecture Gmail doit rester sans confirmation d'écriture.");
 assert(isSensitive("generate_document"), "La génération documentaire doit exiger validation humaine.");
 assert(!isSensitive("preflight_document_generation"), "Le préflight documentaire doit rester en lecture/analyse.");
 assert(isToolAllowed("center", "preflight_document_generation"), "Le persona centre doit pouvoir analyser une génération documentaire.");
 assert(isToolAllowed("center", "generate_document"), "Le persona centre doit pouvoir demander une génération documentaire validée.");
 assert(!isToolAllowed("visitor", "generate_document"), "Le persona visiteur ne doit pas générer de document centre.");
 assert(isToolAllowed("platform_admin", "create_external_email_draft"), "Le persona platform_admin doit pouvoir utiliser ses connecteurs personnels (brouillon email).");
+assert(isToolAllowed("platform_admin", "send_external_gmail"), "Le persona platform_admin doit pouvoir envoyer depuis Gmail après validation.");
+assert(!isToolAllowed("center", "send_external_gmail"), "L'envoi Gmail Roadmap 2 doit rester réservé au platform_admin.");
 assert(isToolAllowed("platform_admin", "list_external_calendar_events"), "Le persona platform_admin doit pouvoir lire son agenda personnel connecté.");
 assert(!isToolAllowed("platform_admin", "generate_document"), "Le persona platform_admin ne doit pas générer de documents centre.");
 assert(!isToolAllowed("visitor", "search_external_documents"), "Le persona visiteur ne doit pas avoir accès aux documents externes.");
@@ -83,11 +98,8 @@ const connectorSource = [
   ".env.example",
 ].map(read).join("\n");
 const forbiddenSendPatterns = [
-  "GMAIL_SEND",
-  "GMAIL_SEND_EMAIL",
   "OUTLOOK_SEND",
   "OUTLOOK_SEND_EMAIL",
-  "SEND_EMAIL",
   "SEND_MESSAGE",
   "sendExternalEmail",
   "createExternalCalendarEvent",
@@ -100,11 +112,9 @@ const forbiddenSendPatterns = [
   "calendar_write",
   "document_write",
   "document_upload",
-  "email_send",
   "COMPOSIO_TOOL_GOOGLE_CALENDAR_CREATE_EVENT",
   "COMPOSIO_TOOL_GOOGLE_DRIVE_CREATE_FILE",
   "COMPOSIO_TOOL_GOOGLE_DRIVE_UPLOAD_FILE",
-  "COMPOSIO_TOOL_GMAIL_SEND_EMAIL",
   "COMPOSIO_TOOL_OUTLOOK_SEND_EMAIL",
   "COMPOSIO_TOOL_MICROSOFT_CALENDAR_CREATE_EVENT",
 ];
@@ -121,9 +131,14 @@ assert(read("src/server/agent/runtime.ts").includes("connector_oauth_card"), "So
 assert(read("src/lib/ag-ui/types.ts").includes("connector_oauth_card"), "Le bloc OAuth doit être dans l'allowlist AG-UI.");
 assert(read("src/components/agent/AgentUIBlockRenderer.tsx").includes("connectExternalConnector"), "La carte Socrate doit pouvoir lancer OAuth.");
 assert(read("src/app/(app)/integrations/composio/callback/page.tsx").includes("returnTo"), "Le callback OAuth doit permettre de revenir à Socrate.");
+assert(read("src/app/admin/integrations/composio/callback/page.tsx").includes("requirePlatformAdmin"), "Le callback OAuth admin doit rester protégé par le rôle plateforme.");
+assert(read("src/server/connectors-actions.ts").includes("platformAdmin") && read("src/server/connectors-actions.ts").includes("scope === \"personal\""), "Un super-admin sans membership doit pouvoir connecter uniquement son compte personnel.");
 assert(read("src/server/connectors.ts").includes("COMPOSIO_API_KEY absente"), "L'absence de clé Composio doit produire une erreur explicite.");
 assert(read("src/server/connectors.ts").includes("Au moins un destinataire"), "La création de brouillon doit refuser les destinataires vides.");
-assert(read("src/app/(app)/parametres/parametres-client.tsx").includes("Aucun outil d&apos;envoi direct"), "L'UI doit expliciter l'absence d'envoi direct.");
+assert(read("src/app/(app)/parametres/parametres-client.tsx").includes("validation explicite"), "L'UI doit expliciter la validation requise avant envoi Gmail.");
+assert(read("src/server/connectors.ts").includes("connectedAccountId"), "Les exécutions doivent être épinglées au compte connecté actif.");
+assert(read("src/server/connectors.ts").includes("roadmap2EmailOperation"), "L'envoi Gmail doit utiliser un registre idempotent durable.");
+assert(read("src/server/agent/runtime.ts").includes("verifyAgentApproval"), "Les approbations sensibles doivent être signées et vérifiées côté serveur.");
 assert(read("src/app/(app)/parametres/parametres-client.tsx").includes("Mes connexions"), "L'UI doit distinguer les connexions personnelles.");
 assert(read("src/app/(app)/parametres/parametres-client.tsx").includes("Connexions du centre"), "L'UI doit distinguer les connexions du centre.");
 

@@ -48,7 +48,7 @@ import {
   syncRoadmap2DrivePermissions,
   type Roadmap2DriveActionResult,
 } from "@/server/roadmap2-drive-actions";
-import { EMPTY_FILTERS, filterRoadmap2Nodes, nodeToInput, type Roadmap2Filters, type Roadmap2View } from "./roadmap2-ui";
+import { EMPTY_FILTERS, filterRoadmap2Nodes, nodeToInput, projectRoadmap2OverviewNodes, type Roadmap2Filters, type Roadmap2View } from "./roadmap2-ui";
 import { clearRoadmap2OperationKey, getOrCreateRoadmap2OperationKey, roadmap2PermissionOperationScope } from "@/lib/roadmap2-operation-key-store";
 import { Roadmap2Graph } from "./roadmap2-graph";
 import { Roadmap2Timeline } from "./roadmap2-timeline";
@@ -115,6 +115,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   const [filters, setFilters] = useState<Roadmap2Filters>(EMPTY_FILTERS);
   const [reviewPreset, setReviewPreset] = useState<ReviewPreset>("overview");
   const [expandedPhaseIds, setExpandedPhaseIds] = useState<Set<string>>(new Set());
+  const [showAllNodes, setShowAllNodes] = useState(false);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [editor, setEditor] = useState<EditorState>(null);
   const [driveConfigOpen, setDriveConfigOpen] = useState(openDriveOnLoad);
@@ -162,6 +163,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
         setFilters(EMPTY_FILTERS);
         setReviewPreset("overview");
         setExpandedPhaseIds(new Set());
+        setShowAllNodes(false);
         const raw = window.localStorage.getItem(`${VIEW_PREFERENCES_PREFIX}:${encodeURIComponent(workspace.key)}`);
         if (raw) {
           const saved = JSON.parse(raw) as { view?: unknown; filters?: Partial<Roadmap2Filters>; preset?: unknown; expandedPhaseIds?: unknown };
@@ -248,8 +250,8 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   const matchingNodes = useMemo(() => applyReviewPreset(filterRoadmap2Nodes(nodes, filters), reviewPreset), [nodes, filters, reviewPreset]);
   const filteredNodes = useMemo(() => {
     if (reviewPreset !== "overview" || !isDefaultRoadmap2Filters(filters)) return matchingNodes;
-    return matchingNodes.filter((node) => node.isWorkspaceRoot || node.type === "phase" || (node.parentId ? expandedPhaseIds.has(node.parentId) : false));
-  }, [expandedPhaseIds, filters, matchingNodes, reviewPreset]);
+    return projectRoadmap2OverviewNodes(matchingNodes, expandedPhaseIds, showAllNodes);
+  }, [expandedPhaseIds, filters, matchingNodes, reviewPreset, showAllNodes]);
   const selectedNode = editor?.mode === "edit" ? nodes.find((node) => node.id === editor.nodeId) ?? null : null;
 
   const showResult = useCallback((result: Roadmap2ActionResult, success: string) => {
@@ -622,7 +624,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
           )}
         </div>
         <div className={styles.filters}>
-          {reviewPreset === "overview" && isDefaultRoadmap2Filters(filters) && nodes.some((node) => node.type === "phase") && <div className={styles.phaseExpansion} aria-label="Développer les chantiers">{nodes.filter((node) => node.type === "phase" && !node.archivedAt).map((phase) => <button key={phase.id} type="button" aria-pressed={expandedPhaseIds.has(phase.id)} onClick={() => setExpandedPhaseIds((current) => { const next = new Set(current); if (next.has(phase.id)) next.delete(phase.id); else next.add(phase.id); return next; })}>{expandedPhaseIds.has(phase.id) ? '−' : '+'} {phase.title}</button>)}</div>}
+          {reviewPreset === "overview" && isDefaultRoadmap2Filters(filters) && nodes.some((node) => node.type === "phase") && <div className={styles.phaseExpansion} aria-label="Développer les chantiers">{nodes.filter((node) => node.type === "phase" && !node.archivedAt).map((phase) => <button key={phase.id} type="button" aria-pressed={expandedPhaseIds.has(phase.id)} onClick={() => { setShowAllNodes(false); setExpandedPhaseIds((current) => { const next = new Set(current); if (next.has(phase.id)) next.delete(phase.id); else next.add(phase.id); return next; }); }}>{expandedPhaseIds.has(phase.id) ? '−' : '+'} {phase.title}</button>)}</div>}
           <select aria-label="Filtrer par catégorie" value={filters.category} onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value as Roadmap2Filters["category"] }))}>
             <option value="all">Toutes les catégories</option>
             {ROADMAP2_CATEGORIES.map((value) => <option key={value} value={value}>{ROADMAP2_CATEGORY_LABELS[value]}</option>)}
@@ -640,14 +642,14 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
             {ROADMAP2_PRIORITIES.map((value) => <option key={value} value={value}>{value} · {ROADMAP2_PRIORITY_LABELS[value]}</option>)}
           </select>
           <label className={styles.archiveToggle}><input type="checkbox" checked={filters.showArchived} onChange={(event) => setFilters((current) => ({ ...current, showArchived: event.target.checked }))} /> Archives</label>
-          {(!isDefaultRoadmap2Filters(filters) || reviewPreset !== "overview" || expandedPhaseIds.size > 0) && <button className={styles.resetButton} onClick={() => { setFilters(EMPTY_FILTERS); setReviewPreset("overview"); setExpandedPhaseIds(new Set()); }}>Réinitialiser</button>}
+          {(!isDefaultRoadmap2Filters(filters) || reviewPreset !== "overview" || expandedPhaseIds.size > 0 || showAllNodes) && <button className={styles.resetButton} onClick={() => { setFilters(EMPTY_FILTERS); setReviewPreset("overview"); setExpandedPhaseIds(new Set()); setShowAllNodes(false); }}>Réinitialiser</button>}
         </div>
       </div>
 
       {nodes.length === 0 ? (
         <Roadmap2Empty workspaceName={workspace.name} isDefault={workspace.key === "le-bon-rebond"} owners={initialData.owners} onSeed={runSeed} onCreate={() => setEditor({ mode: "create" })} onDrive={openDriveConfig} busy={busy} />
       ) : filteredNodes.length === 0 ? (
-        <div className={styles.emptyFiltered}><Icon name="search" size={24} /><strong>Aucun résultat avec ces filtres</strong><button onClick={() => setFilters(EMPTY_FILTERS)}>Afficher toute la roadmap</button></div>
+        <div className={styles.emptyFiltered}><Icon name="search" size={24} /><strong>Aucun résultat avec ces filtres</strong><button type="button" onClick={() => { setFilters(EMPTY_FILTERS); setReviewPreset("overview"); setExpandedPhaseIds(new Set()); setShowAllNodes(true); }}>Afficher toute la roadmap</button></div>
       ) : (
         <div className={styles.viewStage}>
           {view === "graph" && <Roadmap2Graph nodes={nodes} visibleNodes={filteredNodes} edges={edges} actions={actions} onOpen={(nodeId) => setEditor({ mode: "edit", nodeId })} focusNodeId={focusNodeId} onFocusConsumed={() => setFocusNodeId(null)} />}

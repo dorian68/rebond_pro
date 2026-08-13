@@ -24,6 +24,7 @@ export const HEADLESS_SMOKE_SUITES = [
   "smoke:admin-agents",
   "smoke:roadmap",
   "smoke:roadmap-2",
+  "smoke:roadmap-2:agentic-gmail",
   "smoke:roadmap-2:drive",
   "smoke:roadmap-2:a11y",
   "smoke:connectors",

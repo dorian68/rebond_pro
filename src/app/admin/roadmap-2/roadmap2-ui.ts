@@ -39,6 +39,16 @@ export function filterRoadmap2Nodes(nodes: Roadmap2NodeDto[], filters: Roadmap2F
   });
 }
 
+/**
+ * Réduit l'aperçu par phases sans jamais fabriquer un faux état vide : une
+ * roadmap composée uniquement de nœuds libres doit rester immédiatement visible.
+ */
+export function projectRoadmap2OverviewNodes(nodes: Roadmap2NodeDto[], expandedPhaseIds: ReadonlySet<string>, showAll = false) {
+  if (showAll) return nodes;
+  const projected = nodes.filter((node) => node.isWorkspaceRoot || node.type === "phase" || (node.parentId ? expandedPhaseIds.has(node.parentId) : false));
+  return projected.length > 0 ? projected : nodes;
+}
+
 export function nodeToInput(node: Roadmap2NodeDto): Roadmap2NodeInput {
   return {
     title: node.title,

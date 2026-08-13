@@ -21,7 +21,7 @@ import type { AGUIEvent, UIBlock } from "@/lib/ag-ui/types";
 
 export type Toast = { id: string; message: string; type: "info" | "success" | "warn" | "error" };
 export type { Attachment };
-export type PendingApproval = { approvalId: string; tool: string; args: Record<string, unknown> };
+export type PendingApproval = { approvalId: string; approvalToken: string; tool: string; args: Record<string, unknown> };
 
 export function useAgentConversation() {
   const router = useRouter();
@@ -127,7 +127,7 @@ export function useAgentConversation() {
           if (v?.block) {
             setThinking(false);
             if (v.block.type === "confirmation_card") {
-              setPendingApproval({ approvalId: v.block.approvalId, tool: v.block.tool, args: v.block.args });
+              setPendingApproval({ approvalId: v.block.approvalId, approvalToken: v.block.approvalToken, tool: v.block.tool, args: v.block.args });
             }
             setMessages((prev) => attachBlock(prev, v.messageId, v.block!));
           }

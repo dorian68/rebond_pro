@@ -42,6 +42,18 @@ function write(list: Conversation[]) {
   } catch { /* quota */ }
 }
 
+function safeForLocalStorage(conv: Conversation): Conversation {
+  return {
+    ...conv,
+    messages: conv.messages.map((message) => ({
+      ...message,
+      // Les cartes Gmail contiennent des extraits privés et les confirmations
+      // portent un jeton éphémère : elles restent uniquement en mémoire vive.
+      blocks: message.blocks?.filter((block) => block.type !== "confirmation_card" && block.type !== "email_list"),
+    })),
+  };
+}
+
 export function listConversations(): Conversation[] {
   return read().sort((a, b) => b.updatedAt - a.updatedAt);
 }
@@ -52,9 +64,10 @@ export function getConversation(id: string): Conversation | undefined {
 
 export function saveConversation(conv: Conversation) {
   const list = read();
+  const safe = safeForLocalStorage(conv);
   const idx = list.findIndex((c) => c.id === conv.id);
-  if (idx >= 0) list[idx] = conv;
-  else list.unshift(conv);
+  if (idx >= 0) list[idx] = safe;
+  else list.unshift(safe);
   write(list);
 }
 

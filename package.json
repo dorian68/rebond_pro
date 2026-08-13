@@ -60,6 +60,7 @@
     "smoke:roadmap-2:operation-keys": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2-operation-keys.ts",
     "smoke:roadmap-2:structural-preflight": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2-structural-preflight.ts",
     "smoke:roadmap-2:adoption": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2-adoption.ts",
+    "smoke:roadmap-2:agentic-gmail": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2-agentic-gmail.ts",
     "smoke:roadmap-2:a11y": "node scripts/smoke-roadmap-2-a11y.mjs",
     "smoke:roadmap-2:a11y:runtime": "node scripts/smoke-roadmap-2-runtime-a11y.mjs",
     "smoke:roadmap-2:http": "node scripts/smoke-roadmap-2-http.mjs",

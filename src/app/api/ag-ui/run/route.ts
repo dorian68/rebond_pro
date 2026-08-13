@@ -42,7 +42,7 @@ const inputSchema = z.object({
   attachments: z.array(attachmentSchema).max(5).optional(),
   forwardedProps: z
     .object({
-      approvedAction: z.object({ tool: z.string(), args: z.record(z.string(), z.unknown()), approvalId: z.string() }).optional(),
+      approvedAction: z.object({ tool: z.string(), args: z.record(z.string(), z.unknown()), approvalId: z.string().uuid(), approvalToken: z.string().min(40).max(4096) }).optional(),
     })
     .optional(),
 });
@@ -75,7 +75,9 @@ export async function POST(req: Request) {
   // Contexte : tenant si connecté, sinon contexte PUBLIC (visiteur) sans organisation.
   const ctx: TenantContext = tenantCtx
     ? tenantCtx
-    : { userId: "", email: null, name: null, organizationId: "", organizationName: null, organizationSlug: null, role: "LEARNER" };
+    : platformAdmin && session?.user?.id
+      ? { userId: session.user.id, email: session.user.email ?? null, name: session.user.name ?? null, organizationId: "", organizationName: null, organizationSlug: null, role: "OWNER" }
+      : { userId: "", email: null, name: null, organizationId: "", organizationName: null, organizationSlug: null, role: "LEARNER" };
 
   let raw: unknown;
   try {

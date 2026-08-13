@@ -31,7 +31,7 @@ export type RunAgentInput = {
 
 export type ForwardedProps = {
   /** Décision d'approbation human-in-the-loop renvoyée par le client. */
-  approvedAction?: { tool: string; args: Record<string, unknown>; approvalId: string };
+  approvedAction?: { tool: string; args: Record<string, unknown>; approvalId: string; approvalToken: string };
 };
 
 /** État applicatif transmis par le client (sans secret). */
@@ -67,7 +67,8 @@ export type UIBlock =
   | { type: "data_table"; id?: string; title?: string; columns: string[]; rows: string[][]; emptyText?: string }
   | { type: "suggestion_chips"; id?: string; chips: { label: string; prompt: string }[] }
   | { type: "progress_steps"; id?: string; title?: string; steps: { label: string; status: "done" | "active" | "pending" }[] }
-  | { type: "confirmation_card"; id?: string; approvalId: string; title: string; description?: string; riskLevel?: "low" | "medium" | "high"; tool: string; args: Record<string, unknown>; impact?: string }
+  | { type: "confirmation_card"; id?: string; approvalId: string; approvalToken: string; title: string; description?: string; riskLevel?: "low" | "medium" | "high"; tool: string; args: Record<string, unknown>; impact?: string; fields?: { label: string; value: string }[]; preview?: string }
+  | { type: "email_list"; id?: string; title?: string; mailbox?: string; emails: { messageId: string; threadId?: string; from: string; subject: string; receivedAt?: string; snippet?: string; unread?: boolean }[]; emptyText?: string }
   | { type: "connector_oauth_card"; id?: string; connector: string; scope: "personal" | "organization"; label: string; title: string; description?: string; policy: "READ_ONLY" | "DRAFT_ONLY" | "SEND" | "WRITE"; canConnect: boolean; blockedReason?: string }
   | { type: "error_card"; id?: string; title: string; message: string };
 
@@ -78,6 +79,7 @@ export const ALLOWED_UI_BLOCKS = [
   "suggestion_chips",
   "progress_steps",
   "confirmation_card",
+  "email_list",
   "connector_oauth_card",
   "error_card",
 ] as const;

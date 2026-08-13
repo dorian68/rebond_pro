@@ -16,6 +16,8 @@ async function main() {
   assert.match(client, /Échéances à 7 jours/);
   assert.match(client, /VIEW_PREFERENCES_PREFIX/);
   assert.match(client, /expandedPhaseIds/);
+  assert.match(client, /setShowAllNodes\(true\)/, "Afficher toute la roadmap doit réellement désactiver la projection repliée.");
+  assert.match(await readFile("src/app/admin/roadmap-2/roadmap2-ui.ts", "utf8"), /projected\.length > 0 \? projected : nodes/, "Une roadmap sans phase ne doit jamais être masquée par la projection d’aperçu.");
   assert.match(client, /Formule des KPI/);
   assert.match(client, /Date d’ancrage/);
   assert.match(client, /Responsable par phase/);

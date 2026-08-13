@@ -12,6 +12,8 @@ import { getDashboardMetrics } from "@/server/metrics";
 import { formatMoney } from "@/lib/utils";
 import { type Persona, PERSONA_PROMPT, isToolAllowed } from "@/lib/ag-ui/persona";
 import { isConnectorAuthRequiredError } from "@/server/connectors";
+import { approvalArgsHash, signAgentApproval, verifyAgentApproval } from "@/server/agent/approval-token";
+import { prisma } from "@/lib/prisma";
 
 type Emit = (e: AGUIEvent) => void;
 
@@ -63,12 +65,16 @@ function uiBlockEvent(messageId: string, block: UIBlock): AGUIEvent {
   return { type: "Custom", name: "app.ui_block", value: { messageId, block }, timestamp: now() };
 }
 
-async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCallId: string, name: string, args: Record<string, unknown>): Promise<string> {
+function toolOutputForModel(name: string, value: string) {
+  return value.slice(0, name === "read_external_gmail_email" ? 12_000 : 4_000);
+}
+
+async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCallId: string, name: string, args: Record<string, unknown>, execution?: { approvalId?: string }): Promise<string> {
   const tool = getTool(name);
   if (!tool) { emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: "Outil inconnu.", role: "tool" }); return "Outil inconnu."; }
   try {
-    const res: ToolResult = await tool.execute(ctx, args);
-    emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: res.textForLLM.slice(0, 4000), role: "tool" });
+    const res: ToolResult = await tool.execute(ctx, args, execution);
+    emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: toolOutputForModel(name, res.textForLLM), role: "tool" });
     if (res.uiBlock) emit(uiBlockEvent(messageId, res.uiBlock));
     if (res.custom) emit({ type: "Custom", name: res.custom.name, value: res.custom.value, timestamp: now() });
     return res.textForLLM;
@@ -100,15 +106,61 @@ async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCa
 }
 
 /** Émet la demande d'approbation pour une action sensible. */
-function emitApproval(emit: Emit, msgId: string, toolName: string, args: Record<string, unknown>) {
-  const approvalId = randomUUID();
-  const confirm: UIBlock = {
-    type: "confirmation_card", approvalId, title: "Confirmation requise",
+function approvalPresentation(toolName: string, args: Record<string, unknown>) {
+  if (toolName === "send_external_gmail") {
+    const recipients = Array.isArray(args.to) ? args.to.map(String).join(", ") : "—";
+    return {
+      title: "Confirmer l’envoi Gmail",
+      description: "Vérifiez le destinataire, l’objet et le message avant l’envoi définitif.",
+      impact: "Après validation, l’email partira immédiatement depuis votre compte Gmail connecté.",
+      riskLevel: "high" as const,
+      fields: [
+        { label: "À", value: recipients },
+        ...(Array.isArray(args.cc) && args.cc.length ? [{ label: "Cc", value: args.cc.map(String).join(", ") }] : []),
+        ...(Array.isArray(args.bcc) && args.bcc.length ? [{ label: "Cci", value: args.bcc.map(String).join(", ") }] : []),
+        { label: "Objet", value: String(args.subject ?? "—") },
+      ],
+      preview: String(args.body ?? "").slice(0, 3000),
+    };
+  }
+  if (toolName === "create_roadmap2_node") {
+    return {
+      title: "Créer ce nœud Roadmap 2 ?",
+      description: "Le nœud sera ajouté à la roadmap privée après validation.",
+      impact: "Cette action modifie Roadmap 2. Elle ne crée pas automatiquement de dossier Drive.",
+      riskLevel: "medium" as const,
+      fields: [{ label: "Titre", value: String(args.title ?? "—") }, { label: "Priorité", value: String(args.priority ?? "P1") }],
+    };
+  }
+  if (toolName === "update_roadmap2_node" || toolName === "add_roadmap2_update") {
+    return {
+      title: toolName === "update_roadmap2_node" ? "Modifier ce nœud Roadmap 2 ?" : "Ajouter cette note à Roadmap 2 ?",
+      description: "Les changements proposés seront appliqués uniquement après validation.",
+      impact: "Cette action est journalisée dans Roadmap 2.",
+      riskLevel: "medium" as const,
+      fields: toolName === "update_roadmap2_node"
+        ? [{ label: "Nœud", value: String(args.nodeId ?? "—") }, ...Object.entries(args.changes && typeof args.changes === "object" ? args.changes as Record<string, unknown> : {}).slice(0, 10).map(([label, value]) => ({ label, value: value == null ? "—" : typeof value === "boolean" ? (value ? "Oui" : "Non") : String(value).slice(0, 500) }))]
+        : [{ label: "Type", value: String(args.updateType ?? "note") }],
+      preview: toolName === "add_roadmap2_update" ? String(args.body ?? "").slice(0, 2000) : undefined,
+    };
+  }
+  return {
+    title: "Confirmation requise",
     description: `L'assistant souhaite exécuter l'action « ${toolName} ».`,
-    riskLevel: "medium", tool: toolName, args, impact: "Cette action modifie des données ou génère un document officiel.",
+    riskLevel: "medium" as const,
+    impact: "Cette action modifie des données ou génère un document officiel.",
+  };
+}
+
+function emitApproval(emit: Emit, msgId: string, toolName: string, args: Record<string, unknown>, ctx: TenantContext, persona: Persona) {
+  const approvalId = randomUUID();
+  const approvalToken = signAgentApproval({ approvalId, tool: toolName, args, userId: ctx.userId, persona });
+  const presentation = approvalPresentation(toolName, args);
+  const confirm: UIBlock = {
+    type: "confirmation_card", approvalId, approvalToken, tool: toolName, args, ...presentation,
   };
   emit(uiBlockEvent(msgId, confirm));
-  emit({ type: "Custom", name: "app.approval.required", value: { approvalId, tool: toolName, args }, timestamp: now() });
+  emit({ type: "Custom", name: "app.approval.required", value: { approvalId, approvalToken, tool: toolName, args }, timestamp: now() });
 }
 
 export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: Emit, persona: Persona = "center"): Promise<void> {
@@ -127,6 +179,23 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
         emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
         return;
       }
+      if (!isSensitive(approved.tool) || !verifyAgentApproval(approved.approvalToken, { approvalId: approved.approvalId, tool: approved.tool, args: approved.args, userId: ctx.userId, persona })) {
+        emit({ type: "RunError", message: "Cette validation est invalide, a expiré ou a été modifiée. Relancez l’action.", code: "APPROVAL_INVALID", timestamp: now() });
+        emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
+        return;
+      }
+      if (persona === "platform_admin") {
+        try {
+          await prisma.agentApprovalUse.create({ data: { approvalId: approved.approvalId, actorUserId: ctx.userId, tool: approved.tool, argsHash: approvalArgsHash(approved.args) } });
+        } catch (error) {
+          if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+            emit({ type: "RunError", message: "Cette validation a déjà été utilisée. Relancez l’action si vous souhaitez la recommencer.", code: "APPROVAL_REPLAYED", timestamp: now() });
+            emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
+            return;
+          }
+          throw error;
+        }
+      }
       const msgId = randomUUID();
       const toolCallId = randomUUID();
       emit({ type: "TextMessageStart", messageId: msgId, role: "assistant", timestamp: now() });
@@ -134,7 +203,7 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
       emit({ type: "TextMessageEnd", messageId: msgId });
       emit({ type: "ToolCallStart", toolCallId, toolCallName: approved.tool, timestamp: now() });
       emit({ type: "ToolCallArgs", toolCallId, delta: JSON.stringify(approved.args) });
-      const out = await runTool(ctx, emit, msgId, toolCallId, approved.tool, approved.args);
+      const out = await runTool(ctx, emit, msgId, toolCallId, approved.tool, approved.args, { approvalId: approved.approvalId });
       emit({ type: "ToolCallEnd", toolCallId });
       const okMsg = randomUUID();
       emit({ type: "TextMessageStart", messageId: okMsg, role: "assistant", timestamp: now() });
@@ -147,7 +216,7 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
 
     // Quota IA : bloque le lancement d'un nouveau run au-delà de la limite du plan (sauf visiteur public).
     try {
-      if (persona !== "visitor") {
+      if (persona !== "visitor" && persona !== "platform_admin") {
         const { enforceQuota } = await import("@/server/quota");
         await enforceQuota(ctx, "ai");
       }
@@ -172,8 +241,8 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
     const base = persona === "center" ? SYSTEM_PROMPT : PERSONA_PROMPT[persona];
     const system = base + ctxLine;
     const pending = agUIConfig.provider === "openai"
-      ? await loopOpenAI(ctx, input, system, emit, personaTools)
-      : await loopAnthropic(ctx, input, system, emit, personaTools);
+      ? await loopOpenAI(ctx, input, system, emit, personaTools, persona)
+      : await loopAnthropic(ctx, input, system, emit, personaTools, persona);
 
     emit({ type: "RunFinished", threadId, runId, outcome: { type: pending ? "requires_action" : "success" }, timestamp: now() });
   } catch (e) {
@@ -208,7 +277,7 @@ function buildOpenAIMessages(input: RunAgentInput, system: string): OpenAI.Chat.
 }
 
 // ---------------- Boucle OpenAI (function calling, streaming) ----------------
-async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[]): Promise<boolean> {
+async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[], persona: Persona): Promise<boolean> {
   const tools = personaTools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   const messages = buildOpenAIMessages(input, system);
 
@@ -252,14 +321,14 @@ async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: stri
       emit({ type: "ToolCallStart", toolCallId: c.id, toolCallName: c.name, parentMessageId: msgId, timestamp: now() });
       emit({ type: "ToolCallArgs", toolCallId: c.id, delta: c.args || "{}" });
       if (isSensitive(c.name) && agUIConfig.requireApproval) {
-        emitApproval(emit, msgId, c.name, args);
+        emitApproval(emit, msgId, c.name, args, ctx, persona);
         emit({ type: "ToolCallEnd", toolCallId: c.id });
         messages.push({ role: "tool", tool_call_id: c.id, content: "En attente de validation humaine." });
         pending = true;
       } else {
         const text = await runTool(ctx, emit, msgId, c.id, c.name, args);
         emit({ type: "ToolCallEnd", toolCallId: c.id });
-        messages.push({ role: "tool", tool_call_id: c.id, content: text.slice(0, 4000) });
+        messages.push({ role: "tool", tool_call_id: c.id, content: toolOutputForModel(c.name, text) });
       }
     }
     if (pending) return true;
@@ -290,7 +359,7 @@ function buildAnthropicMessages(input: RunAgentInput): Anthropic.MessageParam[] 
 }
 
 // ---------------- Boucle Anthropic (tool use, streaming) ----------------
-async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[]): Promise<boolean> {
+async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[], persona: Persona): Promise<boolean> {
   const tools = personaTools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: Anthropic.MessageParam[] = buildAnthropicMessages(input);
 
@@ -315,14 +384,14 @@ async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: s
       emit({ type: "ToolCallStart", toolCallId: block.id, toolCallName: block.name, parentMessageId: msgId, timestamp: now() });
       emit({ type: "ToolCallArgs", toolCallId: block.id, delta: JSON.stringify(args) });
       if (isSensitive(block.name) && agUIConfig.requireApproval) {
-        emitApproval(emit, msgId, block.name, args);
+        emitApproval(emit, msgId, block.name, args, ctx, persona);
         emit({ type: "ToolCallEnd", toolCallId: block.id });
         toolResults.push({ type: "tool_result", tool_use_id: block.id, content: "En attente de validation humaine." });
         pending = true;
       } else {
         const text = await runTool(ctx, emit, msgId, block.id, block.name, args);
         emit({ type: "ToolCallEnd", toolCallId: block.id });
-        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: text.slice(0, 4000) });
+        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: toolOutputForModel(block.name, text) });
       }
     }
     messages.push({ role: "user", content: toolResults });

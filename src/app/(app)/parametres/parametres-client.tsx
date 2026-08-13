@@ -50,7 +50,7 @@ type ConnectorStatus = {
   scopes: ConnectorScope[];
   scope: ConnectorScope;
   defaultScope: ConnectorScope;
-  writePolicy: "READ_ONLY" | "DRAFT_ONLY";
+  writePolicy: "READ_ONLY" | "DRAFT_ONLY" | "SEND";
   description: string;
   connected: boolean;
   status: string;
@@ -476,7 +476,7 @@ function ConnecteursTab({ connectors, role }: { connectors: ConnectorsState; rol
           <div>
             <h3 style={{ fontWeight: 700, marginBottom: 6, fontSize: 15 }}>Connectivité Socrate</h3>
             <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.6, maxWidth: 760 }}>
-              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas, rechercher et importer des documents, puis créer des brouillons d&apos;email. Les agendas et bibliothèques documentaires restent sans écriture. Aucun outil d&apos;envoi direct n&apos;est exposé.
+              Connectez vos comptes personnels et les comptes partagés du centre. Socrate peut lire les agendas, rechercher et importer des documents, puis créer des brouillons d&apos;email. Sur Roadmap 2, le super-admin peut aussi lire Gmail et envoyer un message uniquement après aperçu et validation explicite. Outlook reste limité aux brouillons.
             </p>
           </div>
           <span className={connectors.enabled ? "badge badge-primary" : "badge"}>
@@ -537,7 +537,7 @@ function ConnectorGroup({ title, subtitle, connectors, canConnect, busy, enabled
                   <span className={connector.connected ? "badge badge-primary" : "badge"}>
                     {connector.connected ? "Connecté" : connector.status === "DISABLED" ? "Désactivé" : "À connecter"}
                   </span>
-                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : "Brouillon uniquement"}</span>
+                  <span className="badge">{connector.writePolicy === "READ_ONLY" ? "Lecture seule" : connector.writePolicy === "SEND" ? "Envoi après validation" : "Brouillon uniquement"}</span>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>{connector.description}</p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
@@ -624,7 +624,9 @@ function capabilityLabel(capability: ConnectorCapability) {
     calendar_read: "Agenda",
     document_read: "Recherche fichiers",
     document_import: "Import fichier",
+    email_read: "Lecture email",
     email_draft: "Brouillon email",
+    email_send: "Envoi validé",
   };
   return labels[capability];
 }

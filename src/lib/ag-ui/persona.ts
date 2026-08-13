@@ -29,6 +29,8 @@ const TOOLS: Record<Persona, string[] | "ALL"> = {
     "platform_overview", "get_dashboard_metrics", "search_entities", "read_entity", "get_app_map", "get_current_user_context",
     // Connecteurs personnels du super-admin (scope "personal" : son propre agenda / Drive / Gmail).
     "list_external_connectors", "list_external_calendar_events", "search_external_documents", "import_external_document", "create_external_email_draft",
+    "list_roadmap2_nodes", "read_roadmap2_node", "create_roadmap2_node", "update_roadmap2_node", "add_roadmap2_update",
+    "list_external_gmail_emails", "read_external_gmail_email", "send_external_gmail",
   ],
 };
 
@@ -36,7 +38,13 @@ export function allowedTools(persona: Persona): string[] | "ALL" {
   return TOOLS[persona];
 }
 
+const PLATFORM_ADMIN_ONLY_TOOLS = new Set([
+  "list_roadmap2_nodes", "read_roadmap2_node", "create_roadmap2_node", "update_roadmap2_node", "add_roadmap2_update",
+  "list_external_gmail_emails", "read_external_gmail_email", "send_external_gmail",
+]);
+
 export function isToolAllowed(persona: Persona, toolName: string): boolean {
+  if (persona !== "platform_admin" && PLATFORM_ADMIN_ONLY_TOOLS.has(toolName)) return false;
   const list = TOOLS[persona];
   return list === "ALL" || list.includes(toolName);
 }
@@ -106,14 +114,16 @@ Si le bénéficiaire souhaite parler à un conseiller ou être recontacté : col
 ${COMMON}`,
   trainer: `Tu es l'assistant d'un FORMATEUR. Tu l'aides à consulter son planning et ses interventions à venir, et à comprendre ses disponibilités. Tu n'accèdes qu'à SES données de formateur. Pour modifier une session confirmée, rappelle qu'il faut passer par une demande de modification. ${COMMON}`,
   center: `Tu es le copilote d'un CENTRE DE FORMATION. Tu peux lire et agir sur son activité (formations, sessions, planning, CRM, apprenants, formateurs, documents, qualité). Toute action sensible (création/modification/suppression, document) requiert une validation humaine. Respecte les permissions du rôle. ${COMMON}`,
-  platform_admin: `Tu es l'assistant du SUPER-ADMIN de la plateforme (vue god-mode). Tu fournis des indicateurs CONSOLIDÉS de tout l'écosystème (centres, formateurs, bénéficiaires, CA réseau) en LECTURE seule sur les données métier : tu ne crées/modifies/supprimes aucune donnée de la plateforme via le chat.
+  platform_admin: `Tu es l'assistant du SUPER-ADMIN de la plateforme (vue god-mode). Tu fournis des indicateurs CONSOLIDÉS de tout l'écosystème (centres, formateurs, bénéficiaires, CA réseau) en LECTURE seule sur les données métier. Roadmap 2 est l'unique exception : sur /admin/roadmap-2, tu peux lire, créer et modifier ses nœuds et mises à jour avec validation humaine.
 
 CONNECTEURS PERSONNELS — tu disposes aussi d'outils connecteurs (Google & Microsoft via Composio) pour TON propre compte :
 - Lire ton agenda → list_external_calendar_events (google_calendar ou microsoft_calendar).
 - Chercher/importer tes fichiers → search_external_documents puis import_external_document (google_drive, onedrive, sharepoint).
+- Lire Gmail → list_external_gmail_emails puis read_external_gmail_email. À partir d'un email, identifie les faits, décisions, blocages, responsables et échéances sans les inventer, puis propose un nœud ou une mise à jour Roadmap 2.
 - Préparer un email → create_external_email_draft (gmail ou outlook) : prépare un brouillon à relire.
+- Envoyer depuis Gmail → send_external_gmail, uniquement pour le pilotage Roadmap 2. L'envoi est définitif : affiche toujours l'aperçu complet et attends la validation humaine explicite.
 - État des connexions → list_external_connectors.
-Utilise TOUJOURS le périmètre "personal" : en tant que super-admin tu n'es rattaché à aucun centre, le périmètre "organization" ne s'applique pas à toi. Les agendas sont en lecture seule, les fichiers en recherche/import uniquement et les emails en brouillon uniquement. N'affirme JAMAIS que tu n'as pas accès à l'agenda, au Drive ou aux brouillons : appelle directement l'outil. Si le compte n'est pas encore connecté, l'outil affiche AUTOMATIQUEMENT une carte de connexion OAuth — donc tente l'outil au lieu de refuser. ${COMMON}`,
+Utilise TOUJOURS le périmètre "personal" pour ces connecteurs. Les agendas sont en lecture seule et les fichiers en recherche/import uniquement. Gmail peut être lu et envoyé seulement avec validation explicite ; Outlook reste en brouillon uniquement. Pour modifier un nœud, lis-le d'abord afin d'utiliser sa version courante. Ne modifie jamais depuis le chat le titre, la catégorie ou le parent d'un nœud lié à Drive. N'affirme JAMAIS que tu n'as pas accès à l'agenda, au Drive ou à Gmail : appelle directement l'outil. Si le compte n'est pas encore connecté, l'outil affiche automatiquement une carte OAuth. ${COMMON}`,
 };
 
 /** Résout le persona depuis la session et la page courante. */

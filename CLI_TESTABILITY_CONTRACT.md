@@ -46,8 +46,8 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:business` | Vérifie les éléments de compréhension/activation/conversion (promesse landing, marketplace, onboarding, CTA public, dashboard honnête). |
 | `npm run smoke:business-marketplace` | Vérifie la valeur perçue de la marketplace (catalogue cross-centres, fiches, visibilité formateurs). |
 | `npm run smoke:business-google-oauth` | Vérifie côté client mystère que le login Google est visible quand configuré, que la création centre reste explicite, et que les garde-fous de confiance (CGU, nom du centre, email vérifié, pas de création silencieuse) existent. |
-| `npm run smoke:all` | Enchaîne les 34 smoke tests headless déclarés dans `scripts/smoke-all.mjs` avec l'environnement courant. |
-| `npm run smoke:all:local` | Lit exclusivement la `DATABASE_URL` locale de `.env`, refuse tout hôte distant, neutralise Stripe/Resend/Composio et exécute les 34 suites. |
+| `npm run smoke:all` | Enchaîne les smoke tests headless déclarés dans `scripts/smoke-all.mjs` avec l'environnement courant, dont `smoke:roadmap-2:agentic-gmail`. |
+| `npm run smoke:all:local` | Lit exclusivement la `DATABASE_URL` locale de `.env`, refuse tout hôte distant, neutralise Stripe/Resend/Composio et exécute toutes les suites. |
 | `npm run smoke:ui` | Intégration HTTP (serveur requis) : login/reset, effet réseau marketplace, fiches centre/formateur, onglet abonnement, santé. `SMOKE_BASE_URL` si port ≠ 3000. |
 | `npm run smoke:agui-e2e` | AG-UI end-to-end (serveur + clé LLM) : l'agent appelle un outil, exécution réelle (création + suppression) via `/api/ag-ui/run`, vérifiée en base. |
 | `npm run smoke:e2e` | `smoke:ui` + `smoke:agui-e2e`. |

@@ -9,7 +9,7 @@ Dernière mise à jour : 12 juillet 2026. Périmètre évalué : site public, ma
 | Base et migrations | PASS | PostgreSQL 16 persistant sur le VPS, conteneur sain, sauvegarde quotidienne et sauvegarde avant `prisma migrate deploy`. |
 | Marketplace | PASS | Publication réservée aux centres activés, approuvés et associés à une revue humaine datée ; aucune donnée CARIF ou démo non revue n'est exposée. |
 | Formulaires publics | PASS | Validation Zod, honeypot, quotas anonymisés, logs sans PII brute et erreur explicite si l'email échoue. |
-| Connecteurs Socrate | PASS | Calendriers en lecture, documents en lecture/import et emails en brouillon uniquement. Aucun envoi, événement ou fichier externe n'est créé directement. |
+| Connecteurs Socrate | À REVALIDER | Calendriers en lecture, documents en lecture/import, Outlook en brouillon. Gmail super-admin Roadmap 2 ajoute lecture et envoi après aperçu + validation signée à usage unique, avec registre anti-double envoi. Le 13/08/2026, la preuve réelle a été bloquée car le pooler Supabase configuré était injoignable depuis la machine d'audit ; aucun email réel n'a été envoyé. |
 | Stockage | PASS | Supabase Storage configuré en production. Le fallback local refuse les clés absolues et les traversées de répertoire, avec smoke dédié. |
 | Email | PASS technique | Transport HTML/texte/pièce jointe testé sur Mailpit ; SMTP configuré sur le VPS. La délivrabilité vers chaque domaine destinataire reste à surveiller en exploitation. |
 | Paiements publics | SAFE OFF | Stripe et webhook sont configurés, mais les flags formations/bilans restent à `false`. L'activation exige les conditions juridiques et, pour le bilan, un NDA valide. |

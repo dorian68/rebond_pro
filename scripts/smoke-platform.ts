@@ -5,6 +5,10 @@ import { getPlatformOverview, listAllCenters, listAllTrainers, listAllBeneficiar
 import { approveCenterMarketplaceForAdmin } from "../src/server/marketplace-moderation-service";
 
 runner("platform_smoke", async () => {
+  // Fixture cross-tenant autonome : la suite complète doit passer sur une base
+  // migrée vide, conformément au contrat CLI (aucun seed public requis).
+  const overviewFixture = await createTestTenant("platform-overview");
+  try {
   // 1. Vue d'ensemble cross-tenant : champs numériques cohérents
   const o = await getPlatformOverview();
   for (const k of ["centers", "trainers", "beneficiaries", "learners", "publishedFormations", "upcomingSessions", "activeProspects", "paidOrgs", "networkRevenue"] as const) {
@@ -90,5 +94,8 @@ runner("platform_smoke", async () => {
   } finally {
     if (platformUserId) await prisma.user.delete({ where: { id: platformUserId } }).catch(() => {});
     await t.cleanup();
+  }
+  } finally {
+    await overviewFixture.cleanup();
   }
 });
