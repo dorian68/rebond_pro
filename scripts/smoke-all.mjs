@@ -10,6 +10,7 @@ export const HEADLESS_SMOKE_SUITES = [
   "smoke:registration",
   "smoke:crud",
   "smoke:agent",
+  "smoke:backup",
   "smoke:marketplace",
   "smoke:tenant",
   "smoke:password-reset",

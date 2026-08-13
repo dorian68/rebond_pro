@@ -113,6 +113,7 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
   const [updateBody, setUpdateBody] = useState("");
   const [nodeFiles, setNodeFiles] = useState<Roadmap2DriveFile[] | null>(null);
   const [nodeDriveError, setNodeDriveError] = useState<string | null>(null);
+  const [previewFailureFile, setPreviewFailureFile] = useState<Roadmap2DriveFile | null>(null);
   const [nodeDriveBusy, setNodeDriveBusy] = useState<"list" | "upload" | "layout" | "preview" | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [layoutPreview, setLayoutPreview] = useState<Roadmap2DriveLayoutPreview | null>(null);
@@ -395,6 +396,7 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
     filePreviewTriggerRef.current = trigger;
     setNodeDriveBusy("preview");
     setNodeDriveError(null);
+    setPreviewFailureFile(null);
     try {
       const response = await fetch("/api/admin/roadmap-2/drive/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspaceKey, nodeId: node.id, fileId: file.id }) });
       if (!response.ok) {
@@ -405,7 +407,9 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
       if (filePreview?.url) URL.revokeObjectURL(filePreview.url);
       setFilePreview({ file, url: URL.createObjectURL(blob), contentType: blob.type });
     } catch (previewError) {
-      setNodeDriveError(previewError instanceof Error ? previewError.message : "Aperçu indisponible.");
+      const reason = previewError instanceof Error ? previewError.message : "Aperçu indisponible.";
+      setPreviewFailureFile(file);
+      setNodeDriveError(`Le fichier reste bien enregistré dans Google Drive. Seul l’aperçu Roadmap 2 est indisponible. ${reason}`);
     } finally {
       setNodeDriveBusy(null);
     }
@@ -550,7 +554,7 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
                     {visibleNodeFiles.map((file) => <li key={file.id}><span className={styles.driveFileIcon}><Icon name={file.isFolder ? "layers" : "file-text"} size={16} /></span><div className={styles.driveFileIdentity}><strong>{file.name}</strong><small>{file.modifiedAt ? `Modifié ${new Date(file.modifiedAt).toLocaleDateString("fr-FR")}` : file.isFolder ? "Dossier Drive" : canPreview(file) ? "Aperçu disponible dans Roadmap 2" : "Consultation dans Google Drive"}</small></div><div className={styles.driveFileActions}>{!file.isFolder && canPreview(file) && <button type="button" disabled={nodeDriveBusy === "preview"} onClick={(event) => void openFilePreview(file, event.currentTarget)} aria-label={`Afficher un aperçu de ${file.name}`}><Icon name="eye" size={14} /> Aperçu</button>}<a href={file.url} target="_blank" rel="noopener noreferrer" aria-label={`Ouvrir ${file.name} dans Google Drive`}><Icon name="external" size={14} /> Ouvrir Drive</a></div></li>)}
                   </ul>
                 )}
-                {nodeDriveError && <div className={styles.formError} role="alert"><Icon name="alert-circle" size={16} /> <span>{nodeDriveError}</span><button type="button" onClick={onManageDrive}>Gérer la connexion</button></div>}
+                {nodeDriveError && <div className={styles.formError} role="alert"><Icon name="alert-circle" size={16} /> <span>{nodeDriveError}</span>{previewFailureFile ? <><button type="button" disabled={nodeDriveBusy === "preview"} onClick={(event) => void openFilePreview(previewFailureFile, event.currentTarget)}>Réessayer l’aperçu</button><a href={previewFailureFile.url} target="_blank" rel="noopener noreferrer">Ouvrir dans Drive</a></> : <button type="button" onClick={onManageDrive}>Gérer la connexion</button>}</div>}
                 <p className={styles.nodeDriveHint}>PDF, CSV, TXT, images, Google Docs, Sheets, Slides et Drawings sont prévisualisables ici. Les fichiers Office s’ouvrent dans Drive · 10 Mo maximum · aucune copie persistée.</p>
               </div>
             )}

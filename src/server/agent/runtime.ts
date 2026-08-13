@@ -10,8 +10,8 @@ import { isAiEnabled, logAi } from "@/lib/ai";
 import { AGENT_TOOLS, getTool, isSensitive, type ToolResult, type AgentTool } from "@/server/agent/tools";
 import { getDashboardMetrics } from "@/server/metrics";
 import { formatMoney } from "@/lib/utils";
-import { type Persona, PERSONA_PROMPT, isToolAllowed } from "@/lib/ag-ui/persona";
-import { isConnectorAuthRequiredError } from "@/server/connectors";
+import { type AgentExecutionContext, type Persona, PERSONA_PROMPT, isToolAllowed } from "@/lib/ag-ui/persona";
+import { isConnectorAuthRequiredError, roadmap2EmailRequestHash, roadmap2EmailTrackingReference, roadmap2FinalEmailBody } from "@/server/connectors";
 import { approvalArgsHash, signAgentApproval, verifyAgentApproval } from "@/server/agent/approval-token";
 import { prisma } from "@/lib/prisma";
 
@@ -69,15 +69,17 @@ function toolOutputForModel(name: string, value: string) {
   return value.slice(0, name === "read_external_gmail_email" ? 12_000 : 4_000);
 }
 
-async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCallId: string, name: string, args: Record<string, unknown>, execution?: { approvalId?: string }): Promise<string> {
+type ToolExecution = { ok: true; text: string } | { ok: false; text: string; code: string };
+
+async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCallId: string, name: string, args: Record<string, unknown>, execution?: { approvalId?: string }): Promise<ToolExecution> {
   const tool = getTool(name);
-  if (!tool) { emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: "Outil inconnu.", role: "tool" }); return "Outil inconnu."; }
+  if (!tool) { emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: "Outil inconnu.", role: "tool" }); return { ok: false, text: "Outil inconnu.", code: "TOOL_UNKNOWN" }; }
   try {
     const res: ToolResult = await tool.execute(ctx, args, execution);
     emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: toolOutputForModel(name, res.textForLLM), role: "tool" });
     if (res.uiBlock) emit(uiBlockEvent(messageId, res.uiBlock));
     if (res.custom) emit({ type: "Custom", name: res.custom.name, value: res.custom.value, timestamp: now() });
-    return res.textForLLM;
+    return { ok: true, text: res.textForLLM };
   } catch (e) {
     if (isConnectorAuthRequiredError(e)) {
       const content = e.canConnect
@@ -97,18 +99,28 @@ async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCa
         canConnect: e.canConnect,
         blockedReason: e.blockedReason,
       }));
-      return content;
+      return { ok: false, text: content, code: "CONNECTOR_AUTH_REQUIRED" };
     }
     const msg = e instanceof Error ? e.message : "Erreur outil.";
     emit({ type: "ToolCallResult", messageId: randomUUID(), toolCallId, content: `Erreur: ${msg}`, role: "tool" });
-    return `Erreur: ${msg}`;
+    return { ok: false, text: `Erreur: ${msg}`, code: "TOOL_EXECUTION_ERROR" };
   }
 }
 
 /** Émet la demande d'approbation pour une action sensible. */
 function approvalPresentation(toolName: string, args: Record<string, unknown>) {
+  const fieldLabels: Record<string, string> = { description: "Contexte", expectedOutcome: "Résultat attendu", status: "Statut", priority: "Priorité", progressPercent: "Progression", ownerUserId: "Responsable", startDate: "Date de début", dueDate: "Échéance", nextAction: "Prochaine action", decisionRequired: "Décision requise", definitionOfDone: "Definition of done" };
   if (toolName === "send_external_gmail") {
     const recipients = Array.isArray(args.to) ? args.to.map(String).join(", ") : "—";
+    const requestHash = roadmap2EmailRequestHash({
+      to: Array.isArray(args.to) ? args.to.map(String) : [],
+      cc: Array.isArray(args.cc) ? args.cc.map(String) : [],
+      bcc: Array.isArray(args.bcc) ? args.bcc.map(String) : [],
+      subject: String(args.subject ?? ""),
+      body: String(args.body ?? ""),
+      nodeId: args.nodeId ? String(args.nodeId) : undefined,
+    });
+    const trackingReference = roadmap2EmailTrackingReference(requestHash);
     return {
       title: "Confirmer l’envoi Gmail",
       description: "Vérifiez le destinataire, l’objet et le message avant l’envoi définitif.",
@@ -119,17 +131,28 @@ function approvalPresentation(toolName: string, args: Record<string, unknown>) {
         ...(Array.isArray(args.cc) && args.cc.length ? [{ label: "Cc", value: args.cc.map(String).join(", ") }] : []),
         ...(Array.isArray(args.bcc) && args.bcc.length ? [{ label: "Cci", value: args.bcc.map(String).join(", ") }] : []),
         { label: "Objet", value: String(args.subject ?? "—") },
+        { label: "Référence de suivi", value: trackingReference },
       ],
-      preview: String(args.body ?? "").slice(0, 3000),
+      preview: roadmap2FinalEmailBody({ body: String(args.body ?? ""), requestHash }),
     };
   }
   if (toolName === "create_roadmap2_node") {
+    const labels: Record<string, string> = { initiative: "Initiative", phase: "Phase", action: "Action", milestone: "Jalon", decision: "Décision", strategy_governance: "Stratégie & gouvernance", operations_compliance: "Opérations & conformité", product_pedagogy: "Produit & pédagogie", buyers_funding: "Acheteurs & financements", partners_market: "Partenaires & marché", pilot_execution: "Pilote", technology_data: "Technologie & données" };
     return {
       title: "Créer ce nœud Roadmap 2 ?",
       description: "Le nœud sera ajouté à la roadmap privée après validation.",
       impact: "Cette action modifie Roadmap 2. Elle ne crée pas automatiquement de dossier Drive.",
       riskLevel: "medium" as const,
-      fields: [{ label: "Titre", value: String(args.title ?? "—") }, { label: "Priorité", value: String(args.priority ?? "P1") }],
+      fields: [
+        { label: "Titre", value: String(args.title ?? "—") },
+        { label: "Type", value: labels[String(args.type ?? "")] ?? String(args.type ?? "—") },
+        { label: "Catégorie", value: labels[String(args.category ?? "")] ?? String(args.category ?? "—") },
+        { label: "Priorité", value: String(args.priority ?? "P1") },
+        { label: "Responsable", value: String(args.ownerName ?? args.ownerUserId ?? "À attribuer") },
+        { label: "Échéance", value: String(args.dueDate ?? "À planifier") },
+        { label: "Résultat attendu", value: String(args.expectedOutcome ?? "—") },
+        { label: "Prochaine action", value: String(args.nextAction ?? "—") },
+      ],
     };
   }
   if (toolName === "update_roadmap2_node" || toolName === "add_roadmap2_update") {
@@ -139,8 +162,8 @@ function approvalPresentation(toolName: string, args: Record<string, unknown>) {
       impact: "Cette action est journalisée dans Roadmap 2.",
       riskLevel: "medium" as const,
       fields: toolName === "update_roadmap2_node"
-        ? [{ label: "Nœud", value: String(args.nodeId ?? "—") }, ...Object.entries(args.changes && typeof args.changes === "object" ? args.changes as Record<string, unknown> : {}).slice(0, 10).map(([label, value]) => ({ label, value: value == null ? "—" : typeof value === "boolean" ? (value ? "Oui" : "Non") : String(value).slice(0, 500) }))]
-        : [{ label: "Type", value: String(args.updateType ?? "note") }],
+        ? [{ label: "Nœud", value: String(args.nodeTitle ?? args.nodeId ?? "—") }, ...Object.entries(args.changes && typeof args.changes === "object" ? args.changes as Record<string, unknown> : {}).slice(0, 10).map(([label, value]) => ({ label: fieldLabels[label] ?? label, value: value == null ? "—" : typeof value === "boolean" ? (value ? "Oui" : "Non") : String(value).slice(0, 500) }))]
+        : [{ label: "Nœud", value: String(args.nodeTitle ?? args.nodeId ?? "—") }, { label: "Type", value: String(args.updateType ?? "note") }],
       preview: toolName === "add_roadmap2_update" ? String(args.body ?? "").slice(0, 2000) : undefined,
     };
   }
@@ -152,9 +175,31 @@ function approvalPresentation(toolName: string, args: Record<string, unknown>) {
   };
 }
 
-function emitApproval(emit: Emit, msgId: string, toolName: string, args: Record<string, unknown>, ctx: TenantContext, persona: Persona) {
+async function approvalArgsWithLabels(toolName: string, args: Record<string, unknown>) {
+  const needsNodeTitle = ['update_roadmap2_node', 'add_roadmap2_update'].includes(toolName) && args.nodeId && !args.nodeTitle;
+  const needsOwnerName = toolName === "create_roadmap2_node" && Boolean(args.ownerUserId);
+  if (!needsNodeTitle && !needsOwnerName) return args;
+  const trustedArgs = { ...args };
+  if (toolName === "create_roadmap2_node") delete trustedArgs.ownerName;
+  try {
+    const { getRoadmap2Data } = await import("@/server/roadmap2");
+    const data = await getRoadmap2Data(typeof args.workspaceKey === "string" ? args.workspaceKey : undefined);
+    const node = needsNodeTitle ? data.nodes.find((candidate) => candidate.id === String(args.nodeId)) : null;
+    const owner = needsOwnerName ? data.owners.find((candidate) => candidate.id === String(args.ownerUserId)) : null;
+    return {
+      ...trustedArgs,
+      ...(node ? { nodeTitle: node.title } : {}),
+      ...(owner ? { ownerName: owner.name || owner.email } : {}),
+    };
+  } catch {
+    return trustedArgs;
+  }
+}
+
+async function emitApproval(emit: Emit, msgId: string, toolName: string, rawArgs: Record<string, unknown>, ctx: TenantContext, persona: Persona, executionContext: AgentExecutionContext) {
+  const args = await approvalArgsWithLabels(toolName, rawArgs);
   const approvalId = randomUUID();
-  const approvalToken = signAgentApproval({ approvalId, tool: toolName, args, userId: ctx.userId, persona });
+  const approvalToken = signAgentApproval({ approvalId, tool: toolName, args, userId: ctx.userId, persona, executionContext });
   const presentation = approvalPresentation(toolName, args);
   const confirm: UIBlock = {
     type: "confirmation_card", approvalId, approvalToken, tool: toolName, args, ...presentation,
@@ -163,7 +208,7 @@ function emitApproval(emit: Emit, msgId: string, toolName: string, args: Record<
   emit({ type: "Custom", name: "app.approval.required", value: { approvalId, approvalToken, tool: toolName, args }, timestamp: now() });
 }
 
-export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: Emit, persona: Persona = "center"): Promise<void> {
+export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: Emit, persona: Persona = "center", executionContext: AgentExecutionContext = "default"): Promise<void> {
   const threadId = input.threadId;
   const runId = input.runId ?? randomUUID();
   emit({ type: "RunStarted", threadId, runId, timestamp: now() });
@@ -174,14 +219,14 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
     const approved = input.forwardedProps?.approvedAction;
     if (approved) {
       // Sécurité : l'action approuvée doit appartenir au périmètre du persona.
-      if (!isToolAllowed(persona, approved.tool)) {
+      if (!isToolAllowed(persona, approved.tool, executionContext)) {
         emit({ type: "RunError", message: "Action non autorisée pour ce contexte.", code: "PERSONA_FORBIDDEN", timestamp: now() });
-        emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
+        emit({ type: "RunFinished", threadId, runId, outcome: { type: "failure" }, timestamp: now() });
         return;
       }
-      if (!isSensitive(approved.tool) || !verifyAgentApproval(approved.approvalToken, { approvalId: approved.approvalId, tool: approved.tool, args: approved.args, userId: ctx.userId, persona })) {
+      if (!isSensitive(approved.tool) || !verifyAgentApproval(approved.approvalToken, { approvalId: approved.approvalId, tool: approved.tool, args: approved.args, userId: ctx.userId, persona, executionContext })) {
         emit({ type: "RunError", message: "Cette validation est invalide, a expiré ou a été modifiée. Relancez l’action.", code: "APPROVAL_INVALID", timestamp: now() });
-        emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
+        emit({ type: "RunFinished", threadId, runId, outcome: { type: "failure" }, timestamp: now() });
         return;
       }
       if (persona === "platform_admin") {
@@ -190,7 +235,7 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
         } catch (error) {
           if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
             emit({ type: "RunError", message: "Cette validation a déjà été utilisée. Relancez l’action si vous souhaitez la recommencer.", code: "APPROVAL_REPLAYED", timestamp: now() });
-            emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
+            emit({ type: "RunFinished", threadId, runId, outcome: { type: "failure" }, timestamp: now() });
             return;
           }
           throw error;
@@ -203,13 +248,19 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
       emit({ type: "TextMessageEnd", messageId: msgId });
       emit({ type: "ToolCallStart", toolCallId, toolCallName: approved.tool, timestamp: now() });
       emit({ type: "ToolCallArgs", toolCallId, delta: JSON.stringify(approved.args) });
-      const out = await runTool(ctx, emit, msgId, toolCallId, approved.tool, approved.args, { approvalId: approved.approvalId });
+      const result = await runTool(ctx, emit, msgId, toolCallId, approved.tool, approved.args, { approvalId: approved.approvalId });
       emit({ type: "ToolCallEnd", toolCallId });
+      if (!result.ok) {
+        await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "agui_action_error", input: approved.tool, output: result.text });
+        emit({ type: "RunError", message: result.text.replace(/^Erreur:\s*/, ""), code: result.code, timestamp: now() });
+        emit({ type: "RunFinished", threadId, runId, outcome: { type: "failure" }, timestamp: now() });
+        return;
+      }
       const okMsg = randomUUID();
       emit({ type: "TextMessageStart", messageId: okMsg, role: "assistant", timestamp: now() });
-      emit({ type: "TextMessageContent", messageId: okMsg, delta: "✅ C'est fait. " + out.slice(0, 200) });
+      emit({ type: "TextMessageContent", messageId: okMsg, delta: "✅ C'est fait. " + result.text.slice(0, 200) });
       emit({ type: "TextMessageEnd", messageId: okMsg });
-      await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "agui_action", input: approved.tool, output: out });
+      await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "agui_action", input: approved.tool, output: result.text });
       emit({ type: "RunFinished", threadId, runId, outcome: { type: "success" }, timestamp: now() });
       return;
     }
@@ -236,18 +287,19 @@ export async function runAgent(ctx: TenantContext, input: RunAgentInput, emit: E
     }
 
     // Outils filtrés selon le persona (sécurité : périmètre serveur).
-    const personaTools = AGENT_TOOLS.filter((t) => isToolAllowed(persona, t.name));
+    const personaTools = AGENT_TOOLS.filter((t) => isToolAllowed(persona, t.name, executionContext));
     const ctxLine = input.state?.pathname ? `\n\nContexte courant : page "${input.state.title ?? input.state.pathname}" (${input.state.pathname}).` : "";
     const base = persona === "center" ? SYSTEM_PROMPT : PERSONA_PROMPT[persona];
     const system = base + ctxLine;
     const pending = agUIConfig.provider === "openai"
-      ? await loopOpenAI(ctx, input, system, emit, personaTools, persona)
-      : await loopAnthropic(ctx, input, system, emit, personaTools, persona);
+      ? await loopOpenAI(ctx, input, system, emit, personaTools, persona, executionContext)
+      : await loopAnthropic(ctx, input, system, emit, personaTools, persona, executionContext);
 
     emit({ type: "RunFinished", threadId, runId, outcome: { type: pending ? "requires_action" : "success" }, timestamp: now() });
   } catch (e) {
     console.error("[ag-ui] runAgent error:", e);
     emit({ type: "RunError", message: e instanceof Error ? e.message : "Erreur inconnue", code: "AGUI_RUN_ERROR", timestamp: now() });
+    emit({ type: "RunFinished", threadId, runId, outcome: { type: "failure" }, timestamp: now() });
   }
 }
 
@@ -277,7 +329,7 @@ function buildOpenAIMessages(input: RunAgentInput, system: string): OpenAI.Chat.
 }
 
 // ---------------- Boucle OpenAI (function calling, streaming) ----------------
-async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[], persona: Persona): Promise<boolean> {
+async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[], persona: Persona, executionContext: AgentExecutionContext): Promise<boolean> {
   const tools = personaTools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   const messages = buildOpenAIMessages(input, system);
 
@@ -321,14 +373,14 @@ async function loopOpenAI(ctx: TenantContext, input: RunAgentInput, system: stri
       emit({ type: "ToolCallStart", toolCallId: c.id, toolCallName: c.name, parentMessageId: msgId, timestamp: now() });
       emit({ type: "ToolCallArgs", toolCallId: c.id, delta: c.args || "{}" });
       if (isSensitive(c.name) && agUIConfig.requireApproval) {
-        emitApproval(emit, msgId, c.name, args, ctx, persona);
+        await emitApproval(emit, msgId, c.name, args, ctx, persona, executionContext);
         emit({ type: "ToolCallEnd", toolCallId: c.id });
         messages.push({ role: "tool", tool_call_id: c.id, content: "En attente de validation humaine." });
         pending = true;
       } else {
-        const text = await runTool(ctx, emit, msgId, c.id, c.name, args);
+        const result = await runTool(ctx, emit, msgId, c.id, c.name, args);
         emit({ type: "ToolCallEnd", toolCallId: c.id });
-        messages.push({ role: "tool", tool_call_id: c.id, content: toolOutputForModel(c.name, text) });
+        messages.push({ role: "tool", tool_call_id: c.id, content: toolOutputForModel(c.name, result.text) });
       }
     }
     if (pending) return true;
@@ -359,7 +411,7 @@ function buildAnthropicMessages(input: RunAgentInput): Anthropic.MessageParam[] 
 }
 
 // ---------------- Boucle Anthropic (tool use, streaming) ----------------
-async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[], persona: Persona): Promise<boolean> {
+async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: string, emit: Emit, personaTools: AgentTool[], persona: Persona, executionContext: AgentExecutionContext): Promise<boolean> {
   const tools = personaTools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: Anthropic.MessageParam[] = buildAnthropicMessages(input);
 
@@ -384,14 +436,14 @@ async function loopAnthropic(ctx: TenantContext, input: RunAgentInput, system: s
       emit({ type: "ToolCallStart", toolCallId: block.id, toolCallName: block.name, parentMessageId: msgId, timestamp: now() });
       emit({ type: "ToolCallArgs", toolCallId: block.id, delta: JSON.stringify(args) });
       if (isSensitive(block.name) && agUIConfig.requireApproval) {
-        emitApproval(emit, msgId, block.name, args, ctx, persona);
+        await emitApproval(emit, msgId, block.name, args, ctx, persona, executionContext);
         emit({ type: "ToolCallEnd", toolCallId: block.id });
         toolResults.push({ type: "tool_result", tool_use_id: block.id, content: "En attente de validation humaine." });
         pending = true;
       } else {
-        const text = await runTool(ctx, emit, msgId, block.id, block.name, args);
+        const result = await runTool(ctx, emit, msgId, block.id, block.name, args);
         emit({ type: "ToolCallEnd", toolCallId: block.id });
-        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: toolOutputForModel(block.name, text) });
+        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: toolOutputForModel(block.name, result.text), is_error: !result.ok });
       }
     }
     messages.push({ role: "user", content: toolResults });

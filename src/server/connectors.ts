@@ -470,6 +470,33 @@ export async function readExternalGmailEmail(ctx: TenantContext, input: { messag
 
 const emailSchema = z.string().trim().email().max(320);
 
+class GmailProviderRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GmailProviderRejectedError";
+  }
+}
+
+export function roadmap2EmailTrackingReference(requestHash: string) {
+  return `RM2-${requestHash.slice(0, 24).toUpperCase()}`;
+}
+
+export function roadmap2EmailRequestHash(input: { to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string; nodeId?: string }) {
+  const normalized = {
+    to: input.to.map((value) => value.trim()),
+    cc: (input.cc ?? []).map((value) => value.trim()),
+    bcc: (input.bcc ?? []).map((value) => value.trim()),
+    subject: input.subject.trim(),
+    body: input.body.trim(),
+    nodeId: input.nodeId?.trim() || null,
+  };
+  return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
+}
+
+export function roadmap2FinalEmailBody(input: { body: string; requestHash: string }) {
+  return `${input.body.trim()}\n\n—\nRéférence de suivi Roadmap 2 : ${roadmap2EmailTrackingReference(input.requestHash)}`;
+}
+
 function providerIds(result: unknown) {
   const root = object(result);
   const data = object(root.data);
@@ -478,6 +505,35 @@ function providerIds(result: unknown) {
     messageId: stringValue(response.message_id, response.messageId, response.id, data.message_id, data.id) || null,
     threadId: stringValue(response.thread_id, response.threadId, data.thread_id) || null,
   };
+}
+
+async function reconcileUncertainGmailOperation(input: {
+  ctx: TenantContext;
+  connector: ConnectorDefinition;
+  account: { id?: string };
+  operation: { id: string; requestHash: string };
+  workspaceId: string;
+  subject: string;
+}) {
+  const tool = resolveComposioTool(input.connector, "fetchEmails");
+  if (!tool) return null;
+  const trackingReference = roadmap2EmailTrackingReference(input.operation.requestHash);
+  const result = await composio().tools.execute(tool, {
+    userId: connectorEntityId(input.ctx, "personal"),
+    ...(input.account.id ? { connectedAccountId: input.account.id } : {}),
+    arguments: { user_id: "me", query: `in:sent "${trackingReference}" newer_than:30d`, max_results: 10, include_payload: true, include_spam_trash: false, verbose: true },
+  });
+  assertProviderSuccess(result);
+  const found = emailArray(result)
+    .map(normalizeGmailEmail)
+    .find((email): email is GmailEmail => Boolean(email && email.subject === input.subject && `${email.body ?? ""}\n${email.snippet ?? ""}`.includes(trackingReference)));
+  if (!found) return null;
+  await prisma.roadmap2EmailOperation.update({
+    where: { id: input.operation.id },
+    data: { status: "succeeded", providerMessageId: found.messageId, providerThreadId: found.threadId ?? null, providerAppliedAt: new Date(), completedAt: new Date(), errorCode: null, errorMessage: null },
+  });
+  await prisma.roadmap2AuditLog.create({ data: { workspaceId: input.workspaceId, actorUserId: input.ctx.userId, action: "email.reconciled", entityType: "Roadmap2EmailOperation", entityId: input.operation.id } });
+  return { sent: true, duplicatePrevented: true, reconciled: true, messageId: found.messageId, threadId: found.threadId ?? null };
 }
 
 export async function sendExternalGmail(ctx: TenantContext, input: { workspaceId: string; approvalId: string; nodeId?: string; to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string }) {
@@ -496,30 +552,55 @@ export async function sendExternalGmail(ctx: TenantContext, input: { workspaceId
     const exists = await prisma.roadmap2Node.count({ where: { id: nodeId, workspaceId: input.workspaceId, archivedAt: null } });
     if (!exists) throw new Error("Nœud Roadmap 2 introuvable.");
   }
-  const requestHash = createHash("sha256").update(JSON.stringify({ to, cc, bcc, subject, body, nodeId: nodeId ?? null })).digest("hex");
+  const requestHash = roadmap2EmailRequestHash({ to, cc, bcc, subject, body, nodeId });
+  const trackingReference = roadmap2EmailTrackingReference(requestHash);
   const payload = {
     recipientHashes: [...to, ...cc, ...bcc].map((email) => createHash("sha256").update(email.toLowerCase()).digest("hex")),
     subjectHash: createHash("sha256").update(subject).digest("hex"),
     bodyHash: createHash("sha256").update(body).digest("hex"),
   };
-  const existing = await prisma.roadmap2EmailOperation.findUnique({ where: { workspaceId_idempotencyKey: { workspaceId: input.workspaceId, idempotencyKey: approvalId } } });
+  const existing = await prisma.roadmap2EmailOperation.findFirst({
+    where: {
+      workspaceId: input.workspaceId,
+      OR: [
+        { idempotencyKey: approvalId },
+        { requestHash, status: { in: ["running", "provider_succeeded", "needs_repair", "succeeded"] } },
+      ],
+    },
+  });
+  let operation = existing;
   if (existing) {
     if (existing.requestHash !== requestHash) throw new Error("Cette validation ne correspond pas au même email.");
     if (existing.status === "succeeded") return { sent: true, duplicatePrevented: true, messageId: existing.providerMessageId, threadId: existing.providerThreadId };
-    throw new Error("Cet envoi a déjà été déclenché. Son état doit être vérifié avant toute nouvelle tentative.");
+    if (["running", "provider_succeeded", "needs_repair"].includes(existing.status)) {
+      const reconciled = await reconcileUncertainGmailOperation({ ctx, connector, account, operation: existing, workspaceId: input.workspaceId, subject });
+      if (reconciled) return reconciled;
+      throw new Error(`Envoi suspendu pour éviter un doublon. Gmail ne confirme pas encore l’état de la référence ${trackingReference}. Vérifiez les messages envoyés avant toute nouvelle tentative.`);
+    }
+    if (existing.status === "failed" && existing.errorCode === "GMAIL_SEND_REJECTED") {
+      const claimed = await prisma.roadmap2EmailOperation.updateMany({
+        where: { id: existing.id, status: "failed", errorCode: "GMAIL_SEND_REJECTED" },
+        data: { status: "running", idempotencyKey: approvalId, attemptCount: { increment: 1 }, errorCode: null, errorMessage: null, completedAt: null },
+      });
+      if (claimed.count !== 1) throw new Error("Cet envoi est déjà en cours de reprise.");
+      operation = { ...existing, status: "running", idempotencyKey: approvalId, errorCode: null, errorMessage: null, completedAt: null, attemptCount: existing.attemptCount + 1 };
+    } else {
+      throw new Error("Cet envoi ne peut pas être relancé automatiquement. Son état durable doit d’abord être résolu.");
+    }
   }
-  const operation = await prisma.roadmap2EmailOperation.create({
-    data: { workspaceId: input.workspaceId, nodeId, actorUserId: ctx.userId, idempotencyKey: approvalId, requestHash, payload },
-  });
+  operation ??= await prisma.roadmap2EmailOperation.create({ data: { workspaceId: input.workspaceId, nodeId, actorUserId: ctx.userId, idempotencyKey: approvalId, requestHash, payload } });
   try {
     const tool = resolveComposioTool(connector, "sendEmail");
     if (!tool) throw new Error("Outil d’envoi Gmail non configuré.");
     const result = await composio().tools.execute(tool, {
       userId: connectorEntityId(ctx, "personal"),
       ...(account.id ? { connectedAccountId: account.id } : {}),
-      arguments: { user_id: "me", recipient_email: to[0], extra_recipients: to.slice(1), cc, bcc, subject, body, is_html: false },
+      arguments: { user_id: "me", recipient_email: to[0], extra_recipients: to.slice(1), cc, bcc, subject, body: roadmap2FinalEmailBody({ body, requestHash }), is_html: false },
     });
-    assertProviderSuccess(result);
+    const providerRecord = object(result);
+    if (providerRecord.successful === false || providerRecord.success === false || providerRecord.error) {
+      throw new GmailProviderRejectedError(stringValue(object(providerRecord.error).message, providerRecord.error, providerRecord.message) || "Le fournisseur Gmail a refusé l’opération.");
+    }
     const ids = providerIds(result);
     await prisma.roadmap2EmailOperation.update({
       where: { id: operation.id },
@@ -529,7 +610,11 @@ export async function sendExternalGmail(ctx: TenantContext, input: { workspaceId
     await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "connector_gmail_send", input: "gmail:personal", output: JSON.stringify({ sent: true, operationId: operation.id }) });
     return { sent: true, duplicatePrevented: false, messageId: ids.messageId, threadId: ids.threadId };
   } catch (error) {
-    await prisma.roadmap2EmailOperation.update({ where: { id: operation.id }, data: { status: "needs_repair", errorCode: "GMAIL_SEND_UNCERTAIN", errorMessage: "L’état fournisseur doit être vérifié avant toute nouvelle tentative." } });
+    if (error instanceof GmailProviderRejectedError) {
+      await prisma.roadmap2EmailOperation.update({ where: { id: operation.id }, data: { status: "failed", errorCode: "GMAIL_SEND_REJECTED", errorMessage: error.message, completedAt: new Date() } });
+    } else {
+      await prisma.roadmap2EmailOperation.update({ where: { id: operation.id }, data: { status: "needs_repair", errorCode: "GMAIL_SEND_UNCERTAIN", errorMessage: `État fournisseur incertain. Rechercher ${trackingReference} dans les messages envoyés avant toute nouvelle tentative.` } });
+    }
     throw error;
   }
 }

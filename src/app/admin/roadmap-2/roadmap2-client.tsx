@@ -50,6 +50,7 @@ import {
 } from "@/server/roadmap2-drive-actions";
 import { EMPTY_FILTERS, filterRoadmap2Nodes, nodeToInput, projectRoadmap2OverviewNodes, type Roadmap2Filters, type Roadmap2View } from "./roadmap2-ui";
 import { clearRoadmap2OperationKey, getOrCreateRoadmap2OperationKey, roadmap2PermissionOperationScope } from "@/lib/roadmap2-operation-key-store";
+import { ROADMAP2_REQUIRED_DRIVE_EDITORS } from "@/lib/roadmap2-drive-policy";
 import { Roadmap2Graph } from "./roadmap2-graph";
 import { Roadmap2Timeline } from "./roadmap2-timeline";
 import { Roadmap2List } from "./roadmap2-list";
@@ -130,6 +131,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   const [driveCollaborators, setDriveCollaborators] = useState("");
   const [driveError, setDriveError] = useState<string | null>(null);
   const [driveBusy, setDriveBusy] = useState<string | null>(null);
+  const [driveProvisionProgress, setDriveProvisionProgress] = useState<{ completed: number; total: number; current: string } | null>(null);
   const [toast, setToast] = useState<{ tone: "success" | "error" | "info"; message: string } | null>(null);
   const [busy, startTransition] = useTransition();
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
@@ -472,7 +474,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
   }
 
   async function provisionDrive() {
-    if (!window.confirm("Créer ou compléter l’arborescence Le Bon Rebond dans le Google Drive connecté ? Les dossiers existants portant le même nom seront réutilisés.")) return;
+    if (!window.confirm("Créer ou compléter l’arborescence Le Bon Rebond dans le Google Drive connecté ? Les dossiers existants portant le même nom seront réutilisés. Dorian (dorian.labry@gmail.com) recevra ou conservera un accès éditeur hérité sur tous les fichiers du projet.")) return;
     setDriveBusy("provision");
     setDriveError(null);
     const operationKeyName = "provision-workspace";
@@ -491,6 +493,54 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
     await loadDriveFolder();
   }
 
+  async function provisionAllNodeDriveResources() {
+    const missing = nodes
+      .filter((node) => node.status !== "archived" && !node.archivedAt && (!node.driveFolderUrl || !node.trackingDocUrl))
+      .sort((left, right) => {
+        const byId = new Map(nodes.map((node) => [node.id, node]));
+        const depth = (node: Roadmap2NodeDto) => {
+          let value = 0;
+          let parentId = node.parentId;
+          const seen = new Set<string>();
+          while (parentId && !seen.has(parentId)) {
+            seen.add(parentId);
+            value += 1;
+            parentId = byId.get(parentId)?.parentId ?? null;
+          }
+          return value;
+        };
+        return depth(left) - depth(right) || left.title.localeCompare(right.title, "fr");
+      });
+    if (!missing.length) {
+      setToast({ tone: "success", message: "Tous les nœuds actifs disposent déjà de leur espace Drive." });
+      return;
+    }
+    if (!window.confirm(`Préparer progressivement l’espace Drive de ${missing.length} nœud${missing.length === 1 ? "" : "s"} actif${missing.length === 1 ? "" : "s"} ? Chaque nœud recevra un dossier et un document « 00 - SUIVI & DÉCISIONS ». Dorian conservera son accès éditeur hérité. Vous verrez la progression et pourrez reprendre sans doublon en cas d’interruption.`)) return;
+    setDriveBusy("nodes");
+    setDriveError(null);
+    let completed = 0;
+    for (const node of missing) {
+      setDriveProvisionProgress({ completed, total: missing.length, current: node.title });
+      const operationKeyName = `node-resources:${node.id}`;
+      const operationKey = getOrCreateRoadmap2OperationKey(workspace.key, operationKeyName);
+      const result = await createRoadmap2NodeDriveResources(workspace.key, node.id, node.version, operationKey);
+      if (!result.ok) {
+        setDriveError(`${completed}/${missing.length} nœud${missing.length === 1 ? "" : "s"} préparé${completed === 1 ? "" : "s"}. Arrêt sur « ${node.title} » : ${result.error}`);
+        setDriveProvisionProgress(null);
+        setDriveBusy(null);
+        router.refresh();
+        return;
+      }
+      clearRoadmap2OperationKey(workspace.key, operationKeyName);
+      completed += 1;
+      setNodes((current) => current.map((candidate) => candidate.id === node.id ? { ...candidate, version: result.data.version, driveFolderUrl: result.data.driveFolderUrl, trackingDocUrl: result.data.trackingDocUrl, updatedAt: new Date().toISOString() } : candidate));
+    }
+    setDriveProvisionProgress(null);
+    setDriveBusy(null);
+    setToast({ tone: "success", message: `${completed} espace${completed === 1 ? "" : "s"} Drive préparé${completed === 1 ? "" : "s"}. Tous les nœuds actifs sont maintenant liés.` });
+    router.refresh();
+  }
+
   async function goBackDrive() {
     const previous = driveHistory.at(-1);
     if (!previous) return;
@@ -500,17 +550,17 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
 
   async function shareDrive() {
     const emails = driveCollaborators.split(/[;,\n]+/).map((email) => email.trim()).filter(Boolean);
-    if (!emails.length) { setDriveError("Ajoutez au moins une adresse email."); return; }
-    if (!window.confirm(`Ajouter ou mettre à niveau un accès éditeur au dossier racine pour :\n\n${emails.join("\n")}\n\nAucun accès Drive existant ne sera retiré.`)) return;
+    const effectiveEmails = [...new Set([...ROADMAP2_REQUIRED_DRIVE_EDITORS, ...emails].map((email) => email.toLowerCase()))];
+    if (!window.confirm(`Ajouter ou mettre à niveau les accès éditeur suivants au dossier racine :\n\n${effectiveEmails.join("\n")}\n\nDorian est un éditeur permanent demandé pour Roadmap 2. Aucun accès Drive existant ne sera retiré.`)) return;
     setDriveBusy("share");
     setDriveError(null);
-    const signature = [...emails].map((email) => email.toLowerCase()).sort().join("|");
-    const operationScope = roadmap2PermissionOperationScope(emails);
+    const signature = [...effectiveEmails].sort().join("|");
+    const operationScope = roadmap2PermissionOperationScope(effectiveEmails);
     const operation = permissionOperationRef.current?.signature === signature
       ? permissionOperationRef.current
       : { signature, key: getOrCreateRoadmap2OperationKey(workspace.key, operationScope) };
     permissionOperationRef.current = operation;
-    const result = await syncRoadmap2DrivePermissions(workspace.key, emails, operation.key);
+    const result = await syncRoadmap2DrivePermissions(workspace.key, effectiveEmails, operation.key);
     if (result.ok) {
       permissionOperationRef.current = null;
       clearRoadmap2OperationKey(workspace.key, operationScope);
@@ -708,6 +758,13 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
                   {workspace.rootDriveUrl && <a className={styles.secondaryButton} href={workspace.rootDriveUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" size={15} /> Ouvrir dans Drive</a>}
                 </div>
 
+                {workspace.rootDriveUrl && (
+                  <section className={styles.driveSharing} aria-label="Couverture documentaire des nœuds">
+                    <div><strong>Espaces Drive des nœuds</strong><small>{nodes.filter((node) => node.status !== "archived" && !node.archivedAt && node.driveFolderUrl && node.trackingDocUrl).length}/{nodes.filter((node) => node.status !== "archived" && !node.archivedAt).length} nœuds actifs disposent d’un dossier et d’un document de suivi. La préparation suit la hiérarchie et reprend sans doublon.</small></div>
+                    <button type="button" className={styles.secondaryButton} disabled={Boolean(driveBusy) || nodes.every((node) => node.status === "archived" || node.archivedAt || (node.driveFolderUrl && node.trackingDocUrl))} onClick={() => void provisionAllNodeDriveResources()}><Icon name="layers" size={15} /> Préparer les espaces manquants</button>
+                  </section>
+                )}
+
                 {driveListing && (
                   <section className={styles.driveExplorer} aria-label="Contenu du dossier Google Drive">
                     <div className={styles.driveExplorerHeader}>
@@ -745,7 +802,7 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
             )}
 
             {driveError && <div className={styles.formError} role="alert"><Icon name="alert-circle" size={16} /> {driveError}</div>}
-            {driveBusy && driveBusy !== "status" && driveBusy !== "connect" && <p className={styles.driveProgress} role="status">Opération Google Drive en cours…</p>}
+            {driveBusy && driveBusy !== "status" && driveBusy !== "connect" && <p className={styles.driveProgress} role="status">{driveProvisionProgress ? `${driveProvisionProgress.completed}/${driveProvisionProgress.total} · Préparation de « ${driveProvisionProgress.current} »…` : "Opération Google Drive en cours…"}</p>}
 
             <details className={styles.driveManualConfig}>
               <summary>Utiliser un dossier existant manuellement</summary>

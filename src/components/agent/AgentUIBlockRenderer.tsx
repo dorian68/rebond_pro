@@ -131,7 +131,7 @@ export function AgentUIBlockRenderer({ block, onSuggestion, onApprove, onReject 
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button className="btn btn-ghost btn-sm" onClick={onReject}>Annuler</button>
-            <button className="btn btn-primary btn-sm" onClick={onApprove}><Icon name="check" size={15} /> Valider</button>
+            <button className="btn btn-primary btn-sm" onClick={onApprove}><Icon name="check" size={15} /> {block.tool === "send_external_gmail" ? "Envoyer l’email" : "Valider"}</button>
           </div>
         </div>
       );

@@ -83,6 +83,8 @@ Sans ces conditions, le site conserve un parcours de prise de contact et n'affic
 
 `/opt/rebondpro/backup.sh` produit une sauvegarde PostgreSQL avant migration. Une sauvegarde quotidienne compressée est également conservée dans `/opt/rebondpro/backups`.
 
+Le job quotidien publie toujours le dump PostgreSQL vérifié avant d'appeler le stockage distant. Si Supabase refuse l'export (quota, restriction ou panne), le job termine en échec, conserve le dump DB, écrit un fichier `*.status` marqué `PARTIAL` et journalise l'action fournisseur requise. Un état PARTIAL ne remplace pas une sauvegarde complète des documents.
+
 Vérifications manuelles non sensibles :
 
 ```bash

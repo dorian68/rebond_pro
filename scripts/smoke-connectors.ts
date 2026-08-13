@@ -79,7 +79,8 @@ assert(isToolAllowed("center", "preflight_document_generation"), "Le persona cen
 assert(isToolAllowed("center", "generate_document"), "Le persona centre doit pouvoir demander une génération documentaire validée.");
 assert(!isToolAllowed("visitor", "generate_document"), "Le persona visiteur ne doit pas générer de document centre.");
 assert(isToolAllowed("platform_admin", "create_external_email_draft"), "Le persona platform_admin doit pouvoir utiliser ses connecteurs personnels (brouillon email).");
-assert(isToolAllowed("platform_admin", "send_external_gmail"), "Le persona platform_admin doit pouvoir envoyer depuis Gmail après validation.");
+assert(!isToolAllowed("platform_admin", "send_external_gmail", "default"), "L'endpoint agent générique doit refuser l'envoi Gmail Roadmap 2.");
+assert(isToolAllowed("platform_admin", "send_external_gmail", "roadmap2_admin"), "L'endpoint serveur Roadmap 2 doit permettre l'envoi Gmail après validation.");
 assert(!isToolAllowed("center", "send_external_gmail"), "L'envoi Gmail Roadmap 2 doit rester réservé au platform_admin.");
 assert(isToolAllowed("platform_admin", "list_external_calendar_events"), "Le persona platform_admin doit pouvoir lire son agenda personnel connecté.");
 assert(!isToolAllowed("platform_admin", "generate_document"), "Le persona platform_admin ne doit pas générer de documents centre.");

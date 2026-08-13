@@ -1,6 +1,6 @@
 .workspace {
   --rm-ink: #20302c;
-  --rm-muted: #66736e;
+  --rm-muted: #53615c;
   --rm-green: #1f584f;
   --rm-green-dark: #173f39;
   --rm-cream: #f7f2e9;
@@ -508,7 +508,7 @@
 }
 
 .nodeType {
-  color: var(--rm-muted);
+  color: #4c5a55;
   font-size: 9.5px;
   font-weight: 850;
   letter-spacing: .08em;
@@ -553,7 +553,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px 8px;
-  color: var(--rm-muted);
+  color: #4c5a55;
   font-size: 9.8px;
 }
 
@@ -579,7 +579,9 @@
 .nodeFooter button {
   border: 0;
   background: transparent;
-  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 0;
   color: var(--rm-green);
   font-size: 9.5px;
   font-weight: 760;
@@ -838,7 +840,8 @@
 .driveFileActions button:disabled { cursor: wait; opacity: .58; }
 .nodeDriveWorkspace .formError { margin: 10px 12px 0; }
 .nodeDriveWorkspace .formError span { flex: 1; }
-.nodeDriveWorkspace .formError button { border: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.nodeDriveWorkspace .formError button,
+.nodeDriveWorkspace .formError a { border: 0; background: transparent; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .nodeDriveHint { margin: 10px 13px 13px; color: var(--rm-muted); font-size: 9px; line-height: 1.45; }
 .helpDetails { margin-top: 15px; border-top: 1px solid var(--rm-line); padding-top: 12px; color: var(--rm-muted); font-size: 11px; }
 .helpDetails summary { color: var(--rm-green); font-weight: 760; cursor: pointer; }
@@ -1094,14 +1097,16 @@
 @media (max-width: 700px), (pointer: coarse) {
   .workspace button,
   .workspace select,
+  .workspace input[type="search"],
   .workspace input[type="date"],
   .workspace input[type="file"] { min-height: 44px; }
   .searchWrap { min-height: 44px; height: auto; }
-  .searchWrap input { min-height: 42px; }
+  .searchWrap input { min-height: 44px; }
   .closeButton { min-width: 44px; min-height: 44px; }
   .iconButton,
   .rowActions button,
   .relationList button { min-width: 44px; min-height: 44px; }
+  .graphShell :global(.react-flow__controls-button) { min-width: 44px; min-height: 44px; }
 }
 
 @media (max-width: 720px) {

@@ -2,6 +2,7 @@
 // La sécurité repose sur (1) cet allowlist côté serveur ET (2) requireRole dans chaque outil.
 
 export type Persona = "visitor" | "beneficiary" | "trainer" | "center" | "platform_admin";
+export type AgentExecutionContext = "default" | "roadmap2_admin";
 
 /** Outils autorisés par persona. "ALL" = tous les outils (persona centre, comportement historique). */
 const TOOLS: Record<Persona, string[] | "ALL"> = {
@@ -43,8 +44,9 @@ const PLATFORM_ADMIN_ONLY_TOOLS = new Set([
   "list_external_gmail_emails", "read_external_gmail_email", "send_external_gmail",
 ]);
 
-export function isToolAllowed(persona: Persona, toolName: string): boolean {
+export function isToolAllowed(persona: Persona, toolName: string, executionContext: AgentExecutionContext = "default"): boolean {
   if (persona !== "platform_admin" && PLATFORM_ADMIN_ONLY_TOOLS.has(toolName)) return false;
+  if (PLATFORM_ADMIN_ONLY_TOOLS.has(toolName) && executionContext !== "roadmap2_admin") return false;
   const list = TOOLS[persona];
   return list === "ALL" || list.includes(toolName);
 }

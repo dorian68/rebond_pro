@@ -5,6 +5,8 @@ import { prisma } from "../src/lib/prisma";
 import { projectRoadmap2OverviewNodes } from "../src/app/admin/roadmap-2/roadmap2-ui";
 import type { Roadmap2NodeDto } from "../src/lib/roadmap2";
 import { signAgentApproval, verifyAgentApproval } from "../src/server/agent/approval-token";
+import { roadmap2EmailRequestHash, roadmap2EmailTrackingReference, roadmap2FinalEmailBody } from "../src/server/connectors";
+import { isToolAllowed } from "../src/lib/ag-ui/persona";
 
 process.env.AUTH_SECRET = process.env.AUTH_SECRET || "roadmap2-agentic-gmail-smoke-secret";
 
@@ -22,11 +24,21 @@ async function main() {
   assert.deepEqual(projectRoadmap2OverviewNodes(twoFreeNodes, new Set()).map((item) => item.id), ["a", "b"], "Deux nœuds libres doivent rester visibles dans le graphe.");
   assert.deepEqual(projectRoadmap2OverviewNodes(twoFreeNodes, new Set(), true), twoFreeNodes, "Afficher tout doit rendre tous les nœuds.");
 
-  const approval = { approvalId: crypto.randomUUID(), tool: "send_external_gmail", args: { to: ["client@example.test"], subject: "Point projet", body: "Bonjour" }, userId: "admin-1", persona: "platform_admin" as const };
+  const approval = { approvalId: crypto.randomUUID(), tool: "send_external_gmail", args: { to: ["client@example.test"], subject: "Point projet", body: "Bonjour" }, userId: "admin-1", persona: "platform_admin" as const, executionContext: "roadmap2_admin" as const };
   const token = signAgentApproval(approval);
   assert.equal(verifyAgentApproval(token, approval), true, "Une approbation intacte doit être acceptée.");
   assert.equal(verifyAgentApproval(token, { ...approval, args: { ...approval.args, subject: "Objet modifié" } }), false, "Des arguments modifiés doivent invalider l'approbation.");
   assert.equal(verifyAgentApproval(token, { ...approval, userId: "admin-2" }), false, "L'approbation ne doit pas être transférable à un autre utilisateur.");
+  assert.equal(verifyAgentApproval(token, { ...approval, executionContext: "default" }), false, "L'approbation Roadmap 2 ne doit pas être rejouable hors de son endpoint dédié.");
+  assert.equal(isToolAllowed("platform_admin", "send_external_gmail", "default"), false, "Gmail doit être interdit sur l'endpoint agent générique.");
+  assert.equal(isToolAllowed("platform_admin", "send_external_gmail", "roadmap2_admin"), true, "Gmail doit être autorisé sur l'endpoint Roadmap 2 dédié.");
+  assert.match(roadmap2EmailTrackingReference("a".repeat(64)), /^RM2-[A-F0-9]{24}$/, "La référence Gmail doit être déterministe et non sensible.");
+  const finalRequestHash = roadmap2EmailRequestHash({ to: ["client@example.test"], subject: "Point projet", body: "  Corps approuvé  " });
+  assert.equal(
+    roadmap2FinalEmailBody({ body: "  Corps approuvé  ", requestHash: finalRequestHash }),
+    `Corps approuvé\n\n—\nRéférence de suivi Roadmap 2 : ${roadmap2EmailTrackingReference(finalRequestHash)}`,
+    "Le corps affiché avant approbation et le corps envoyé doivent partager une seule construction normalisée.",
+  );
 
   const [connectors, tools, persona, schema, migration, renderer, route, conversationStore, runtime, connectorActions, adminCallback] = await Promise.all([
     readFile("src/server/connectors.ts", "utf8"), readFile("src/server/agent/roadmap2-tools.ts", "utf8"), readFile("src/lib/ag-ui/persona.ts", "utf8"),
@@ -48,8 +60,10 @@ async function main() {
   assert.match(migration, /AgentApprovalUse_approvalId_key/);
   assert.match(renderer, /Confirmer|confirmation_card/);
   assert.match(runtime, /label: "Cci"/);
+  assert.doesNotMatch(runtime, /roadmap2FinalEmailBody\([^)]*\)\.slice/, "L’aperçu Gmail approuvé ne doit jamais être tronqué.");
   assert.match(runtime, /Object\.entries\(args\.changes/);
   assert.match(route, /platformAdmin && session\?\.user\?\.id/);
+  assert.match(route, /\/api\/ag-ui\/roadmap-2\/run/, "Le contexte Roadmap 2 doit être déterminé par l'endpoint serveur.");
   assert.match(conversationStore, /block\.type !== "confirmation_card" && block\.type !== "email_list"/, "Les emails et jetons d'approbation ne doivent pas persister dans localStorage.");
   assert.match(runtime, /APPROVAL_REPLAYED/, "Une approbation déjà consommée doit être rejetée.");
   assert.match(runtime, /read_external_gmail_email" \? 12_000 : 4_000/, "L'analyse détaillée doit recevoir davantage que l'extrait de liste.");
@@ -81,6 +95,17 @@ async function main() {
       prisma.roadmap2EmailOperation.create({ data: { workspaceId: workspace.id, actorUserId: user.id, idempotencyKey, requestHash: "b".repeat(64), payload: {} } }),
       (error: unknown) => Boolean(error && typeof error === "object" && "code" in error && error.code === "P2002"),
       "La même validation d'envoi ne doit pas créer deux opérations.",
+    );
+    await assert.rejects(
+      prisma.roadmap2EmailOperation.create({ data: { workspaceId: workspace.id, actorUserId: user.id, idempotencyKey: crypto.randomUUID(), requestHash: "b".repeat(64), payload: {} } }),
+      (error: unknown) => Boolean(error && typeof error === "object" && "code" in error && error.code === "P2002"),
+      "Deux validations distinctes du même email ne doivent pas créer deux opérations.",
+    );
+    await prisma.roadmap2EmailOperation.update({ where: { workspaceId_idempotencyKey: { workspaceId: workspace.id, idempotencyKey } }, data: { status: "succeeded", completedAt: new Date() } });
+    await assert.rejects(
+      prisma.roadmap2EmailOperation.create({ data: { workspaceId: workspace.id, actorUserId: user.id, idempotencyKey: crypto.randomUUID(), requestHash: "b".repeat(64), status: "succeeded", completedAt: new Date(), payload: {} } }),
+      (error: unknown) => Boolean(error && typeof error === "object" && "code" in error && error.code === "P2002"),
+      "Un email déjà confirmé ne doit pas pouvoir être renvoyé à l'identique avec une autre validation.",
     );
   } finally {
     await prisma.roadmap2Workspace.delete({ where: { id: workspace.id } }).catch(() => {});

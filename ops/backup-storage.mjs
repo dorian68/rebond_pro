@@ -51,7 +51,12 @@ async function requestWithRetry(url, init, label) {
       if (response.ok) return response;
       const retryable = response.status === 429 || response.status >= 500;
       if (!retryable || attempt === 3) {
-        const error = new Error(`${label}: HTTP ${response.status}`);
+        let providerDetail = "";
+        if (response.status === 402) {
+          const body = await response.text().catch(() => "");
+          providerDetail = /exceed_egress_quota/i.test(body) ? " — quota d'egress fournisseur depasse; mettre a niveau le plan ou lever le plafond de depenses" : " — service fournisseur restreint; verifier l'abonnement";
+        }
+        const error = new Error(`${label}: HTTP ${response.status}${providerDetail}`);
         error.retryable = retryable;
         throw error;
       }

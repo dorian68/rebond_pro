@@ -7,6 +7,9 @@ import {
   type Roadmap2DriveAccountIdentity,
   type Roadmap2DriveConnectionStatus,
 } from "@/lib/roadmap2-drive-status";
+import { ROADMAP2_REQUIRED_DRIVE_EDITORS } from "@/lib/roadmap2-drive-policy";
+
+export { ROADMAP2_REQUIRED_DRIVE_EDITORS } from "@/lib/roadmap2-drive-policy";
 
 const DRIVE_TOOLKIT = "googledrive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -63,9 +66,6 @@ const TOOLS = {
 } as const;
 
 const ROADMAP2_DRIVE_TOOLKIT_VERSION = process.env.COMPOSIO_TOOLKIT_VERSION_GOOGLEDRIVE || "20260811_00";
-
-/** Collaborateurs permanents du dossier projet. Le partage est additif et hérité par tous les descendants. */
-export const ROADMAP2_REQUIRED_DRIVE_EDITORS = ["dorian.labry@gmail.com"] as const;
 
 /** Arborescence documentaire de référence. Elle reste additive et n'efface jamais l'existant. */
 export const ROADMAP2_DRIVE_STRUCTURE = [
@@ -621,7 +621,7 @@ export type Roadmap2DrivePreviewFetcher = (input: { url: string; declaredType: s
 
 async function fetchBoundedPreviewFile({ url: s3url, declaredType, declaredName }: Parameters<Roadmap2DrivePreviewFetcher>[0]): Promise<Roadmap2DrivePreviewPayload> {
   const parsed = new URL(s3url);
-  if (parsed.protocol !== "https:" || !/(^|\.)(composio\.dev|amazonaws\.com|amazonaws\.com\.cn|blob\.core\.windows\.net)$/.test(parsed.hostname.toLowerCase())) {
+  if (parsed.protocol !== "https:" || !/(^|\.)(composio\.dev|amazonaws\.com|amazonaws\.com\.cn|blob\.core\.windows\.net|r2\.cloudflarestorage\.com)$/.test(parsed.hostname.toLowerCase())) {
     throw new Roadmap2DriveError("Le fournisseur a retourné un fichier temporaire invalide.");
   }
   const controller = new AbortController();

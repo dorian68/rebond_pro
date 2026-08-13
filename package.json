@@ -39,6 +39,7 @@
     "smoke:registration": "tsx scripts/smoke-registration.ts",
     "smoke:crud": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-crud.ts",
     "smoke:agent": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-agent.ts",
+    "smoke:backup": "bash scripts/smoke-backup.sh",
     "smoke:marketplace": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-marketplace.ts",
     "smoke:tenant": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-tenant.ts",
     "smoke:password-reset": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-password-reset.ts",

@@ -387,6 +387,20 @@ runner("roadmap_2_drive_smoke", async () => {
     }
     assert(forbiddenHostRejected, "Le lecteur doit refuser une URL temporaire située hors de l’allowlist serveur.");
 
+    driver.downloadUrl = "https://temp.account-id.r2.cloudflarestorage.com/roadmap2-preview.pdf";
+    globalThis.fetch = async () => new Response(previewBytes, { status: 200, headers: { "content-length": String(previewBytes.byteLength), "content-type": "application/pdf" } });
+    const cloudflarePreview = await defaultPreviewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: uploaded.id });
+    assert(cloudflarePreview.bytes.byteLength === previewBytes.byteLength, "Le lecteur doit accepter les URL signées du domaine officiel Cloudflare R2.");
+
+    driver.downloadUrl = "https://r2.cloudflarestorage.com.malveillant.example/preview.pdf";
+    let cloudflareSuffixRejected = false;
+    try {
+      await defaultPreviewDrive.previewNodeFile({ workspaceId, rootDriveUrl: first.rootDriveUrl, nodeFolderUrl: resources.driveFolderUrl, fileId: uploaded.id });
+    } catch (error) {
+      cloudflareSuffixRejected = error instanceof Roadmap2DriveError;
+    }
+    assert(cloudflareSuffixRejected, "Un faux suffixe ressemblant à Cloudflare R2 doit être refusé.");
+
     driver.downloadUrl = "https://storage.composio.dev/oversized-preview.pdf";
     globalThis.fetch = async () => new Response(new Uint8Array(0), { status: 200, headers: { "content-length": String(10 * 1024 * 1024 + 1), "content-type": "application/pdf" } });
     let oversizedPreviewRejected = false;

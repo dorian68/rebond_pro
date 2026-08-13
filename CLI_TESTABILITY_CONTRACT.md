@@ -19,6 +19,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:registration` | Crée un compte/tenant/trial, exige la vérification email puis nettoie les données. |
 | `npm run smoke:crud` | Cycle complet create→update→delete (formation, apprenant, session, inscription) via la couche de mutation, tenant jetable, nettoyage. |
 | `npm run smoke:agent` | Valide le copilote AG-UI : registre d'outils, sensibilité des actions d'écriture, exécution réelle après approbation (human-in-the-loop), recherche renvoyant des IDs, traçabilité AiInteraction. Nettoyage. |
+| `npm run smoke:backup` | Simule un backup DB + Storage réussi puis une panne Storage après dump ; vérifie que le dump DB reste publié, qu'un marqueur `PARTIAL` est créé et qu'aucune archive Storage incomplète n'est publiée. |
 | `npm run smoke:marketplace` | Vérifie le catalogue cross-centres, les filtres, les facettes, l'annuaire, la fiche centre (formateurs + formations), le profil formateur public, et qu'une formation non publiée NE fuit PAS. Nettoyage. |
 | `npm run smoke:tenant` | Vérifie l'isolation multi-tenant : lecture scopée, recherche scopée, écriture et suppression cross-tenant bloquées. Nettoyage. |
 | `npm run smoke:password-reset` | Vérifie le reset mot de passe (jeton haché, invalide/court refusés, changement effectif, jeton non réutilisable, expiration) et l'anti-bruteforce (verrouillage après seuil, réinitialisation au succès). Nettoyage. |
@@ -32,6 +33,9 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:document-intake` | Vérifie les routes, schémas et brouillons de formulaires issus de documents, sans écriture implicite. |
 | `npm run smoke:admin-agents` | Vérifie l'accès admin, la lecture seule et les garde-fous du bac à sable des agents internes. |
 | `npm run smoke:roadmap` | Vérifie la persistance, les mutations gardées et l'intégration admin de la roadmap. |
+| `npm run smoke:roadmap-2:agentic-gmail` | Vérifie le contexte serveur Roadmap 2, les approbations signées et non transférables, le corps Gmail exact, le registre d'envoi et les contraintes anti-double envoi. |
+| `npm run smoke:roadmap-2:drive` | Vérifie le cycle Drive simulé : OAuth, arborescence, ressources de nœuds, upload, aperçu privé R2, permissions obligatoires et protections IDOR. |
+| `npm run smoke:roadmap-2:a11y:runtime` | Sur serveur authentifié, vérifie Axe, débordements, clavier, zoom 200 %, cibles 44 px et la régression « Aucun résultat / Afficher toute la roadmap » sur desktop, tablette et mobile. |
 | `npm run smoke:beneficiary` | Vérifie l'espace bénéficiaire : `Beneficiary` lié au compte, parcours/phases, accès scopé. Nettoyage. |
 | `npm run smoke:platform-beneficiaries` | Vérifie la vue bénéficiaires cross-centres réservée au super-admin. |
 | `npm run smoke:platform` | Vérifie l'admin god-mode : agrégats cross-tenant en lecture seule derrière `requirePlatformAdmin()`, batché (évite EMAXCONNSESSION). Nettoyage. |

@@ -6,6 +6,7 @@ import { runAgent } from "@/server/agent/runtime";
 import { resolvePersona } from "@/lib/ag-ui/persona";
 import { isPlatformAdmin } from "@/lib/platform";
 import { rateLimit, clientIp } from "@/server/rate-limit";
+import type { AgentExecutionContext } from "@/lib/ag-ui/persona";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ const inputSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const executionContext: AgentExecutionContext = new URL(req.url).pathname === "/api/ag-ui/roadmap-2/run" ? "roadmap2_admin" : "default";
   const session = await getSession();
   const hasSession = Boolean(session?.user?.id);
   const tenantCtx = hasSession ? await tenantContextFromSession(session) : null;
@@ -99,8 +101,11 @@ export async function POST(req: Request) {
     attachments: parsed.data.attachments,
     forwardedProps: parsed.data.forwardedProps,
   };
+  if (executionContext === "roadmap2_admin") {
+    input.state = { ...input.state, pathname: "/admin/roadmap-2", title: "Roadmap 2" };
+  }
 
-  // Persona = rôle + page courante (sécurité : périmètre d'outils côté serveur).
+  // Le contexte Roadmap 2 vient de l'endpoint dédié, jamais du pathname client.
   const persona = resolvePersona({ hasSession, role: ctx.role, pathname: input.state?.pathname, isPlatformAdmin: platformAdmin });
 
   const encoder = new TextEncoder();
@@ -115,7 +120,7 @@ export async function POST(req: Request) {
           closed = true;
         }
       };
-      runAgent(ctx, input, emit, persona)
+      runAgent(ctx, input, emit, persona, executionContext)
         .catch((err) => emit({ type: "RunError", message: err instanceof Error ? err.message : "Erreur", code: "AGUI_RUN_ERROR" }))
         .finally(() => {
           if (!closed) {

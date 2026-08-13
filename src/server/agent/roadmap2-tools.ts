@@ -70,10 +70,10 @@ export const ROADMAP2_AGENT_TOOLS: AgentTool[] = [
       properties: {
         workspaceKey: { type: "string" }, title: { type: "string" }, description: { type: "string" }, expectedOutcome: { type: "string" },
         type: { type: "string", enum: ROADMAP2_NODE_TYPES }, category: { type: "string", enum: ROADMAP2_CATEGORIES }, status: { type: "string", enum: ROADMAP2_STATUSES.filter((value) => value !== "archived") },
-        priority: { type: "string", enum: ROADMAP2_PRIORITIES }, progressPercent: { type: "number" }, ownerUserId: { type: ["string", "null"] }, startDate: { type: ["string", "null"] }, dueDate: { type: ["string", "null"] },
+        priority: { type: "string", enum: ROADMAP2_PRIORITIES }, progressPercent: { type: "number" }, ownerUserId: { type: "string" }, startDate: { type: ["string", "null"] }, dueDate: { type: "string" },
         nextAction: { type: ["string", "null"] }, decisionRequired: { type: "boolean" }, definitionOfDone: { type: ["string", "null"] }, parentId: { type: ["string", "null"] },
       },
-      required: ["title", "type", "category"],
+      required: ["title", "type", "category", "ownerUserId", "dueDate"],
     },
     execute: async (ctx, args) => {
       const { workspaceId } = await resolveRoadmap2Context(workspaceKey(args));
@@ -94,7 +94,7 @@ export const ROADMAP2_AGENT_TOOLS: AgentTool[] = [
     input_schema: {
       type: "object",
       properties: {
-        workspaceKey: { type: "string" }, nodeId: { type: "string" }, expectedVersion: { type: "number" },
+        workspaceKey: { type: "string" }, nodeId: { type: "string" }, nodeTitle: { type: "string" }, expectedVersion: { type: "number" },
         changes: { type: "object", properties: { description: { type: ["string", "null"] }, expectedOutcome: { type: ["string", "null"] }, status: { type: "string", enum: ROADMAP2_STATUSES.filter((value) => value !== "archived") }, priority: { type: "string", enum: ROADMAP2_PRIORITIES }, progressPercent: { type: "number" }, ownerUserId: { type: ["string", "null"] }, startDate: { type: ["string", "null"] }, dueDate: { type: ["string", "null"] }, nextAction: { type: ["string", "null"] }, decisionRequired: { type: "boolean" }, definitionOfDone: { type: ["string", "null"] } } },
       },
       required: ["nodeId", "expectedVersion", "changes"],
@@ -116,7 +116,7 @@ export const ROADMAP2_AGENT_TOOLS: AgentTool[] = [
     name: "add_roadmap2_update",
     description: "Ajoute une note, décision, progression, validation ou un blocage à un nœud Roadmap 2 après validation humaine.",
     sensitive: true,
-    input_schema: { type: "object", properties: { workspaceKey: { type: "string" }, nodeId: { type: "string" }, nodeVersion: { type: "number" }, updateType: { type: "string", enum: ROADMAP2_UPDATE_TYPES }, body: { type: "string" } }, required: ["nodeId", "nodeVersion", "updateType", "body"] },
+    input_schema: { type: "object", properties: { workspaceKey: { type: "string" }, nodeId: { type: "string" }, nodeTitle: { type: "string" }, nodeVersion: { type: "number" }, updateType: { type: "string", enum: ROADMAP2_UPDATE_TYPES }, body: { type: "string" } }, required: ["nodeId", "nodeVersion", "updateType", "body"] },
     execute: async (ctx, args) => {
       const { workspaceId } = await resolveRoadmap2Context(workspaceKey(args));
       const update = await roadmap2Repository.addUpdate(workspaceId, ctx.userId, args);

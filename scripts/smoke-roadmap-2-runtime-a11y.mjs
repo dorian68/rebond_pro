@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
+import { existsSync } from "node:fs";
 
 const baseUrl = (process.env.SMOKE_BASE_URL ?? "http://localhost:3100").replace(/\/$/, "");
 const viewports = [
@@ -9,10 +10,11 @@ const viewports = [
 ];
 const failures = [];
 const browser = await chromium.launch({ headless: true });
+const authState = existsSync("e2e/.auth/user.json") ? { storageState: "e2e/.auth/user.json" } : {};
 
 try {
   for (const viewport of viewports) {
-    const context = await browser.newContext({ viewport, reducedMotion: "reduce", storageState: "e2e/.auth/user.json" });
+    const context = await browser.newContext({ viewport, reducedMotion: "reduce", ...authState });
     const page = await context.newPage();
     const response = await page.goto(`${baseUrl}/admin/roadmap-2`, { waitUntil: "networkidle" });
     if (!response?.ok() || page.url().includes("/login")) {
@@ -41,13 +43,33 @@ try {
     await context.close();
   }
 
-  const context = await browser.newContext({ viewport: viewports[0], storageState: "e2e/.auth/user.json" });
+  const context = await browser.newContext({ viewport: viewports[0], ...authState });
   const page = await context.newPage();
   await page.goto(`${baseUrl}/admin/roadmap-2`, { waitUntil: "networkidle" });
   await page.setViewportSize({ width: 720, height: 900 });
   const zoomLayout = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   if (zoomLayout.document > zoomLayout.viewport + 1) failures.push(`zoom 200%: débordement horizontal ${zoomLayout.document}px > ${zoomLayout.viewport}px`);
   await context.close();
+
+  // Régression du faux état vide : un filtre sans résultat doit pouvoir être
+  // effacé par le CTA et rendre de nouveau tous les nœuds réellement présents.
+  const filterContext = await browser.newContext({ viewport: viewports[2], reducedMotion: "reduce", ...authState });
+  const filterPage = await filterContext.newPage();
+  await filterPage.goto(`${baseUrl}/admin/roadmap-2`, { waitUntil: "networkidle" });
+  const graphNodes = filterPage.locator(".react-flow__node");
+  const initialNodeCount = await graphNodes.count();
+  if (initialNodeCount > 0) {
+    const search = filterPage.getByLabel("Rechercher un nœud");
+    await search.fill("__roadmap2_aucun_resultat_regression__");
+    const emptyState = filterPage.getByText("Aucun résultat avec ces filtres", { exact: true });
+    await emptyState.waitFor();
+    await filterPage.getByRole("button", { name: "Afficher toute la roadmap" }).click();
+    await filterPage.waitForTimeout(250);
+    if (await emptyState.isVisible().catch(() => false)) failures.push("filtres: l’état vide reste affiché après le CTA de réinitialisation");
+    if ((await search.inputValue()) !== "") failures.push("filtres: la recherche n’est pas effacée par le CTA");
+    if ((await graphNodes.count()) === 0) failures.push("filtres: aucun nœud n’est restauré après le CTA");
+  }
+  await filterContext.close();
 } finally {
   await browser.close();
 }
@@ -56,4 +78,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join("\n"));
   process.exit(1);
 }
-console.log(JSON.stringify({ status: "pass", suite: "roadmap_2_runtime_a11y", viewports: viewports.length, zoom200: true, touchTargets44: true }));
+console.log(JSON.stringify({ status: "pass", suite: "roadmap_2_runtime_a11y", viewports: viewports.length, zoom200: true, touchTargets44: true, filterReset: true }));

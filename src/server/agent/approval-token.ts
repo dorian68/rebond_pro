@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import type { Persona } from "@/lib/ag-ui/persona";
+import type { AgentExecutionContext, Persona } from "@/lib/ag-ui/persona";
 
 const TOKEN_VERSION = 1;
 const MAX_TTL_SECONDS = 10 * 60;
@@ -13,6 +13,7 @@ type ApprovalClaims = {
   argsHash: string;
   userId: string;
   persona: Persona;
+  executionContext: AgentExecutionContext;
   exp: number;
 };
 
@@ -46,6 +47,7 @@ export function signAgentApproval(input: Omit<ApprovalClaims, "v" | "argsHash" |
     argsHash: approvalArgsHash(input.args),
     userId: input.userId,
     persona: input.persona,
+    executionContext: input.executionContext,
     exp: Math.floor(Date.now() / 1000) + ttl,
   };
   const payload = encode(JSON.stringify(claims));
@@ -71,5 +73,6 @@ export function verifyAgentApproval(token: string, expected: Omit<ApprovalClaims
     && claims.tool === expected.tool
     && claims.argsHash === approvalArgsHash(expected.args)
     && claims.userId === expected.userId
-    && claims.persona === expected.persona;
+    && claims.persona === expected.persona
+    && claims.executionContext === expected.executionContext;
 }

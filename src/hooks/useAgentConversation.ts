@@ -169,6 +169,7 @@ export function useAgentConversation() {
         { threadId: convId, messages: history, state: appContext(), forwardedProps, attachments },
         (e) => handleEvent(e, convId),
         abortRef.current.signal,
+        pathname?.startsWith("/admin/roadmap-2") ? "/api/ag-ui/roadmap-2/run" : "/api/ag-ui/run",
       );
     } catch (err) {
       if ((err as Error)?.name !== "AbortError") {
@@ -180,7 +181,7 @@ export function useAgentConversation() {
       setActivity(null);
       persist(convId, messagesRef.current);
     }
-  }, [appContext, handleEvent, persist]);
+  }, [appContext, handleEvent, pathname, persist]);
 
   const sendMessage = useCallback((content: string, attachments?: Attachment[]) => {
     const text = content.trim();

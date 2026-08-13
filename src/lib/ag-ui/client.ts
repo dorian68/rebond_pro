@@ -1,8 +1,8 @@
 import type { AGUIEvent, RunAgentInput } from "./types";
 
 /** Client AG-UI : POST + parsing du flux SSE, appelle onEvent pour chaque événement. */
-export async function runAgUI(input: RunAgentInput, onEvent: (e: AGUIEvent) => void, signal?: AbortSignal): Promise<void> {
-  const response = await fetch("/api/ag-ui/run", {
+export async function runAgUI(input: RunAgentInput, onEvent: (e: AGUIEvent) => void, signal?: AbortSignal, endpoint = "/api/ag-ui/run"): Promise<void> {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
     body: JSON.stringify(input),
