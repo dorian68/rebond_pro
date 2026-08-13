@@ -56,9 +56,9 @@ enum FormationStatus {
 
 // Statut de modération d'un centre sur la marketplace publique.
 enum MarketplaceStatus {
-  PENDING   // en attente de validation par l'admin plateforme
-  APPROVED  // validé : centre + formations publiées visibles publiquement
-  REJECTED  // refusé : reste masqué
+  PENDING // en attente de validation par l'admin plateforme
+  APPROVED // validé : centre + formations publiées visibles publiquement
+  REJECTED // refusé : reste masqué
 }
 
 enum SessionStatus {
@@ -244,44 +244,44 @@ enum ObjectifPrincipal {
 // --------------------------- TENANT & AUTH ---------------------------
 
 model Organization {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  siret       String?
-  website     String?
-  description String?
-  logoUrl     String?
+  id                         String            @id @default(cuid())
+  name                       String
+  slug                       String            @unique
+  siret                      String?
+  website                    String?
+  description                String?
+  logoUrl                    String?
   // Vitrine marketplace + profil public
-  tagline       String? // accroche courte mise en avant
-  coverImageUrl String? // bannière de la fiche centre
-  city          String? // ville (filtre marketplace)
-  publicProfileEnabled Boolean @default(true)
+  tagline                    String? // accroche courte mise en avant
+  coverImageUrl              String? // bannière de la fiche centre
+  city                       String? // ville (filtre marketplace)
+  publicProfileEnabled       Boolean           @default(true)
   // Modération marketplace (validation par l'admin plateforme avant affichage public)
   marketplaceStatus          MarketplaceStatus @default(PENDING)
   marketplaceReviewedAt      DateTime?
-  marketplaceReviewedBy      String?  // userId de l'admin ayant validé/refusé
+  marketplaceReviewedBy      String? // userId de l'admin ayant validé/refusé
   marketplaceRejectionReason String?
-  publicEmail   String?
-  publicPhone   String?
-  socialLinks   Json?    // { linkedin, facebook, instagram, ... }
-  specialties   String[] @default([])
-  modalities    String[] @default([]) // PRESENTIEL, DISTANCIEL, HYBRIDE
-  certifications String[] @default([]) // Qualiopi, labels...
-  timezone    String  @default("Europe/Paris")
-  currency    String  @default("EUR")
+  publicEmail                String?
+  publicPhone                String?
+  socialLinks                Json? // { linkedin, facebook, instagram, ... }
+  specialties                String[]          @default([])
+  modalities                 String[]          @default([]) // PRESENTIEL, DISTANCIEL, HYBRIDE
+  certifications             String[]          @default([]) // Qualiopi, labels...
+  timezone                   String            @default("Europe/Paris")
+  currency                   String            @default("EUR")
 
   // Coordonnées légales (documents)
-  legalName       String?
-  legalAddress    String?
-  nda             String? // n° déclaration d'activité
-  legalRep        String? // représentant
+  legalName    String?
+  legalAddress String?
+  nda          String? // n° déclaration d'activité
+  legalRep     String? // représentant
 
   // Abonnement
-  plan         Plan      @default(FREE)
-  billingStatus String?  @default("trial")
-  trialEndsAt  DateTime?
+  plan                 Plan      @default(FREE)
+  billingStatus        String?   @default("trial")
+  trialEndsAt          DateTime?
   // Facturation Stripe
-  stripeCustomerId     String?  @unique
+  stripeCustomerId     String?   @unique
   stripeSubscriptionId String?
   stripePriceId        String?
   currentPeriodEnd     DateTime?
@@ -296,61 +296,62 @@ model Organization {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  memberships       Membership[]
-  formations        Formation[]
-  formationModules  FormationModule[]
-  trainers          Trainer[]
-  rooms             Room[]
-  sessions          Session[]
-  prospects         Prospect[]
-  learners          Learner[]
-  enrollments       Enrollment[]
-  documents         Document[]
-  documentTemplates DocumentTemplate[]
-  complaints        Complaint[]
+  memberships        Membership[]
+  formations         Formation[]
+  formationModules   FormationModule[]
+  trainers           Trainer[]
+  rooms              Room[]
+  sessions           Session[]
+  prospects          Prospect[]
+  learners           Learner[]
+  enrollments        Enrollment[]
+  documents          Document[]
+  documentTemplates  DocumentTemplate[]
+  complaints         Complaint[]
   improvementActions ImprovementAction[]
-  feedbacks         Feedback[]
-  aiInteractions    AiInteraction[]
-  auditLogs         AuditLog[]
-  notifications     Notification[]
-  testimonials      Testimonial[]
-  faqs              Faq[]
-  changeRequests    ChangeRequest[]
-  beneficiaries     Beneficiary[]
-  transactions      Transaction[]
+  feedbacks          Feedback[]
+  aiInteractions     AiInteraction[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  testimonials       Testimonial[]
+  faqs               Faq[]
+  changeRequests     ChangeRequest[]
+  beneficiaries      Beneficiary[]
+  transactions       Transaction[]
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String?
-  name          String?
-  avatarUrl     String?
-  emailVerified DateTime?
-  lastLoginAt   DateTime?
-  failedLoginCount Int      @default(0)
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String?
+  name             String?
+  avatarUrl        String?
+  emailVerified    DateTime?
+  lastLoginAt      DateTime?
+  failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
-  platformAdmin    Boolean  @default(false) // super-admin plateforme (vue cross-tenant)
+  platformAdmin    Boolean   @default(false) // super-admin plateforme (vue cross-tenant)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships Membership[]
-  trainer     Trainer?
-  ownedProspects Prospect[] @relation("ProspectOwner")
+  memberships              Membership[]
+  trainer                  Trainer?
+  ownedProspects           Prospect[]               @relation("ProspectOwner")
   createdDocumentTemplates DocumentTemplate[]
-  aiInteractions AiInteraction[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens     PasswordResetToken[]
-  beneficiary             Beneficiary?
+  aiInteractions           AiInteraction[]
+  auditLogs                AuditLog[]
+  notifications            Notification[]
+  emailVerificationTokens  EmailVerificationToken[]
+  passwordResetTokens      PasswordResetToken[]
+  beneficiary              Beneficiary?
   roadmap2OwnedNodes       Roadmap2Node[]           @relation("Roadmap2NodeOwner")
   roadmap2CreatedNodes     Roadmap2Node[]           @relation("Roadmap2NodeCreator")
   roadmap2UpdatedNodes     Roadmap2Node[]           @relation("Roadmap2NodeUpdater")
   roadmap2CreatedEdges     Roadmap2Edge[]           @relation("Roadmap2EdgeCreator")
   roadmap2Updates          Roadmap2Update[]         @relation("Roadmap2UpdateAuthor")
   roadmap2AuditLogs        Roadmap2AuditLog[]       @relation("Roadmap2AuditActor")
+  roadmap2DriveOperations  Roadmap2DriveOperation[] @relation("Roadmap2DriveOperationActor")
 }
 
 model Membership {
@@ -386,12 +387,12 @@ model EmailVerificationToken {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -401,33 +402,33 @@ model PasswordResetToken {
 // --------------------------- CATALOGUE ---------------------------
 
 model Formation {
-  id              String          @id @default(cuid())
-  organizationId  String
-  title           String
-  slug            String
-  category        String?
+  id               String          @id @default(cuid())
+  organizationId   String
+  title            String
+  slug             String
+  category         String?
   shortDescription String?
   longDescription  String?
-  objectives      String?
-  targetAudience  String?
-  prerequisites   String?
-  program         String?
-  durationDays    Int?
-  durationHours   Int?
-  price           Int             @default(0) // centimes
-  modality        Modality        @default(PRESENTIEL)
-  level           Level           @default(DEBUTANT)
-  color           String?         @default("#5850ec")
-  coverImageUrl   String?         // visuel de couverture (marketplace)
-  status          FormationStatus @default(BROUILLON)
-  isPublic        Boolean         @default(false)
-  publicSlug      String?         @unique
+  objectives       String?
+  targetAudience   String?
+  prerequisites    String?
+  program          String?
+  durationDays     Int?
+  durationHours    Int?
+  price            Int             @default(0) // centimes
+  modality         Modality        @default(PRESENTIEL)
+  level            Level           @default(DEBUTANT)
+  color            String?         @default("#5850ec")
+  coverImageUrl    String? // visuel de couverture (marketplace)
+  status           FormationStatus @default(BROUILLON)
+  isPublic         Boolean         @default(false)
+  publicSlug       String?         @unique
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sessions         Session[]
   eligibleTrainers TrainerFormation[]
   modules          FormationModule[]
@@ -442,33 +443,33 @@ model Formation {
 }
 
 model Trainer {
-  id             String   @id @default(cuid())
-  organizationId String
-  userId         String?  @unique
-  firstName      String
-  lastName       String
-  initials       String?
-  email          String?
-  phone          String?
-  color          String?  @default("#5850ec")
-  photoUrl       String?  // photo de profil publique
-  specialities   String[] @default([])
-  bio            String?
-  yearsExperience Int?    // ancienneté (vitrine formateur)
-  active         Boolean  @default(true)
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String?  @unique
+  firstName       String
+  lastName        String
+  initials        String?
+  email           String?
+  phone           String?
+  color           String?  @default("#5850ec")
+  photoUrl        String? // photo de profil publique
+  specialities    String[] @default([])
+  bio             String?
+  yearsExperience Int? // ancienneté (vitrine formateur)
+  active          Boolean  @default(true)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
-  availabilities TrainerAvailability[]
-  sessions       Session[]
-  formations     TrainerFormation[]
-  moduleAssignments FormationModuleTrainer[]
+  organization             Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                     User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  availabilities           TrainerAvailability[]
+  sessions                 Session[]
+  formations               TrainerFormation[]
+  moduleAssignments        FormationModuleTrainer[]
   sessionModuleAssignments SessionModuleAssignment[]
-  changeRequests ChangeRequest[]
+  changeRequests           ChangeRequest[]
 
   @@index([organizationId])
 }
@@ -488,21 +489,21 @@ model TrainerFormation {
 // Module pédagogique d'une formation. Une formation peut être structurée en
 // plusieurs modules, chacun couvert par un ou plusieurs formateurs.
 model FormationModule {
-  id              String   @id @default(cuid())
-  organizationId  String
-  formationId     String
-  title           String
-  description     String?
-  durationDays    Int?
-  durationHours   Int?
-  position        Int      @default(0)
+  id             String  @id @default(cuid())
+  organizationId String
+  formationId    String
+  title          String
+  description    String?
+  durationDays   Int?
+  durationHours  Int?
+  position       Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  formation    Formation    @relation(fields: [formationId], references: [id], onDelete: Cascade)
-  trainers     FormationModuleTrainer[]
+  organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formation          Formation                 @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  trainers           FormationModuleTrainer[]
   sessionAssignments SessionModuleAssignment[]
 
   @@index([organizationId])
@@ -537,22 +538,22 @@ model TrainerAvailability {
 
 // Demande de modification d'un formateur (dispo ou affectation) vers son centre
 model ChangeRequest {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   organizationId String
   trainerId      String
   sessionId      String?
   availabilityId String?
-  requestType    String   // unavailable | partial | propose_date | conflict | other
+  requestType    String // unavailable | partial | propose_date | conflict | other
   reason         String?
   proposedDate   DateTime?
   proposedSlot   Slot?
   proposedStart  String?
   proposedEnd    String?
-  urgency        String   @default("normal") // low | normal | high
-  status         String   @default("pending") // pending | accepted | rejected | cancelled | counter_proposed
+  urgency        String    @default("normal") // low | normal | high
+  status         String    @default("pending") // pending | accepted | rejected | cancelled | counter_proposed
   centerResponse String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   trainer      Trainer      @relation(fields: [trainerId], references: [id], onDelete: Cascade)
@@ -566,21 +567,21 @@ model ChangeRequest {
 // Personne accompagnée en bilan de compétences par un centre/opérateur.
 model Beneficiary {
   id             String   @id @default(cuid())
-  organizationId String   // centre/opérateur accompagnateur
+  organizationId String // centre/opérateur accompagnateur
   userId         String?  @unique
   firstName      String
   lastName       String
   email          String?
   phone          String?
-  objective      String?  // projet professionnel visé
-  situation      String?  // situation actuelle
+  objective      String? // projet professionnel visé
+  situation      String? // situation actuelle
   status         String   @default("active") // active | completed | archived
   startedAt      DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   steps        BilanStep[]
   artifacts    BilanArtifact[]
   interests    FormationInterest[]
@@ -592,7 +593,7 @@ model Beneficiary {
 model BilanStep {
   id            String    @id @default(cuid())
   beneficiaryId String
-  phase         String    // preliminaire | investigation | conclusion
+  phase         String // preliminaire | investigation | conclusion
   title         String
   description   String?
   order         Int       @default(0)
@@ -600,7 +601,7 @@ model BilanStep {
   notes         String?
   completedAt   DateTime?
 
-  beneficiary Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  beneficiary Beneficiary     @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
   artifacts   BilanArtifact[]
 
   @@index([beneficiaryId])
@@ -635,25 +636,25 @@ model BilanArtifact {
 
 // Transaction financière de la plateforme (source de vérité du CA et des commissions).
 model Transaction {
-  id             String   @id @default(cuid())
-  organizationId String   // centre concerné (vendeur de formation OU abonné)
-  type           String   // FORMATION_PURCHASE | SUBSCRIPTION | BILAN
-  amount         Int      // montant total payé (centimes)
-  commission     Int      @default(0) // part plateforme (centimes)
-  currency       String   @default("EUR")
-  status         String   @default("paid") // paid | pending | refunded | failed
-  stripeRef      String?  @unique // id session/invoice/payment_intent (idempotence)
+  id             String    @id @default(cuid())
+  organizationId String // centre concerné (vendeur de formation OU abonné)
+  type           String // FORMATION_PURCHASE | SUBSCRIPTION | BILAN
+  amount         Int // montant total payé (centimes)
+  commission     Int       @default(0) // part plateforme (centimes)
+  currency       String    @default("EUR")
+  status         String    @default("paid") // paid | pending | refunded | failed
+  stripeRef      String?   @unique // id session/invoice/payment_intent (idempotence)
   payerEmail     String?
   payerName      String?
   formationId    String?
   beneficiaryId  String?
-  enrollmentId   String?  // inscription créée par l'achat (FORMATION_PURCHASE → Enrollment)
+  enrollmentId   String? // inscription créée par l'achat (FORMATION_PURCHASE → Enrollment)
   description    String?
   // Reversement au centre vendeur (modèle « tout encaisser + reverser ») :
   // pending = net dû au centre ; settled = reversé ; not_applicable = revenu propre plateforme (abo/bilan).
-  payoutStatus   String   @default("pending")
+  payoutStatus   String    @default("pending")
   settledAt      DateTime?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -699,31 +700,31 @@ model Room {
 // --------------------------- SESSIONS ---------------------------
 
 model Session {
-  id              String        @id @default(cuid())
-  organizationId  String
-  formationId     String
-  trainerId       String?
-  roomId          String?
-  startDate       DateTime
-  endDate         DateTime
-  slots           Slot[]        @default([])
-  capacity        Int           @default(10)
-  pricePerLearner Int           @default(0) // centimes
-  breakEvenSeats  Int           @default(1)
-  status          SessionStatus @default(BROUILLON)
-  trainerConfirmed Boolean      @default(false)
-  notes           String?
+  id               String        @id @default(cuid())
+  organizationId   String
+  formationId      String
+  trainerId        String?
+  roomId           String?
+  startDate        DateTime
+  endDate          DateTime
+  slots            Slot[]        @default([])
+  capacity         Int           @default(10)
+  pricePerLearner  Int           @default(0) // centimes
+  breakEvenSeats   Int           @default(1)
+  status           SessionStatus @default(BROUILLON)
+  trainerConfirmed Boolean       @default(false)
+  notes            String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  formation    Formation    @relation(fields: [formationId], references: [id], onDelete: Cascade)
-  trainer      Trainer?     @relation(fields: [trainerId], references: [id], onDelete: SetNull)
-  room         Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  enrollments  Enrollment[]
-  documents    Document[]
+  organization      Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formation         Formation                 @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  trainer           Trainer?                  @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  room              Room?                     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  enrollments       Enrollment[]
+  documents         Document[]
   moduleAssignments SessionModuleAssignment[]
 
   @@index([organizationId])
@@ -757,30 +758,30 @@ model SessionModuleAssignment {
 // --------------------------- CRM ---------------------------
 
 model Prospect {
-  id                  String         @id @default(cuid())
-  organizationId      String
-  name                String
-  contactName         String?
-  type                ProspectType   @default(ENTREPRISE)
-  email               String?
-  phone               String?
+  id                    String         @id @default(cuid())
+  organizationId        String
+  name                  String
+  contactName           String?
+  type                  ProspectType   @default(ENTREPRISE)
+  email                 String?
+  phone                 String?
   formationOfInterestId String?
-  source              ProspectSource @default(AUTRE)
-  stage               ProspectStage  @default(NOUVEAU)
-  potentialAmount     Int            @default(0) // centimes
-  nextAction          String?
-  nextFollowUpDate    DateTime?
-  isHot               Boolean        @default(false)
-  notes               String?
-  ownerId             String?
+  source                ProspectSource @default(AUTRE)
+  stage                 ProspectStage  @default(NOUVEAU)
+  potentialAmount       Int            @default(0) // centimes
+  nextAction            String?
+  nextFollowUpDate      DateTime?
+  isHot                 Boolean        @default(false)
+  notes                 String?
+  ownerId               String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  formationOfInterest Formation?        @relation(fields: [formationOfInterestId], references: [id], onDelete: SetNull)
-  owner               User?             @relation("ProspectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formationOfInterest Formation?         @relation(fields: [formationOfInterestId], references: [id], onDelete: SetNull)
+  owner               User?              @relation("ProspectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   activities          ProspectActivity[]
 
   @@index([organizationId])
@@ -790,7 +791,7 @@ model Prospect {
 model ProspectActivity {
   id         String   @id @default(cuid())
   prospectId String
-  type       String   // appel, email, note, stage_change
+  type       String // appel, email, note, stage_change
   content    String?
   createdAt  DateTime @default(now())
 
@@ -802,7 +803,7 @@ model ProspectActivity {
 // --------------------------- APPRENANTS ---------------------------
 
 model Learner {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   firstName      String
   lastName       String
@@ -822,13 +823,13 @@ model Learner {
 }
 
 model Enrollment {
-  id             String           @id @default(cuid())
-  organizationId String
-  learnerId      String
-  sessionId      String
-  status         EnrollmentStatus @default(INSCRIT)
-  score          Int?
-  satisfactionRating Int?
+  id                  String           @id @default(cuid())
+  organizationId      String
+  learnerId           String
+  sessionId           String
+  status              EnrollmentStatus @default(INSCRIT)
+  score               Int?
+  satisfactionRating  Int?
   satisfactionComment String?
 
   createdAt DateTime @default(now())
@@ -860,23 +861,23 @@ model Attendance {
 // --------------------------- DOCUMENTS ---------------------------
 
 model DocumentTemplate {
-  id              String       @id @default(cuid())
-  organizationId  String?      // null = modèle global par défaut
-  type            DocumentType
-  name            String
-  description     String?
-  contentTemplate String       // HTML/MJML avec variables {{...}}
-  engine          String       @default("TEXT")
-  sourceFileUrl   String?
-  sourceFileName  String?
-  sourceMimeType  String?
-  variables       String[]     @default([])
-  isDefault       Boolean      @default(false)
-  status          DocumentTemplateStatus @default(ACTIVE)
-  version         Int          @default(1)
+  id                String                 @id @default(cuid())
+  organizationId    String? // null = modèle global par défaut
+  type              DocumentType
+  name              String
+  description       String?
+  contentTemplate   String // HTML/MJML avec variables {{...}}
+  engine            String                 @default("TEXT")
+  sourceFileUrl     String?
+  sourceFileName    String?
+  sourceMimeType    String?
+  variables         String[]               @default([])
+  isDefault         Boolean                @default(false)
+  status            DocumentTemplateStatus @default(ACTIVE)
+  version           Int                    @default(1)
   variablesDetected Json?
-  variableMappings Json?
-  createdById     String?
+  variableMappings  Json?
+  createdById       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -891,23 +892,23 @@ model DocumentTemplate {
 }
 
 model Document {
-  id             String         @id @default(cuid())
-  organizationId String
-  type           DocumentType
-  templateId     String?
-  status         DocumentStatus @default(A_GENERER)
-  fileUrl        String?
-  fileName       String?
-  mimeType       String?        @default("application/pdf")
-  generatedAt    DateTime?
-  sentAt         DateTime?
-  templateVersion Int?
-  completionStatus DocumentCompletionStatus @default(COMPLETE)
-  completionScore Int @default(100)
-  missingVariables Json?
+  id                        String                   @id @default(cuid())
+  organizationId            String
+  type                      DocumentType
+  templateId                String?
+  status                    DocumentStatus           @default(A_GENERER)
+  fileUrl                   String?
+  fileName                  String?
+  mimeType                  String?                  @default("application/pdf")
+  generatedAt               DateTime?
+  sentAt                    DateTime?
+  templateVersion           Int?
+  completionStatus          DocumentCompletionStatus @default(COMPLETE)
+  completionScore           Int                      @default(100)
+  missingVariables          Json?
   generationContextSnapshot Json?
-  manualOverrides Json?
-  finalizedAt    DateTime?
+  manualOverrides           Json?
+  finalizedAt               DateTime?
 
   // entités liées (au moins une selon le type)
   formationId  String?
@@ -1049,12 +1050,12 @@ model Testimonial {
 }
 
 model Faq {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   formationId    String?
   question       String
   answer         String
-  position       Int      @default(0)
+  position       Int     @default(0)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   formation    Formation?   @relation(fields: [formationId], references: [id], onDelete: Cascade)
@@ -1065,15 +1066,15 @@ model Faq {
 // --------------------------- SOCRATE CHATBOT ---------------------------
 
 /**
- * Lead capturé via Socrate (chatbot IA public).
- * Source : "socrate_chatbot". Jamais lié à un tenant (visiteur non connecté).
+ * Lead capturé depuis un parcours public (Socrate ou tunnel événement).
+ * Jamais lié à un tenant : ces demandes appartiennent à la plateforme.
  */
 model SocrateLeadCapture {
   id                  String    @id @default(cuid())
   createdAt           DateTime  @default(now())
   firstName           String?
   lastName            String?
-  email               String
+  email               String?
   phone               String?
   /// particulier | centre | formateur | entreprise | autre
   profileType         String?
@@ -1190,6 +1191,27 @@ enum Roadmap2UpdateType {
   validation
 }
 
+enum Roadmap2DriveOperationType {
+  provision_workspace
+  create_node_resources
+  upload_node_file
+  reconcile_node_layout
+  sync_permissions
+  archive_node
+  restore_node
+  update_node_structure
+}
+
+enum Roadmap2DriveOperationStatus {
+  pending
+  running
+  provider_succeeded
+  succeeded
+  retryable
+  needs_repair
+  failed
+}
+
 /**
  * Workspace privé de pilotage plateforme. Sa clé est résolue côté serveur :
  * le client ne fournit jamais workspaceId comme preuve d'autorisation.
@@ -1202,10 +1224,11 @@ model Roadmap2Workspace {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  nodes     Roadmap2Node[]
-  edges     Roadmap2Edge[]
-  updates   Roadmap2Update[]
-  auditLogs Roadmap2AuditLog[]
+  nodes           Roadmap2Node[]
+  edges           Roadmap2Edge[]
+  updates         Roadmap2Update[]
+  auditLogs       Roadmap2AuditLog[]
+  driveOperations Roadmap2DriveOperation[]
 }
 
 model Roadmap2Node {
@@ -1241,15 +1264,16 @@ model Roadmap2Node {
   createdById      String?
   updatedById      String?
 
-  workspace     Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  owner         User?             @relation("Roadmap2NodeOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  createdBy     User?             @relation("Roadmap2NodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy     User?             @relation("Roadmap2NodeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
-  parent        Roadmap2Node?     @relation("Roadmap2NodeParent", fields: [parentId], references: [id], onDelete: SetNull)
-  children      Roadmap2Node[]    @relation("Roadmap2NodeParent")
-  outgoingEdges Roadmap2Edge[]    @relation("Roadmap2EdgeSource")
-  incomingEdges Roadmap2Edge[]    @relation("Roadmap2EdgeTarget")
-  updates       Roadmap2Update[]
+  workspace       Roadmap2Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner           User?                    @relation("Roadmap2NodeOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy       User?                    @relation("Roadmap2NodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy       User?                    @relation("Roadmap2NodeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  parent          Roadmap2Node?            @relation("Roadmap2NodeParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Roadmap2Node[]           @relation("Roadmap2NodeParent")
+  outgoingEdges   Roadmap2Edge[]           @relation("Roadmap2EdgeSource")
+  incomingEdges   Roadmap2Edge[]           @relation("Roadmap2EdgeTarget")
+  updates         Roadmap2Update[]
+  driveOperations Roadmap2DriveOperation[]
 
   @@unique([workspaceId, seedKey])
   @@index([workspaceId, archivedAt])
@@ -1314,6 +1338,43 @@ model Roadmap2AuditLog {
   @@index([entityType, entityId])
 }
 
+/**
+ * Journal de cohérence distribuée Roadmap 2 ↔ Google Drive.
+ * Le payload ne contient ni jeton OAuth ni contenu de fichier. Les résultats
+ * fournisseur restent privés et servent uniquement à reprendre une finalisation DB.
+ */
+model Roadmap2DriveOperation {
+  id                String                       @id @default(cuid())
+  workspaceId       String
+  nodeId            String?
+  actorUserId       String?
+  operationType     Roadmap2DriveOperationType
+  status            Roadmap2DriveOperationStatus @default(pending)
+  idempotencyKey    String
+  requestHash       String
+  payload           Json
+  providerResult    Json?
+  result            Json?
+  attemptCount      Int                          @default(0)
+  leaseToken        String?
+  leaseExpiresAt    DateTime?
+  nextRetryAt       DateTime?
+  errorCode         String?
+  errorMessage      String?
+  providerAppliedAt DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  workspace Roadmap2Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  node      Roadmap2Node?     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  actor     User?             @relation("Roadmap2DriveOperationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, status, nextRetryAt])
+  @@index([nodeId, createdAt])
+}
+
 // --------------------------- JOBS ASYNCHRONES ---------------------------
 
 enum JobStatus {
@@ -1326,10 +1387,10 @@ enum JobStatus {
 model BackgroundJob {
   id             String    @id @default(cuid())
   organizationId String
-  type           String    // ex: "pdf_bulk", "email_bulk"
-  payload        Json      // données nécessaires au traitement
+  type           String // ex: "pdf_bulk", "email_bulk"
+  payload        Json // données nécessaires au traitement
   status         JobStatus @default(PENDING)
-  resultUrl      String?   // résultat (URL fichier zip, etc.)
+  resultUrl      String? // résultat (URL fichier zip, etc.)
   error          String?
   startedAt      DateTime?
   completedAt    DateTime?

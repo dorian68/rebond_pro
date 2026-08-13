@@ -25,11 +25,13 @@ import {
   type Roadmap2UpdateType,
 } from "@/lib/roadmap2";
 import type { Roadmap2NodeInput } from "@/server/roadmap2";
+import { isRoadmap2DrivePending, roadmap2DriveNeedsReconnect, roadmap2DriveStatusLabel } from "@/lib/roadmap2-drive-status";
 import { addRoadmap2Update } from "@/server/roadmap2-actions";
 import { listRoadmap2NodeDriveFiles, previewRoadmap2NodeDriveLayout, reconcileRoadmap2NodeDriveLayout, type Roadmap2DriveActionResult } from "@/server/roadmap2-drive-actions";
 import type { Roadmap2DriveFile, Roadmap2DriveLayoutPreview, Roadmap2DriveStatus } from "@/server/roadmap2-drive";
 import type { Roadmap2UiActions } from "./roadmap2-client";
 import { nodeToInput } from "./roadmap2-ui";
+import { clearRoadmap2OperationKey, getOrCreateRoadmap2OperationKey, roadmap2UploadOperationScope } from "@/lib/roadmap2-operation-key-store";
 import styles from "./roadmap2.module.css";
 
 function futureDate(days: number) {
@@ -148,6 +150,8 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
   const nodeMap = useMemo(() => new Map(nodes.map((candidate) => [candidate.id, candidate])), [nodes]);
   const visibleNodeFiles = useMemo(() => nodeFiles ?? [], [nodeFiles]);
   const trackingDocListed = useMemo(() => visibleNodeFiles.some((file) => file.name === "00 - SUIVI & DÉCISIONS" || file.url === form.trackingDocUrl), [form.trackingDocUrl, visibleNodeFiles]);
+  const drivePending = isRoadmap2DrivePending(driveStatus?.status);
+  const driveReconnect = roadmap2DriveNeedsReconnect(driveStatus?.status);
 
   async function loadNodeFiles() {
     if (!node?.driveFolderUrl || !driveStatus?.connected) return;
@@ -227,7 +231,28 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
       return;
     }
     const versionedNode = node && baseVersion !== null ? { ...node, version: baseVersion } : node;
-    const result = await actions.saveNode(versionedNode, form);
+    let structuralPreflightToken: string | undefined;
+    const structuralChange = Boolean(node && node.driveFolderUrl && (
+      node.title !== form.title.trim()
+      || node.category !== form.category
+      || node.parentId !== form.parentId
+    ));
+    if (node && structuralChange) {
+      setNodeDriveBusy("layout");
+      const preflight = await actions.previewStructuralChange(versionedNode!, form, false);
+      setNodeDriveBusy(null);
+      if (!preflight.ok) {
+        setError(preflight.error);
+        return;
+      }
+      const accepted = window.confirm(`Cette modification réorganisera Google Drive.\n\nAvant : ${preflight.data.preview.currentPath}\nAprès : ${preflight.data.preview.expectedPath}\n\nAucun fichier ne sera supprimé. Confirmer la modification métier et Drive ?`);
+      if (!accepted) {
+        setError("Modification annulée : aucun changement n’a été appliqué à la roadmap ni à Google Drive.");
+        return;
+      }
+      structuralPreflightToken = preflight.data.token;
+    }
+    const result = await actions.saveNode(versionedNode, form, structuralPreflightToken);
     if (!result.ok) setError(result.error ?? "Enregistrement impossible.");
   }
 
@@ -291,10 +316,13 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
     let uploaded = 0;
     let failedError: string | null = files.length > 20 ? "20 fichiers maximum par dépôt. Les fichiers supplémentaires n’ont pas été envoyés." : null;
     for (const file of selected) {
+      const uploadScope = roadmap2UploadOperationScope(node.id, file);
+      const operationKey = getOrCreateRoadmap2OperationKey(workspaceKey, uploadScope);
       const formData = new FormData();
       formData.set("file", file);
       formData.set("workspaceKey", workspaceKey);
       formData.set("nodeId", node.id);
+      formData.set("idempotencyKey", operationKey);
       let result: Roadmap2DriveActionResult<{ file: Roadmap2DriveFile }>;
       try {
         const response = await fetch("/api/admin/roadmap-2/drive/upload", { method: "POST", body: formData });
@@ -306,6 +334,7 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
         failedError = result.error;
         break;
       }
+      clearRoadmap2OperationKey(workspaceKey, uploadScope);
       uploaded += 1;
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -462,8 +491,8 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
             ) : !driveStatus?.connected ? (
               <div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`}>
                 <span className={styles.driveStatusDot} aria-hidden="true" />
-                <div><strong>{hasRootDrive ? "Google Drive doit être reconnecté" : "Google Drive n’est pas connecté"}</strong><small>Connectez le compte Drive pour afficher et ajouter les fichiers de ce résultat.</small></div>
-                <button type="button" className={styles.primaryButton} onClick={onManageDrive}>{hasRootDrive ? "Reconnecter Drive" : "Connecter Drive"}</button>
+                <div><strong>Google Drive · {roadmap2DriveStatusLabel(driveStatus?.status)}</strong><small>{drivePending ? "Terminez l’autorisation Google pour afficher les documents." : driveReconnect ? "Reconnectez l’autorisation Google pour retrouver les documents." : "Connectez le compte Drive pour afficher et ajouter les fichiers de ce résultat."}</small></div>
+                <button type="button" className={styles.primaryButton} onClick={onManageDrive}>{drivePending ? "Reprendre la connexion" : driveReconnect ? "Reconnecter Drive" : "Connecter Drive"}</button>
               </div>
             ) : !hasRootDrive ? (
               <div className={styles.nodeDriveState}>
@@ -535,11 +564,11 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
                 <ul className={styles.relationList}>{connected.map((edge) => {
                   const outgoing = edge.sourceNodeId === node.id;
                   const other = nodeMap.get(outgoing ? edge.targetNodeId : edge.sourceNodeId);
-                  return <li key={edge.id}><span className={styles.relationDirection}>{outgoing ? "Sortant" : "Entrant"}</span><strong>{contextualRelationLabel(edge.relationType, outgoing)}</strong><span>{other?.title ?? "Élément supprimé"}</span>{!isArchived && <button type="button" onClick={() => void actions.removeEdge(edge.id)} aria-label={`Supprimer la relation avec ${other?.title ?? "cet élément"}`}><Icon name="trash-2" size={14} /></button>}</li>;
+                  return <li key={edge.id}><span className={styles.relationDirection}>{outgoing ? "Sortant" : "Entrant"}</span><strong>{contextualRelationLabel(edge.relationType, outgoing)}</strong><span>{other?.title ?? "Élément supprimé"}</span>{!isArchived && edge.relationType !== "parent_child" && <button type="button" onClick={() => void actions.removeEdge(edge.id)} aria-label={`Supprimer la relation avec ${other?.title ?? "cet élément"}`}><Icon name="trash-2" size={14} /></button>}{!isArchived && edge.relationType === "parent_child" && <small>Modifier via le champ Parent</small>}</li>;
                 })}</ul>
               )}
               {!isArchived && <div className={styles.relationBuilder}>
-                <select aria-label="Nature de la nouvelle relation" value={relationType} onChange={(event) => setRelationType(event.target.value as Roadmap2RelationType)}>{ROADMAP2_RELATION_TYPES.map((value) => <option key={value} value={value}>{ROADMAP2_RELATION_LABELS[value]}</option>)}</select>
+                <select aria-label="Nature de la nouvelle relation" value={relationType} onChange={(event) => setRelationType(event.target.value as Roadmap2RelationType)}>{ROADMAP2_RELATION_TYPES.filter((value) => value !== "parent_child").map((value) => <option key={value} value={value}>{ROADMAP2_RELATION_LABELS[value]}</option>)}</select>
                 <select aria-label="Cible de la nouvelle relation" value={relationTarget} onChange={(event) => setRelationTarget(event.target.value)}><option value="">Choisir une cible…</option>{nodes.filter((candidate) => candidate.id !== node.id && candidate.status !== "archived").map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}</select>
                 <button type="button" className={styles.secondaryButton} disabled={!relationTarget || pending} onClick={addRelation}><Icon name="arrow-right" size={14} /> Créer</button>
               </div>}

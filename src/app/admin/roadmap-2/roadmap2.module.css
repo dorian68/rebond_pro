@@ -160,6 +160,7 @@
 .driveHeaderStatus > span:nth-child(2) { display: grid; min-width: 88px; gap: 1px; line-height: 1.05; }
 .driveHeaderStatus small { color: var(--rm-muted); font-size: 8px; font-weight: 760; letter-spacing: .055em; text-transform: uppercase; }
 .driveHeaderStatus strong { color: var(--rm-ink); font-size: 11px; }
+.driveHeaderStatus em { max-width: 150px; overflow: hidden; color: var(--rm-muted); font-size: 9px; font-style: normal; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .driveHeaderStatus > a,
 .driveHeaderStatus > button { min-height: 30px; display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 7px; padding: 5px 8px; background: transparent; color: var(--rm-green); font-size: 10.5px; font-weight: 780; text-decoration: none; cursor: pointer; }
 .driveHeaderStatus > a:hover,
@@ -186,6 +187,8 @@
   font-size: 11.5px;
   border-right: 1px solid var(--rm-line);
 }
+
+.pilotStrip > .kpiFormula { display: flex; align-items: center; padding: 9px 15px; border-right: 1px solid var(--rm-line); white-space: nowrap; font-size: 11.5px; }
 
 .pilotStrip > span:first-child { padding-left: 0; }
 .pilotStrip > span:last-child { border-right: 0; }
@@ -226,7 +229,7 @@
   padding: 7px 12px;
   border: 0;
   background: transparent;
-  color: var(--rm-muted);
+  color: #4c5c57;
   border-radius: 8px;
   font-size: 12.5px;
   font-weight: 730;
@@ -295,6 +298,33 @@
   gap: 7px;
   flex-wrap: wrap;
 }
+
+.reviewPresets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reviewPresets button,
+.phaseExpansion button {
+  min-height: 36px;
+  border: 1px solid var(--rm-line);
+  border-radius: 8px;
+  background: var(--rm-paper);
+  color: var(--rm-muted);
+  padding: 7px 10px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.reviewPresets .selectedControl,
+.phaseExpansion button[aria-pressed="true"] { color: var(--rm-green-dark); border-color: var(--rm-green); background: #edf3ed; }
+
+.phaseExpansion { width: 100%; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 3px; }
+.phaseExpansion button { flex: 0 0 auto; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpiFormula { position: relative; }
+.kpiFormula summary { cursor: pointer; font-weight: 750; color: var(--rm-green); }
+.kpiFormula p { position: absolute; right: 0; z-index: 20; width: min(340px, 80vw); padding: 10px; border: 1px solid var(--rm-line); border-radius: 8px; background: #fff; color: var(--rm-ink); box-shadow: 0 12px 30px rgba(35, 44, 41, .14); }
 
 .filters select,
 .relationBuilder select,
@@ -365,6 +395,11 @@
 .emptyState p { color: var(--rm-muted); line-height: 1.65; margin: 11px 0 20px; }
 .emptyState .seedDisclosure { max-width: 760px; margin: -7px 0 18px; padding-left: 12px; border-left: 3px solid #d5a660; color: #725d3e; font-size: 11px; }
 .seedDisclosure strong { color: var(--rm-green-dark); }
+.seedSetup { display: grid; gap: 12px; margin-bottom: 18px; }
+.seedSetup > label, .seedSetup fieldset label { display: grid; gap: 4px; color: var(--rm-muted); font-size: 11.5px; }
+.seedSetup input, .seedSetup select { min-height: 40px; border: 1px solid var(--rm-line); border-radius: 8px; background: #fff; color: var(--rm-ink); padding: 7px 9px; }
+.seedSetup fieldset { border: 1px solid var(--rm-line); border-radius: 10px; padding: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.seedSetup legend { padding: 0 5px; color: var(--rm-green-dark); font-size: 12px; font-weight: 750; }
 .emptyState .emptyActions { justify-content: flex-start; }
 .emptyPrinciples { display: grid; gap: 13px; border-left: 1px solid var(--rm-line); padding-left: 25px; }
 .emptyPrinciples span { color: var(--rm-muted); font-size: 12.5px; }
@@ -953,6 +988,7 @@
   .pilotStrip > span:nth-child(3) { border-right: 0; }
   .pilotStrip > span:nth-child(n + 4) { border-top: 1px solid var(--rm-line); }
   .pilotStrip .lastUpdate { margin-left: 0; }
+  .pilotStrip > .kpiFormula { min-width: 0; white-space: normal; border-top: 1px solid var(--rm-line); }
   .emptyState { grid-template-columns: 70px 1fr; min-height: 470px; padding: 30px; gap: 20px; }
   .emptyCompass { width: 64px; height: 64px; }
   .emptyPrinciples { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); border-left: 0; border-top: 1px solid var(--rm-line); padding: 18px 0 0; }
@@ -1010,6 +1046,7 @@
   .emptyCompass { margin-bottom: 20px; }
   .emptyState h2 { font-size: 25px; }
   .emptyActions { display: grid; }
+  .seedSetup fieldset { grid-template-columns: 1fr; }
   .emptyPrinciples { margin-top: 25px; grid-template-columns: 1fr; }
   .graphShell { height: 540px; border-radius: 12px; }
   .graphHint { display: none; }
@@ -1052,6 +1089,27 @@
   .driveConnection .primaryButton { grid-column: 1 / -1; width: 100%; }
   .driveIntegrationActions { display: grid; }
   .driveIntegrationActions > * { width: 100%; }
+}
+
+@media (max-width: 700px), (pointer: coarse) {
+  .workspace button,
+  .workspace select,
+  .workspace input[type="date"],
+  .workspace input[type="file"] { min-height: 44px; }
+  .searchWrap { min-height: 44px; height: auto; }
+  .searchWrap input { min-height: 42px; }
+  .closeButton { min-width: 44px; min-height: 44px; }
+  .iconButton,
+  .rowActions button,
+  .relationList button { min-width: 44px; min-height: 44px; }
+}
+
+@media (max-width: 720px) {
+  .workspace { max-width: 100%; overflow-x: clip; }
+  .heroActions,
+  .workspaceChooser,
+  .controlDeck,
+  .pilotStrip { min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

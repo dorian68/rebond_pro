@@ -135,6 +135,7 @@ export type Roadmap2Stats = {
   blocked: number;
   dueSoon: number;
   globalProgress: number;
+  basisCount: number;
   pendingDecisions: number;
   lastUpdatedAt: string | null;
   lastUpdatedBy: string | null;

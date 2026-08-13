@@ -99,9 +99,16 @@ export const roadmap2UpdateInputSchema = z.object({
   body: z.string().trim().min(1, "La mise à jour est vide.").max(2000, "Mise à jour trop longue."),
 });
 
+export const roadmap2SeedSetupSchema = z.object({
+  anchorDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date d’ancrage invalide.").refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Date d’ancrage invalide."),
+  ownerByCategory: z.record(z.enum(ROADMAP2_CATEGORIES), z.string().min(1).max(100)),
+}).superRefine((value, ctx) => {
+  for (const category of ROADMAP2_CATEGORIES) if (!value.ownerByCategory[category]) ctx.addIssue({ code: "custom", path: ["ownerByCategory", category], message: "Choisissez un responsable pour chaque phase." });
+});
+
 export class Roadmap2ConflictError extends Error {
-  constructor() {
-    super("Ce nœud a été modifié par une autre personne. Actualisez avant de réessayer.");
+  constructor(message = "Ce nœud a été modifié par une autre personne. Actualisez avant de réessayer.") {
+    super(message);
     this.name = "Roadmap2ConflictError";
   }
 }
@@ -337,6 +344,8 @@ export async function getRoadmap2Data(workspaceKey?: string): Promise<Roadmap2Da
   }
   const nodes = rows.map(nodeDto);
   const active = nodes.filter((node) => node.status !== "archived" && node.archivedAt === null);
+  const activeParentIds = new Set(active.map((node) => node.parentId).filter((id): id is string => Boolean(id)));
+  const deliveryNodes = active.filter((node) => !node.isWorkspaceRoot && node.type !== "phase" && !activeParentIds.has(node.id));
   const now = new Date();
   const inSevenDays = new Date(now.getTime() + 7 * 86400000);
   const lastUpdated = [...active].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
@@ -347,11 +356,12 @@ export async function getRoadmap2Data(workspaceKey?: string): Promise<Roadmap2Da
     edges: edges.map((edge) => ({ id: edge.id, sourceNodeId: edge.sourceNodeId, targetNodeId: edge.targetNodeId, relationType: edge.relationType, createdAt: edge.createdAt.toISOString() })),
     owners: [...ownerMap.values()],
     stats: {
-      activeInitiatives: active.filter((node) => (node.type === "initiative" || node.type === "action") && node.status !== "completed").length,
-      blocked: active.filter((node) => node.status === "blocked").length,
-      dueSoon: active.filter((node) => node.dueDate && new Date(`${node.dueDate}T23:59:59`) >= now && new Date(`${node.dueDate}T23:59:59`) <= inSevenDays && node.status !== "completed").length,
-      globalProgress: active.length ? Math.round(active.reduce((sum, node) => sum + node.progressPercent, 0) / active.length) : 0,
-      pendingDecisions: active.filter((node) => node.decisionRequired && node.status !== "completed").length,
+      activeInitiatives: deliveryNodes.filter((node) => node.status !== "completed").length,
+      blocked: deliveryNodes.filter((node) => node.status === "blocked").length,
+      dueSoon: deliveryNodes.filter((node) => node.dueDate && new Date(`${node.dueDate}T23:59:59`) >= now && new Date(`${node.dueDate}T23:59:59`) <= inSevenDays && node.status !== "completed").length,
+      globalProgress: deliveryNodes.length ? Math.round(deliveryNodes.reduce((sum, node) => sum + node.progressPercent, 0) / deliveryNodes.length) : 0,
+      basisCount: deliveryNodes.length,
+      pendingDecisions: deliveryNodes.filter((node) => node.decisionRequired && node.status !== "completed").length,
       lastUpdatedAt: lastUpdated?.updatedAt ?? null,
       lastUpdatedBy: lastUpdated?.updatedBy?.name ?? null,
     },
@@ -401,15 +411,33 @@ export const roadmap2Repository = {
     }, { isolationLevel: "Serializable" });
   },
 
-  async updateNode(workspaceId: string, actorUserId: string, nodeId: string, expectedVersion: number, rawInput: unknown) {
+  async updateNode(workspaceId: string, actorUserId: string, nodeId: string, expectedVersion: number, rawInput: unknown, structuralOperationId?: string) {
     const parsed = roadmap2NodeInputSchema.parse(rawInput);
     await assertAllowedOwner(actorUserId, parsed.ownerUserId);
     return prisma.$transaction(async (tx) => {
-      const current = await tx.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, category: true, parentId: true, isWorkspaceRoot: true, status: true } });
+      const current = await tx.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, version: true, category: true, parentId: true, title: true, driveFolderUrl: true, isWorkspaceRoot: true, status: true } });
       if (!current) throw new Roadmap2NotFoundError();
+      if (current.version !== expectedVersion) {
+        if (structuralOperationId && current.version === expectedVersion + 1) {
+          const audited = await tx.roadmap2AuditLog.count({
+            where: { workspaceId, action: "node.structure_updated", entityType: "Roadmap2DriveOperation", entityId: structuralOperationId },
+          });
+          if (audited) return { id: current.id, version: current.version, updatedAt: new Date() };
+        }
+        throw new Roadmap2ConflictError();
+      }
       if (current.status === "archived" || parsed.status === "archived") throw new Roadmap2ValidationError("Utilisez les actions Archiver ou Restaurer pour changer cet état.");
       if (current.isWorkspaceRoot && parsed.parentId) throw new Roadmap2ValidationError("Le nœud racine ne peut pas avoir de parent.");
       const input = current.isWorkspaceRoot ? { ...parsed, parentId: null } : await inheritedNodeInput(tx, workspaceId, parsed);
+      const structuralChange = current.title !== input.title || current.category !== input.category || current.parentId !== input.parentId;
+      if (structuralChange && current.driveFolderUrl) {
+        if (!structuralOperationId) throw new Roadmap2ValidationError("Prévisualisez et confirmez l’impact Google Drive avant cette modification structurelle.");
+        const operation = await tx.roadmap2DriveOperation.findFirst({
+          where: { id: structuralOperationId, workspaceId, nodeId, operationType: "update_node_structure", status: { in: ["running", "provider_succeeded", "needs_repair"] } },
+          select: { id: true },
+        });
+        if (!operation) throw new Roadmap2ValidationError("La confirmation Google Drive a expiré ou ne correspond plus à cette modification.");
+      }
       await assertAcyclicParent(tx, workspaceId, nodeId, input.parentId);
       const updated = await tx.roadmap2Node.updateMany({
         where: { id: nodeId, workspaceId, version: expectedVersion },
@@ -433,7 +461,11 @@ export const roadmap2Repository = {
           });
         }
       }
-      await writeAudit(tx, workspaceId, actorUserId, "node.updated", "Roadmap2Node", nodeId);
+      if (structuralOperationId && structuralChange) {
+        await writeAudit(tx, workspaceId, actorUserId, "node.structure_updated", "Roadmap2DriveOperation", structuralOperationId);
+      } else {
+        await writeAudit(tx, workspaceId, actorUserId, "node.updated", "Roadmap2Node", nodeId);
+      }
       return tx.roadmap2Node.findUniqueOrThrow({ where: { id: nodeId }, select: { id: true, version: true, updatedAt: true } });
     }, { isolationLevel: "Serializable" });
   },
@@ -502,6 +534,55 @@ export const roadmap2Repository = {
     });
   },
 
+  async finalizeArchiveNodeOperation(workspaceId: string, actorUserId: string, operationId: string, nodeId: string, expectedVersion: number) {
+    return prisma.$transaction(async (tx) => {
+      const operation = await tx.roadmap2DriveOperation.findFirst({ where: { id: operationId, workspaceId, nodeId, operationType: "archive_node" }, select: { id: true } });
+      if (!operation) throw new Roadmap2NotFoundError("Opération d’archivage Drive introuvable.");
+      const node = await tx.roadmap2Node.findFirst({
+        where: { id: nodeId, workspaceId },
+        select: { id: true, version: true, status: true, isWorkspaceRoot: true, _count: { select: { children: { where: { archivedAt: null } } } } },
+      });
+      if (!node) throw new Roadmap2NotFoundError();
+      if (node.isWorkspaceRoot) throw new Roadmap2ValidationError("Le nœud racine de la roadmap ne peut pas être archivé.");
+      if (node.status !== "archived") {
+        if (node.version !== expectedVersion) throw new Roadmap2ConflictError();
+        if (node._count.children > 0) throw new Roadmap2ValidationError("Déplacez ou archivez d’abord les sous-nœuds actifs.");
+        const updated = await tx.roadmap2Node.updateMany({
+          where: { id: nodeId, workspaceId, version: expectedVersion, status: { not: "archived" } },
+          data: { status: "archived", archivedAt: new Date(), preArchiveStatus: node.status, updatedById: actorUserId, version: { increment: 1 } },
+        });
+        if (updated.count !== 1) throw new Roadmap2ConflictError();
+        await writeAudit(tx, workspaceId, actorUserId, "node.archived", "Roadmap2Node", nodeId);
+      }
+      const audited = await tx.roadmap2AuditLog.count({ where: { workspaceId, action: "node.drive_folder_archived", entityType: "Roadmap2DriveOperation", entityId: operationId } });
+      if (!audited) await writeAudit(tx, workspaceId, actorUserId, "node.drive_folder_archived", "Roadmap2DriveOperation", operationId);
+      const finalized = await tx.roadmap2Node.findUniqueOrThrow({ where: { id: nodeId }, select: { id: true, version: true } });
+      return finalized;
+    }, { isolationLevel: "Serializable" });
+  },
+
+  async finalizeRestoreNodeOperation(workspaceId: string, actorUserId: string, operationId: string, nodeId: string, expectedVersion: number) {
+    return prisma.$transaction(async (tx) => {
+      const operation = await tx.roadmap2DriveOperation.findFirst({ where: { id: operationId, workspaceId, nodeId, operationType: "restore_node" }, select: { id: true } });
+      if (!operation) throw new Roadmap2NotFoundError("Opération de restauration Drive introuvable.");
+      const node = await tx.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, version: true, status: true, preArchiveStatus: true } });
+      if (!node) throw new Roadmap2NotFoundError();
+      if (node.status === "archived") {
+        if (node.version !== expectedVersion) throw new Roadmap2ConflictError();
+        const restoredStatus = node.preArchiveStatus && node.preArchiveStatus !== "archived" ? node.preArchiveStatus : "not_started";
+        const updated = await tx.roadmap2Node.updateMany({
+          where: { id: nodeId, workspaceId, version: expectedVersion, status: "archived" },
+          data: { status: restoredStatus, archivedAt: null, preArchiveStatus: null, updatedById: actorUserId, version: { increment: 1 } },
+        });
+        if (updated.count !== 1) throw new Roadmap2ConflictError();
+        await writeAudit(tx, workspaceId, actorUserId, "node.archive_reverted", "Roadmap2Node", nodeId);
+      }
+      const audited = await tx.roadmap2AuditLog.count({ where: { workspaceId, action: "node.drive_folder_restored", entityType: "Roadmap2DriveOperation", entityId: operationId } });
+      if (!audited) await writeAudit(tx, workspaceId, actorUserId, "node.drive_folder_restored", "Roadmap2DriveOperation", operationId);
+      return tx.roadmap2Node.findUniqueOrThrow({ where: { id: nodeId }, select: { id: true, version: true } });
+    }, { isolationLevel: "Serializable" });
+  },
+
   async deleteNode(workspaceId: string, actorUserId: string, nodeId: string, expectedVersion: number) {
     return prisma.$transaction(async (tx) => {
       const node = await tx.roadmap2Node.findFirst({
@@ -520,7 +601,7 @@ export const roadmap2Repository = {
   },
 
   async getNodeLifecycleContext(workspaceId: string, nodeId: string) {
-    const node = await prisma.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, version: true, isWorkspaceRoot: true, driveFolderUrl: true, _count: { select: { children: { where: { archivedAt: null } } } } } });
+    const node = await prisma.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, version: true, status: true, preArchiveStatus: true, isWorkspaceRoot: true, driveFolderUrl: true, _count: { select: { children: { where: { archivedAt: null } } } } } });
     if (!node) throw new Roadmap2NotFoundError();
     return node;
   },
@@ -565,50 +646,27 @@ export const roadmap2Repository = {
     });
   },
 
-  async createEdge(workspaceId: string, actorUserId: string, rawInput: unknown, expectedTargetVersion?: number) {
+  async createEdge(workspaceId: string, actorUserId: string, rawInput: unknown) {
     const input = roadmap2EdgeInputSchema.parse(rawInput);
+    if (input.relationType === "parent_child") {
+      throw new Roadmap2ValidationError("Modifiez le parent depuis le formulaire du nœud afin de prévisualiser et réconcilier son classement Drive.");
+    }
     await Promise.all([assertScopedNode(workspaceId, input.sourceNodeId), assertScopedNode(workspaceId, input.targetNodeId)]);
     return prisma.$transaction(async (tx) => {
-      let targetVersion: number | undefined;
-      if (input.relationType === "parent_child") {
-        if (!Number.isInteger(expectedTargetVersion) || expectedTargetVersion! < 1) {
-          throw new Roadmap2ValidationError("La version courante du nœud cible est requise pour modifier sa hiérarchie.");
-        }
-        const [source, target] = await Promise.all([
-          tx.roadmap2Node.findFirst({ where: { id: input.sourceNodeId, workspaceId }, select: { category: true, isWorkspaceRoot: true, archivedAt: true } }),
-          tx.roadmap2Node.findFirst({ where: { id: input.targetNodeId, workspaceId }, select: { type: true, isWorkspaceRoot: true, version: true, archivedAt: true, category: true } }),
-        ]);
-        if (!source || !target) throw new Roadmap2NotFoundError();
-        if (source.archivedAt || target.archivedAt) throw new Roadmap2ValidationError("Une hiérarchie active ne peut pas utiliser un nœud archivé.");
-        if (target.isWorkspaceRoot) throw new Roadmap2ValidationError("Le nœud racine ne peut pas avoir de parent.");
-        if (target.type === "phase" && !source.isWorkspaceRoot) throw new Roadmap2ValidationError("Une phase doit être directement rattachée au nœud racine.");
-        if (target.version !== expectedTargetVersion) throw new Roadmap2ConflictError();
-        await assertAcyclicParent(tx, workspaceId, input.targetNodeId, input.sourceNodeId);
-        await tx.roadmap2Edge.deleteMany({ where: { workspaceId, targetNodeId: input.targetNodeId, relationType: "parent_child" } });
-        const category = source.isWorkspaceRoot ? target.category : source.category;
-        const descendants = await descendantIds(tx, workspaceId, input.targetNodeId);
-        const reparented = await tx.roadmap2Node.updateMany({
-          where: { id: input.targetNodeId, workspaceId, version: expectedTargetVersion },
-          data: { parentId: input.sourceNodeId, category, updatedById: actorUserId, version: { increment: 1 } },
-        });
-        if (reparented.count !== 1) throw new Roadmap2ConflictError();
-        if (descendants.length) await tx.roadmap2Node.updateMany({ where: { workspaceId, id: { in: descendants }, type: { not: "phase" }, archivedAt: null }, data: { category, updatedById: actorUserId, version: { increment: 1 } } });
-        targetVersion = target.version + 1;
-      }
       const edge = await tx.roadmap2Edge.create({ data: { workspaceId, ...input, createdById: actorUserId }, select: { id: true } });
       await writeAudit(tx, workspaceId, actorUserId, "edge.created", "Roadmap2Edge", edge.id);
-      return { ...edge, targetVersion };
+      return { ...edge, targetVersion: undefined };
     }, { isolationLevel: "Serializable" });
   },
 
   async deleteEdge(workspaceId: string, actorUserId: string, edgeId: string) {
     const edge = await prisma.roadmap2Edge.findFirst({ where: { id: edgeId, workspaceId } });
     if (!edge) throw new Roadmap2NotFoundError("Relation introuvable dans ce workspace.");
+    if (edge.relationType === "parent_child") {
+      throw new Roadmap2ValidationError("Retirez ou changez le parent depuis le formulaire du nœud afin de prévisualiser et réconcilier son classement Drive.");
+    }
     return prisma.$transaction(async (tx) => {
       await tx.roadmap2Edge.deleteMany({ where: { id: edgeId, workspaceId } });
-      if (edge.relationType === "parent_child") {
-        await tx.roadmap2Node.updateMany({ where: { id: edge.targetNodeId, workspaceId, parentId: edge.sourceNodeId }, data: { parentId: null, updatedById: actorUserId, version: { increment: 1 } } });
-      }
       await writeAudit(tx, workspaceId, actorUserId, "edge.deleted", "Roadmap2Edge", edgeId);
       return { id: edgeId };
     });
@@ -640,6 +698,22 @@ export const roadmap2Repository = {
     return prisma.$transaction(async (tx) => {
       await tx.roadmap2Workspace.update({ where: { id: workspaceId }, data: { rootDriveUrl } });
       await writeAudit(tx, workspaceId, actorUserId, "workspace.drive_root_updated", "Roadmap2Workspace", workspaceId);
+      return { rootDriveUrl };
+    });
+  },
+
+  async finalizeDriveProvision(workspaceId: string, actorUserId: string, operationId: string, rawUrl: unknown) {
+    const rootDriveUrl = roadmap2DriveUrlSchema.parse(rawUrl);
+    if (!rootDriveUrl) throw new Roadmap2NotFoundError("Le dossier Drive créé est incomplet.");
+    return prisma.$transaction(async (tx) => {
+      const operation = await tx.roadmap2DriveOperation.findFirst({ where: { id: operationId, workspaceId, operationType: "provision_workspace" }, select: { id: true } });
+      if (!operation) throw new Roadmap2NotFoundError("Opération de provisioning Drive introuvable.");
+      const workspace = await tx.roadmap2Workspace.findUnique({ where: { id: workspaceId }, select: { rootDriveUrl: true } });
+      if (!workspace) throw new Roadmap2NotFoundError("Roadmap introuvable.");
+      if (workspace.rootDriveUrl && workspace.rootDriveUrl !== rootDriveUrl) throw new Roadmap2ConflictError("Un autre dossier Drive racine a été configuré pendant l’opération.");
+      if (workspace.rootDriveUrl !== rootDriveUrl) await tx.roadmap2Workspace.update({ where: { id: workspaceId }, data: { rootDriveUrl } });
+      const audited = await tx.roadmap2AuditLog.count({ where: { workspaceId, action: "workspace.drive_provisioned", entityType: "Roadmap2DriveOperation", entityId: operationId } });
+      if (!audited) await writeAudit(tx, workspaceId, actorUserId, "workspace.drive_provisioned", "Roadmap2DriveOperation", operationId);
       return { rootDriveUrl };
     });
   },
@@ -682,6 +756,33 @@ export const roadmap2Repository = {
     });
   },
 
+  async finalizeNodeDriveResources(workspaceId: string, actorUserId: string, operationId: string, nodeId: string, rawFolderUrl: unknown, rawTrackingUrl: unknown) {
+    const driveFolderUrl = roadmap2DriveUrlSchema.parse(rawFolderUrl);
+    const trackingDocUrl = roadmap2DriveUrlSchema.parse(rawTrackingUrl);
+    if (!driveFolderUrl || !trackingDocUrl) throw new Roadmap2NotFoundError("Les ressources Drive créées sont incomplètes.");
+    return prisma.$transaction(async (tx) => {
+      const operation = await tx.roadmap2DriveOperation.findFirst({ where: { id: operationId, workspaceId, nodeId, operationType: "create_node_resources" }, select: { id: true } });
+      if (!operation) throw new Roadmap2NotFoundError("Opération de création des ressources Drive introuvable.");
+      const node = await tx.roadmap2Node.findFirst({ where: { id: nodeId, workspaceId }, select: { id: true, version: true, driveFolderUrl: true, trackingDocUrl: true } });
+      if (!node) throw new Roadmap2NotFoundError();
+      if ((node.driveFolderUrl && node.driveFolderUrl !== driveFolderUrl) || (node.trackingDocUrl && node.trackingDocUrl !== trackingDocUrl)) {
+        throw new Roadmap2ConflictError("D’autres ressources Drive ont été associées à ce nœud pendant l’opération.");
+      }
+      let version = node.version;
+      if (node.driveFolderUrl !== driveFolderUrl || node.trackingDocUrl !== trackingDocUrl) {
+        const updated = await tx.roadmap2Node.updateMany({
+          where: { id: nodeId, workspaceId, version: node.version },
+          data: { driveFolderUrl, trackingDocUrl, updatedById: actorUserId, version: { increment: 1 } },
+        });
+        if (updated.count !== 1) throw new Roadmap2ConflictError();
+        version += 1;
+      }
+      const audited = await tx.roadmap2AuditLog.count({ where: { workspaceId, action: "node.drive_resources_attached", entityType: "Roadmap2DriveOperation", entityId: operationId } });
+      if (!audited) await writeAudit(tx, workspaceId, actorUserId, "node.drive_resources_attached", "Roadmap2DriveOperation", operationId);
+      return { id: nodeId, version, driveFolderUrl, trackingDocUrl };
+    }, { isolationLevel: "Serializable" });
+  },
+
   async recordWorkspaceAudit(workspaceId: string, actorUserId: string, action: string) {
     const safeAction = z.string().regex(/^workspace\.drive_[a-z_]+$/).max(80).parse(action);
     await prisma.$transaction((tx) => writeAudit(tx, workspaceId, actorUserId, safeAction, "Roadmap2Workspace", workspaceId));
@@ -694,11 +795,30 @@ export const roadmap2Repository = {
     await prisma.$transaction((tx) => writeAudit(tx, workspaceId, actorUserId, safeAction, "Roadmap2Node", nodeId));
   },
 
-  async seedWorkspace(workspaceId: string, actorUserId: string) {
-    const seed = buildRoadmap2Seed();
+  async recordDriveOperationAudit(workspaceId: string, actorUserId: string, operationId: string, action: string) {
+    const safeAction = z.string().regex(/^(?:workspace|node)\.drive_[a-z_]+$/).max(80).parse(action);
+    return prisma.$transaction(async (tx) => {
+      const operation = await tx.roadmap2DriveOperation.findFirst({ where: { id: operationId, workspaceId }, select: { id: true } });
+      if (!operation) throw new Roadmap2NotFoundError("Opération Drive introuvable.");
+      const audited = await tx.roadmap2AuditLog.count({ where: { workspaceId, action: safeAction, entityType: "Roadmap2DriveOperation", entityId: operationId } });
+      if (!audited) await writeAudit(tx, workspaceId, actorUserId, safeAction, "Roadmap2DriveOperation", operationId);
+      return { operationId };
+    });
+  },
+
+  async seedWorkspace(workspaceId: string, actorUserId: string, rawSetup?: unknown) {
+    if (rawSetup === undefined) throw new Roadmap2ValidationError("Choisissez une date d’ancrage et un responsable pour chacune des sept phases.");
+    const setup = roadmap2SeedSetupSchema.parse(rawSetup);
+    const seed = buildRoadmap2Seed(setup.anchorDate);
     return prisma.$transaction(async (tx) => {
       const existing = await tx.roadmap2Node.count({ where: { workspaceId } });
       if (existing > 0) throw new Roadmap2SeedExistsError();
+      const requestedOwners = [...new Set(Object.values(setup.ownerByCategory))];
+      const allowedOwners = await tx.user.findMany({
+        where: { id: { in: requestedOwners }, OR: [{ id: actorUserId }, { platformAdmin: true }, { email: { in: platformAdminEmails(), mode: "insensitive" } }] },
+        select: { id: true },
+      });
+      if (allowedOwners.length !== requestedOwners.length) throw new Roadmap2ValidationError("Un responsable choisi n’est pas autorisé pour Roadmap 2.");
       const ids = new Map(seed.nodes.map((item) => [item.key, randomUUID()]));
       await tx.roadmap2Node.createMany({
         data: seed.nodes.map((item) => ({
@@ -714,7 +834,7 @@ export const roadmap2Repository = {
             status: item.status ?? "not_started",
             priority: item.priority ?? "P1",
             progressPercent: item.progressPercent ?? 0,
-            ownerUserId: actorUserId,
+            ownerUserId: item.key === "root" ? actorUserId : setup.ownerByCategory[item.category],
             startDate: dateFromInput(item.startDate),
             dueDate: dateFromInput(item.dueDate),
             nextAction: item.nextAction ?? null,

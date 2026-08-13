@@ -2,6 +2,11 @@ import { Composio } from "@composio/core";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { ROADMAP2_TRACKING_DOC_TEMPLATE, type Roadmap2Category } from "@/lib/roadmap2";
+import {
+  ROADMAP2_DRIVE_CONNECTION_STATUSES,
+  type Roadmap2DriveAccountIdentity,
+  type Roadmap2DriveConnectionStatus,
+} from "@/lib/roadmap2-drive-status";
 
 const DRIVE_TOOLKIT = "googledrive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -49,6 +54,7 @@ const TOOLS = {
   createFolder: "GOOGLEDRIVE_CREATE_FOLDER",
   createPermission: "GOOGLEDRIVE_CREATE_PERMISSION",
   updatePermission: "GOOGLEDRIVE_UPDATE_PERMISSION",
+  about: "GOOGLEDRIVE_GET_ABOUT",
   findFile: "GOOGLEDRIVE_FIND_FILE",
   metadata: "GOOGLEDRIVE_GET_FILE_METADATA",
   moveFile: "GOOGLEDRIVE_MOVE_FILE",
@@ -108,7 +114,8 @@ export type Roadmap2DriveFile = {
 export type Roadmap2DriveStatus = {
   enabled: boolean;
   connected: boolean;
-  status: string;
+  status: Roadmap2DriveConnectionStatus;
+  account: Roadmap2DriveAccountIdentity | null;
 };
 
 export type Roadmap2DriveLayoutPreview = {
@@ -131,7 +138,7 @@ type DriveRecord = Record<string, unknown>;
 
 export type Roadmap2DriveDriver = {
   enabled(): boolean;
-  status(entityId: string): Promise<{ connected: boolean; status: string }>;
+  status(entityId: string): Promise<Omit<Roadmap2DriveStatus, "enabled">>;
   authLink(entityId: string, callbackUrl: string): Promise<string>;
   execute(entityId: string, tool: string, args: Record<string, unknown>): Promise<unknown>;
   uploadText(name: string, content: string): Promise<{ name: string; mimetype: string; s3key: string }>;
@@ -160,6 +167,7 @@ export class Roadmap2DriveAuthRequiredError extends Roadmap2DriveError {
 }
 
 let client: Composio | null = null;
+const activeComposioConnections = new Map<string, string>();
 
 function composio() {
   if (!process.env.COMPOSIO_API_KEY) throw new Roadmap2DriveError("L’intégration Google Drive n’est pas configurée sur le serveur.");
@@ -172,16 +180,89 @@ function parseConnectedAccounts(accounts: unknown) {
   return Array.isArray(accounts) ? accounts : [];
 }
 
+type ConnectedAccountRecord = {
+  id?: string;
+  alias?: string | null;
+  status?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  toolkit?: { slug?: string };
+};
+
+const CONNECTION_STATUS_PRIORITY: Record<Roadmap2DriveConnectionStatus, number> = {
+  ACTIVE: 100,
+  INITIATED: 90,
+  INITIALIZING: 80,
+  EXPIRED: 70,
+  REVOKED: 60,
+  FAILED: 50,
+  INACTIVE: 40,
+  UNKNOWN: 30,
+  NOT_CONNECTED: 20,
+  DISABLED: 10,
+};
+
+function normalizeConnectionStatus(value: unknown): Roadmap2DriveConnectionStatus {
+  return typeof value === "string" && (ROADMAP2_DRIVE_CONNECTION_STATUSES as readonly string[]).includes(value)
+    ? value as Roadmap2DriveConnectionStatus
+    : "UNKNOWN";
+}
+
+export function selectRoadmap2DriveConnection(accounts: unknown): { accountId: string | null; connected: boolean; status: Roadmap2DriveConnectionStatus; alias: string | null } {
+  const candidates = parseConnectedAccounts(accounts)
+    .map((item) => item as ConnectedAccountRecord)
+    .filter((item) => item.toolkit?.slug === DRIVE_TOOLKIT)
+    .sort((left, right) => {
+      const priority = CONNECTION_STATUS_PRIORITY[normalizeConnectionStatus(right.status)] - CONNECTION_STATUS_PRIORITY[normalizeConnectionStatus(left.status)];
+      if (priority !== 0) return priority;
+      return Date.parse(right.updatedAt ?? right.updated_at ?? "") - Date.parse(left.updatedAt ?? left.updated_at ?? "");
+    });
+  const account = candidates[0];
+  if (!account) return { accountId: null, connected: false, status: "NOT_CONNECTED", alias: null };
+  const status = normalizeConnectionStatus(account.status);
+  const accountId = typeof account.id === "string" && account.id.trim() ? account.id : null;
+  if (status === "ACTIVE" && !accountId) return { accountId: null, connected: false, status: "UNKNOWN", alias: null };
+  return {
+    accountId,
+    connected: status === "ACTIVE",
+    status,
+    alias: typeof account.alias === "string" && account.alias.trim() ? account.alias.trim() : null,
+  };
+}
+
 const composioDriver: Roadmap2DriveDriver = {
   enabled: () => Boolean(process.env.COMPOSIO_API_KEY),
   async status(entityId) {
-    if (!process.env.COMPOSIO_API_KEY) return { connected: false, status: "DISABLED" };
+    if (!process.env.COMPOSIO_API_KEY) return { connected: false, status: "DISABLED", account: null };
+    activeComposioConnections.delete(entityId);
     const accounts = await composio().connectedAccounts.list({ userIds: [entityId] });
-    const account = parseConnectedAccounts(accounts).find((item) => {
-      const value = item as { status?: string; toolkit?: { slug?: string } };
-      return value.toolkit?.slug === DRIVE_TOOLKIT && value.status === "ACTIVE";
-    }) as { status?: string } | undefined;
-    return { connected: Boolean(account), status: account?.status ?? "NOT_CONNECTED" };
+    const selected = selectRoadmap2DriveConnection(accounts);
+    if (selected.connected && selected.accountId) activeComposioConnections.set(entityId, selected.accountId);
+    else activeComposioConnections.delete(entityId);
+    let account: Roadmap2DriveAccountIdentity | null = selected.accountId || selected.alias
+      ? { displayName: null, emailAddress: null, alias: selected.alias, verified: false }
+      : null;
+    if (selected.connected && selected.accountId) {
+      try {
+        const about = unwrapRoadmap2DriveResult(await composio().tools.execute(TOOLS.about, {
+          userId: entityId,
+          connectedAccountId: selected.accountId,
+          arguments: { fields: "user(displayName,emailAddress)" },
+        }));
+        const user = record(about.user);
+        const emailAddress = optionalString(user?.emailAddress);
+        account = {
+          displayName: optionalString(user?.displayName),
+          emailAddress,
+          alias: selected.alias,
+          verified: Boolean(emailAddress),
+        };
+      } catch {
+        // L'état OAuth reste exploitable, mais l'UI signale que l'identité
+        // n'a pas encore été confirmée par Google Drive.
+      }
+    }
+    return { connected: selected.connected, status: selected.status, account };
   },
   async authLink(entityId, callbackUrl) {
     const session = await composio().create(entityId, { manageConnections: false, toolkits: [DRIVE_TOOLKIT] });
@@ -189,7 +270,10 @@ const composioDriver: Roadmap2DriveDriver = {
     if (!request.redirectUrl) throw new Roadmap2DriveError("Le fournisseur OAuth n’a pas retourné de lien d’autorisation.");
     return request.redirectUrl;
   },
-  execute: (entityId, tool, args) => composio().tools.execute(tool, { userId: entityId, arguments: args }),
+  execute: (entityId, tool, args) => {
+    const connectedAccountId = activeComposioConnections.get(entityId);
+    return composio().tools.execute(tool, { userId: entityId, ...(connectedAccountId ? { connectedAccountId } : {}), arguments: args });
+  },
   async uploadText(name, content) {
     const file = new File([content], `${name}.txt`, { type: "text/plain;charset=utf-8" });
     return composio().files.upload({ file, toolSlug: TOOLS.createFile, toolkitSlug: DRIVE_TOOLKIT });
@@ -231,6 +315,20 @@ export function extractRoadmap2DriveFolderId(url: string | null | undefined) {
     if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "drive.google.com") return null;
     const match = parsed.pathname.match(/\/folders\/([A-Za-z0-9_-]{3,200})/);
     return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function extractRoadmap2DriveFileId(url: string | null | undefined) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return null;
+    const host = parsed.hostname.toLowerCase();
+    if (host === "drive.google.com") return parsed.pathname.match(/\/file\/d\/([A-Za-z0-9_-]{3,200})/)?.[1] ?? null;
+    if (host !== "docs.google.com") return null;
+    return parsed.pathname.match(/^\/(?:document|spreadsheets|presentation|drawings)\/d\/([A-Za-z0-9_-]{3,200})(?:\/|$)/)?.[1] ?? null;
   } catch {
     return null;
   }
@@ -347,6 +445,16 @@ function isManagedNodeFolderName(name: unknown, nodeId: string) {
 
 function nodeFolderMarker(nodeId: string) {
   return `[RM2-${createHash("sha256").update(requireFileId(nodeId, "Nœud")).digest("hex").slice(0, 10)}]`;
+}
+
+function operationMarker(operationId: string) {
+  if (!/^[A-Za-z0-9_-]{3,200}$/.test(operationId)) throw new Roadmap2DriveValidationError("Identifiant d’opération Drive invalide.");
+  return `RM2OP${createHash("sha256").update(operationId).digest("hex").slice(0, 20)}`;
+}
+
+function rootFolderName(workspaceName: string, workspaceId: string) {
+  const marker = `[RM2-ROOT-${createHash("sha256").update(workspaceId).digest("hex").slice(0, 10)}]`;
+  return safeResourceName(`${workspaceName} — Roadmap 2 ${marker}`);
 }
 
 async function findOrCreateNodeFolder(driver: Roadmap2DriveDriver, workspaceId: string, parentId: string, nodeId: string, title: string, type: Roadmap2DriveNodeContext["type"] = "initiative", isWorkspaceRoot = false) {
@@ -520,7 +628,7 @@ async function fetchBoundedPreviewFile({ url: s3url, declaredType, declaredName 
 export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = composioDriver, previewFetcher: Roadmap2DrivePreviewFetcher = fetchBoundedPreviewFile) {
   return {
     async status(workspaceId: string): Promise<Roadmap2DriveStatus> {
-      if (!driver.enabled()) return { enabled: false, connected: false, status: "DISABLED" };
+      if (!driver.enabled()) return { enabled: false, connected: false, status: "DISABLED", account: null };
       const status = await driver.status(entityId(workspaceId));
       return { enabled: true, ...status };
     },
@@ -534,7 +642,7 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
       return url.toString();
     },
 
-    async provisionWorkspace(input: { workspaceId: string; workspaceName: string; rootDriveUrl: string | null }) {
+    async provisionWorkspace(input: { workspaceId: string; workspaceName: string; rootDriveUrl: string | null; operationId?: string }) {
       await ensureConnected(driver, input.workspaceId);
       let rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
       let rootCreated = false;
@@ -542,9 +650,15 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
         const root = await metadata(driver, input.workspaceId, rootId, "id,name,mimeType,trashed,webViewLink");
         if (root.mimeType !== FOLDER_MIME || root.trashed === true) throw new Roadmap2DriveError("Le dossier Drive racine n’est plus accessible.");
       } else {
-        const root = await createFolder(driver, input.workspaceId, safeResourceName(input.workspaceName));
-        rootId = root.id;
-        rootCreated = true;
+        const stableName = rootFolderName(input.workspaceName, input.workspaceId);
+        const existingRoot = await findChild(driver, input.workspaceId, "root", stableName, FOLDER_MIME);
+        if (existingRoot) {
+          rootId = existingRoot.id;
+        } else {
+          const root = await createFolder(driver, input.workspaceId, stableName);
+          rootId = root.id;
+          rootCreated = true;
+        }
       }
       let foldersCreated = 0;
       for (const entry of ROADMAP2_DRIVE_STRUCTURE) {
@@ -590,7 +704,7 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
       return this.listFiles({ workspaceId: input.workspaceId, rootDriveUrl: input.rootDriveUrl, folderId: nodeFolderId });
     },
 
-    async uploadNodeFile(input: { workspaceId: string; rootDriveUrl: string | null; nodeFolderUrl: string | null; file: File }) {
+    async uploadNodeFile(input: { workspaceId: string; rootDriveUrl: string | null; nodeFolderUrl: string | null; file: File; operationId?: string }) {
       await ensureConnected(driver, input.workspaceId);
       const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
       if (!rootId) throw new Roadmap2DriveError("Créez d’abord l’arborescence Drive de la roadmap.");
@@ -602,13 +716,26 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
       if (folder.mimeType !== FOLDER_MIME || folder.trashed === true) throw new Roadmap2DriveError("Le dossier Drive de ce nœud n’est plus disponible.");
 
       const validated = validatedUpload(input.file);
+      const marker = input.operationId ? operationMarker(input.operationId) : null;
+      if (marker) {
+        const existing = unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.findFile, {
+          folder_id: nodeFolderId,
+          q: `name = '${escapedDriveQuery(validated.name)}' and fullText contains '${marker}' and trashed = false`,
+          pageSize: 10,
+          fields: "files(id,name,mimeType,webViewLink,modifiedTime,size,parents,trashed,description)",
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        }));
+        const recovered = parseFiles(existing).find((candidate) => candidate.name === validated.name && !candidate.isFolder);
+        if (recovered) return recovered;
+      }
       const staged = await driver.uploadFile(new File([await input.file.arrayBuffer()], validated.name, { type: validated.mimeType }));
       const created = unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.createFile, {
         name: validated.name,
         mimeType: validated.mimeType,
         parents: [nodeFolderId],
         file_to_upload: staged,
-        description: "Fichier ajouté depuis Roadmap 2.",
+        description: marker ? `Fichier ajouté depuis Roadmap 2. Opération ${marker}.` : "Fichier ajouté depuis Roadmap 2.",
         fields: "id,name,mimeType,webViewLink,modifiedTime,size",
       }));
       const id = requireFileId(created.id, "Fichier Drive créé");
@@ -744,7 +871,19 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
         nodeFolderId = (await findOrCreateNodeFolder(driver, input.workspaceId, parent.id, input.node.id, input.node.title, input.node.type, input.node.isWorkspaceRoot)).id;
       }
       const trackingName = "00 - SUIVI & DÉCISIONS";
-      let tracking = input.existingTrackingDocUrl ? { url: input.existingTrackingDocUrl } : await findChild(driver, input.workspaceId, nodeFolderId, trackingName, DOC_MIME);
+      let tracking: { url: string } | Roadmap2DriveFile | null = null;
+      if (input.existingTrackingDocUrl) {
+        const trackingId = extractRoadmap2DriveFileId(input.existingTrackingDocUrl);
+        if (!trackingId) throw new Roadmap2DriveValidationError("Le document de suivi existant n’est pas une ressource Google Drive valide.");
+        const existingTracking = await metadata(driver, input.workspaceId, trackingId, "id,name,mimeType,parents,trashed,webViewLink");
+        const trackingParents = Array.isArray(existingTracking.parents) ? existingTracking.parents.filter((value): value is string => typeof value === "string") : [];
+        if (existingTracking.mimeType !== DOC_MIME || existingTracking.trashed === true || !trackingParents.includes(nodeFolderId)) {
+          throw new Roadmap2DriveValidationError("Le document de suivi existant doit être un Google Doc placé directement dans le dossier de ce nœud.");
+        }
+        tracking = { url: optionalString(existingTracking.webViewLink) ?? fileUrl(trackingId, DOC_MIME) };
+      } else {
+        tracking = await findChild(driver, input.workspaceId, nodeFolderId, trackingName, DOC_MIME);
+      }
       let trackingPopulated = true;
       if (!tracking) {
         try {
@@ -792,11 +931,11 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
         const existing = permissions.find((permission) => optionalString(permission.emailAddress)?.toLowerCase() === email);
         if (existing) {
           if (["writer", "organizer", "fileOrganizer", "owner"].includes(optionalString(existing.role) ?? "")) { unchanged += 1; continue; }
-          await driver.execute(entityId(input.workspaceId), TOOLS.updatePermission, { fileId: rootId, permissionId: requireFileId(existing.id, "Permission Drive"), permission: { role: "writer" }, supportsAllDrives: true });
+          unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.updatePermission, { fileId: rootId, permissionId: requireFileId(existing.id, "Permission Drive"), permission: { role: "writer" }, supportsAllDrives: true }));
           updated += 1;
           continue;
         }
-        await driver.execute(entityId(input.workspaceId), TOOLS.createPermission, { file_id: rootId, type: "user", role: "writer", email_address: email, send_notification_email: true, supports_all_drives: true, email_message: "Accès au dossier de pilotage partagé depuis Roadmap 2." });
+        unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.createPermission, { file_id: rootId, type: "user", role: "writer", email_address: email, send_notification_email: true, supports_all_drives: true, email_message: "Accès au dossier de pilotage partagé depuis Roadmap 2." }));
         created += 1;
       }
       return { created, updated, unchanged };

@@ -13,6 +13,7 @@ import {
   roadmap2Repository,
 } from "../src/server/roadmap2";
 import { assert, runner, step } from "./_tenant";
+import { ROADMAP2_CATEGORIES } from "../src/lib/roadmap2";
 
 const suffix = randomUUID().slice(0, 8);
 const email = `roadmap2-${suffix}@smoke.invalid`;
@@ -42,6 +43,7 @@ const baseNode = {
   positionY: 150,
   width: 270,
 };
+const withoutDrive = { ...baseNode, driveFolderUrl: null, trackingDocUrl: null };
 
 runner("roadmap_2_smoke", async () => {
   try {
@@ -53,38 +55,45 @@ runner("roadmap_2_smoke", async () => {
     baseNode.ownerUserId = userId;
     step("fixture_created", { userId, organizationId });
 
-    const workspaceA = await roadmap2Repository.createWorkspace(userId, "Roadmap pilote A");
+    const workspaceAName = `Roadmap pilote A ${suffix}`;
+    const workspaceBName = `Roadmap pilote B ${suffix}`;
+    const workspaceA = await roadmap2Repository.createWorkspace(userId, workspaceAName);
     let duplicateNameRejected = false;
     try {
-      await roadmap2Repository.createWorkspace(userId, "roadmap PILOTE a");
+      await roadmap2Repository.createWorkspace(userId, workspaceAName.toUpperCase());
     } catch (error) {
       duplicateNameRejected = error instanceof Roadmap2WorkspaceNameExistsError;
     }
     assert(duplicateNameRejected, "Deux roadmaps ne doivent pas pouvoir porter le même nom, même avec une casse différente.");
-    const workspaceB = await roadmap2Repository.createWorkspace(userId, "Roadmap pilote B");
-    const seedWorkspace = await roadmap2Repository.createWorkspace(userId, "Roadmap seed");
+    const workspaceB = await roadmap2Repository.createWorkspace(userId, workspaceBName);
+    const seedWorkspace = await roadmap2Repository.createWorkspace(userId, `Roadmap seed ${suffix}`);
     workspaceIds.push(workspaceA.id, workspaceB.id, seedWorkspace.id);
     assert(workspaceA.key !== workspaceB.key, "Deux roadmaps doivent recevoir des clés distinctes.");
     assert(await prisma.roadmap2Node.count({ where: { workspaceId: workspaceA.id } }) === 0, "Une nouvelle roadmap doit être vide.");
     let duplicateRenameRejected = false;
     try {
-      await roadmap2Repository.renameWorkspace(workspaceA.id, userId, "roadmap pilote b");
+      await roadmap2Repository.renameWorkspace(workspaceA.id, userId, workspaceBName.toUpperCase());
     } catch (error) {
       duplicateRenameRejected = error instanceof Roadmap2WorkspaceNameExistsError;
     }
     assert(duplicateRenameRejected, "Le renommage ne doit pas créer deux roadmaps ambiguës.");
-    const renamedWorkspace = await roadmap2Repository.renameWorkspace(workspaceA.id, userId, "Lancement Martinique 2027");
-    assert(renamedWorkspace.name === "Lancement Martinique 2027" && renamedWorkspace.key === workspaceA.key, "Renommer une roadmap ne doit pas changer sa clé ni son contenu.");
+    const renamedWorkspaceName = `Lancement Martinique 2027 ${suffix}`;
+    const renamedWorkspace = await roadmap2Repository.renameWorkspace(workspaceA.id, userId, renamedWorkspaceName);
+    assert(renamedWorkspace.name === renamedWorkspaceName && renamedWorkspace.key === workspaceA.key, "Renommer une roadmap ne doit pas changer sa clé ni son contenu.");
     step("independent_empty_workspace_created", { key: workspaceA.key });
 
-    const rlsTables = await prisma.$queryRaw<Array<{ relname: string }>>`
-      SELECT relname
-      FROM pg_class
-      WHERE relkind = 'r'
-        AND relname IN ('Roadmap2Workspace', 'Roadmap2Node', 'Roadmap2Edge', 'Roadmap2Update', 'Roadmap2AuditLog')
-        AND relrowsecurity = true
+    const rlsTables = await prisma.$queryRaw<Array<{ relname: string; relrowsecurity: boolean }>>`
+      SELECT cls.relname, cls.relrowsecurity
+      FROM pg_class cls
+      JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+      WHERE cls.relkind = 'r'
+        AND ns.nspname = current_schema()
+        AND cls.relname IN ('Roadmap2Workspace', 'Roadmap2Node', 'Roadmap2Edge', 'Roadmap2Update', 'Roadmap2AuditLog', 'Roadmap2DriveOperation')
     `;
-    assert(rlsTables.length === 5, `RLS doit être actif sur les 5 tables privées (reçu ${rlsTables.length}).`);
+    const rlsMap = new Map(rlsTables.map((table) => [table.relname, table.relrowsecurity]));
+    const requiredRoadmapTables = ['Roadmap2Workspace', 'Roadmap2Node', 'Roadmap2Edge', 'Roadmap2Update', 'Roadmap2AuditLog'];
+    assert(requiredRoadmapTables.every((table) => rlsMap.get(table) === true), "RLS doit être actif sur les cinq tables Roadmap 2 historiques.");
+    assert(!rlsMap.has('Roadmap2DriveOperation') || rlsMap.get('Roadmap2DriveOperation') === true, "Le registre Drive doit activer RLS dès qu’il est déployé.");
     const anonRole = await prisma.$queryRaw<Array<{ exists: boolean }>>`SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') AS exists`;
     let directAnonDenied = true;
     if (anonRole[0]?.exists) {
@@ -108,16 +117,16 @@ runner("roadmap_2_smoke", async () => {
     }
     step("drive_url_validation");
 
-    const root = await roadmap2Repository.createNode(workspaceA.id, userId, { ...baseNode, workspaceId: workspaceB.id, version: 999, archivedAt: new Date().toISOString() });
+    const root = await roadmap2Repository.createNode(workspaceA.id, userId, { ...withoutDrive, workspaceId: workspaceB.id, version: 999, archivedAt: new Date().toISOString() });
     const rootRow = await prisma.roadmap2Node.findUniqueOrThrow({ where: { id: root.id } });
     assert(rootRow.workspaceId === workspaceA.id && rootRow.version === 1 && rootRow.archivedAt === null, "Protection contre le mass assignment défaillante.");
-    const child = await roadmap2Repository.createNode(workspaceA.id, userId, { ...baseNode, title: "Sous-nœud smoke", type: "action", parentId: root.id, positionX: 380 });
+    const child = await roadmap2Repository.createNode(workspaceA.id, userId, { ...withoutDrive, title: "Sous-nœud smoke", type: "action", parentId: root.id, positionX: 380 });
     const parentEdge = await prisma.roadmap2Edge.findFirst({ where: { workspaceId: workspaceA.id, sourceNodeId: root.id, targetNodeId: child.id, relationType: "parent_child" } });
     assert(parentEdge, "La création d'un sous-nœud doit persister la relation parent_child.");
     assert((await prisma.roadmap2Node.findUniqueOrThrow({ where: { id: child.id } })).category === rootRow.category, "Un sous-nœud doit hériter de la catégorie de son parent.");
     let cycleRejected = false;
     try {
-      await roadmap2Repository.updateNode(workspaceA.id, userId, root.id, root.version, { ...baseNode, parentId: child.id });
+      await roadmap2Repository.updateNode(workspaceA.id, userId, root.id, root.version, { ...withoutDrive, parentId: child.id });
     } catch {
       cycleRejected = true;
     }
@@ -126,13 +135,20 @@ runner("roadmap_2_smoke", async () => {
 
     const dependency = await roadmap2Repository.createEdge(workspaceA.id, userId, { sourceNodeId: child.id, targetNodeId: root.id, relationType: "dependency" });
     assert(await prisma.roadmap2Edge.findFirst({ where: { id: dependency.id, workspaceId: workspaceA.id } }), "Dépendance non persistée.");
-    let unversionedHierarchyRejected = false;
+    let relationHierarchyRejected = false;
     try {
       await roadmap2Repository.createEdge(workspaceA.id, userId, { sourceNodeId: root.id, targetNodeId: child.id, relationType: "parent_child" });
     } catch (error) {
-      unversionedHierarchyRejected = error instanceof Roadmap2ValidationError;
+      relationHierarchyRejected = error instanceof Roadmap2ValidationError;
     }
-    assert(unversionedHierarchyRejected, "Un reparenting sans version cible doit être refusé pour éviter les écrasements silencieux.");
+    assert(relationHierarchyRejected, "L’API générique des relations ne doit jamais contourner le préflight Drive de la hiérarchie.");
+    let parentEdgeDeletionRejected = false;
+    try {
+      await roadmap2Repository.deleteEdge(workspaceA.id, userId, parentEdge.id);
+    } catch (error) {
+      parentEdgeDeletionRejected = error instanceof Roadmap2ValidationError;
+    }
+    assert(parentEdgeDeletionRejected, "La suppression générique d’un lien parent-enfant doit passer par le formulaire structurel.");
     step("dependency_created", { edgeId: dependency.id });
 
     const moved = await roadmap2Repository.updatePosition(workspaceA.id, userId, child.id, child.version, 612.5, 284.25);
@@ -142,7 +158,7 @@ runner("roadmap_2_smoke", async () => {
 
     let conflictCaught = false;
     try {
-      await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, child.version, { ...baseNode, title: "Écrasement interdit" });
+      await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, child.version, { ...withoutDrive, title: "Écrasement interdit" });
     } catch (error) {
       conflictCaught = error instanceof Roadmap2ConflictError;
     }
@@ -151,14 +167,14 @@ runner("roadmap_2_smoke", async () => {
     assert(unchanged.title === "Sous-nœud smoke", "Le conflit a écrasé une modification récente.");
     step("optimistic_conflict_rejected");
 
-    const updated = await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, moved.version, { ...baseNode, title: "Sous-nœud mis à jour", parentId: root.id, progressPercent: 45 });
+    const updated = await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, moved.version, { ...withoutDrive, title: "Sous-nœud mis à jour", parentId: root.id, progressPercent: 45 });
     const note = await roadmap2Repository.addUpdate(workspaceA.id, userId, { nodeId: child.id, nodeVersion: updated.version, updateType: "blocker", body: "Attente de confirmation DEETS." });
     assert(await prisma.roadmap2Update.findFirst({ where: { id: note.id, workspaceId: workspaceA.id, body: "Attente de confirmation DEETS." } }), "Mise à jour non persistée.");
     step("node_update_and_followup", { version: note.version });
 
     let archiveByGenericUpdateRejected = false;
     try {
-      await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, note.version, { ...baseNode, title: "Archivage interdit", parentId: root.id, status: "archived" });
+      await roadmap2Repository.updateNode(workspaceA.id, userId, child.id, note.version, { ...withoutDrive, title: "Archivage interdit", parentId: root.id, status: "archived" });
     } catch {
       archiveByGenericUpdateRejected = true;
     }
@@ -180,9 +196,24 @@ runner("roadmap_2_smoke", async () => {
     assert(!JSON.stringify(audits).includes("drive.google.com"), "Une URL Drive a fuité dans l'audit.");
     step("audit_redacted", { auditCount: audits.length });
 
-    const seeded = await roadmap2Repository.seedWorkspace(seedWorkspace.id, userId);
+    const seedAnchor = "2027-01-15";
+    const seeded = await roadmap2Repository.seedWorkspace(seedWorkspace.id, userId, {
+      anchorDate: seedAnchor,
+      ownerByCategory: Object.fromEntries(ROADMAP2_CATEGORIES.map((category) => [category, userId])),
+    });
     assert(seeded.nodes === 65, `Le seed doit créer 65 nœuds (reçu ${seeded.nodes}).`);
     assert(seeded.edges >= 100, `Le seed doit créer les dépendances et contributions (reçu ${seeded.edges}).`);
+    const seededRoot = await prisma.roadmap2Node.findFirstOrThrow({ where: { workspaceId: seedWorkspace.id, isWorkspaceRoot: true } });
+    const seededPhases = await prisma.roadmap2Node.findMany({ where: { workspaceId: seedWorkspace.id, type: "phase" } });
+    assert(seededRoot.startDate?.toISOString().slice(0, 10) === seedAnchor, "La date d’ancrage choisie doit piloter le calendrier du seed.");
+    assert(seededPhases.length === 7 && seededPhases.every((phase) => phase.ownerUserId === userId), "L’attribution en masse doit couvrir les sept phases.");
+    let setupRequired = false;
+    try {
+      await roadmap2Repository.seedWorkspace(workspaceA.id, userId);
+    } catch (error) {
+      setupRequired = error instanceof Roadmap2ValidationError;
+    }
+    assert(setupRequired, "Le repository doit exiger le setup du seed, même hors interface.");
     let duplicateSeedRejected = false;
     try {
       await roadmap2Repository.seedWorkspace(seedWorkspace.id, userId);

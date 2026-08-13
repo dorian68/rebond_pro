@@ -141,12 +141,13 @@ const branches: Branch[] = [
   },
 ];
 
-function isoDay(offset: number) {
-  const date = new Date(Date.UTC(2026, 7, 11 + offset));
+function isoDay(anchorDate: string, offset: number) {
+  const date = new Date(`${anchorDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + offset);
   return date.toISOString().slice(0, 10);
 }
 
-export function buildRoadmap2Seed(): { nodes: Roadmap2SeedNode[]; edges: Roadmap2SeedEdge[] } {
+export function buildRoadmap2Seed(anchorDate = "2026-08-11"): { nodes: Roadmap2SeedNode[]; edges: Roadmap2SeedEdge[] } {
   const nodes: Roadmap2SeedNode[] = [{
     key: "root",
     title: "LE BON REBOND",
@@ -154,8 +155,8 @@ export function buildRoadmap2Seed(): { nodes: Roadmap2SeedNode[]; edges: Roadmap
     category: "strategy_governance",
     positionX: 40,
     positionY: 720,
-    startDate: isoDay(0),
-    dueDate: isoDay(330),
+    startDate: isoDay(anchorDate, 0),
+    dueDate: isoDay(anchorDate, 330),
     status: "in_progress",
     priority: "P0",
     progressPercent: 12,
@@ -176,8 +177,8 @@ export function buildRoadmap2Seed(): { nodes: Roadmap2SeedNode[]; edges: Roadmap
       parentKey: "root",
       positionX: x,
       positionY: baseY,
-      startDate: isoDay(branchStart),
-      dueDate: isoDay(branchStart + 180),
+      startDate: isoDay(anchorDate, branchStart),
+      dueDate: isoDay(anchorDate, branchStart + 180),
       status: branchIndex < 3 ? "in_progress" : "not_started",
       priority: branchIndex < 3 ? "P0" : "P1",
       progressPercent: branchIndex === 0 ? 22 : branchIndex === 1 ? 18 : 0,
@@ -194,8 +195,8 @@ export function buildRoadmap2Seed(): { nodes: Roadmap2SeedNode[]; edges: Roadmap
         parentKey: branch.key,
         positionX: x + 30 + (taskIndex % 2) * 250,
         positionY: baseY + 150 + Math.floor(taskIndex / 2) * 155,
-        startDate: isoDay(branchStart + taskIndex * 10),
-        dueDate: isoDay(branchStart + taskIndex * 10 + 35),
+        startDate: isoDay(anchorDate, branchStart + taskIndex * 10),
+        dueDate: isoDay(anchorDate, branchStart + taskIndex * 10 + 35),
         status: task.status ?? "not_started",
         priority: task.priority ?? "P1",
         progressPercent: task.status === "completed" ? 100 : task.status === "in_progress" ? 35 : 0,
@@ -216,8 +217,8 @@ export function buildRoadmap2Seed(): { nodes: Roadmap2SeedNode[]; edges: Roadmap
         parentKey: branch.key,
         positionX: x + 120,
         positionY: baseY + 870,
-        startDate: isoDay(branchStart + 120),
-        dueDate: isoDay(branchStart + 180),
+        startDate: isoDay(anchorDate, branchStart + 120),
+        dueDate: isoDay(anchorDate, branchStart + 180),
         status: "not_started",
         priority: "P0",
         progressPercent: 0,
