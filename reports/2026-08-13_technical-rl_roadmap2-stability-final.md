@@ -1,11 +1,11 @@
 # Verdict Technical RL — stabilité Roadmap 2
 
 Date : 2026-08-13
-Périmètre : candidat local `feat/roadmap2-agentic-gmail`, non commité et non déployé.
+Périmètre : commit `b9353fd` déployé sur le VPS de production.
 
 ## Verdict
 
-**PASS TECHNIQUE LOCAL. Readiness production conditionnelle aux opérations externes listées ci-dessous.**
+**PASS TECHNIQUE DU CODE EN PRODUCTION. Activation Google et sauvegarde documentaire complète restent conditionnelles aux fournisseurs externes.**
 
 ## Invariants prouvés
 
@@ -33,11 +33,19 @@ Périmètre : candidat local `feat/roadmap2-agentic-gmail`, non commité et non 
 | `npm run build` | PASS |
 | `git diff --check` | PASS |
 
-## Conditions externes avant PASS production
+## Preuves post-déploiement
 
-1. Commit, revue, déploiement et application contrôlée de la migration `20260813170000_roadmap2_email_exactly_once`.
-2. E2E Gmail réel : succès, rejet définitif, timeout incertain, réconciliation et absence de doublon.
-3. E2E Drive réel : provisioning progressif, upload, aperçu Cloudflare R2 et permissions.
-4. Levée du HTTP 402 Supabase Storage puis sauvegarde complète et restauration documentaire contrôlée.
+- image `rebondpro-app:b9353fd` active et health HTTPS/DB PASS ;
+- production à 27/27 migrations, index anti-double envoi actif et 67 nœuds conservés ;
+- dump pré-migration restauré sur une base de répétition, migration appliquée puis second déploiement vide ;
+- smokes ciblés agent, Gmail, Drive et backup PASS contre le schéma production, fixtures nettoyées ;
+- dump DB post-déploiement vérifié et état `PARTIAL` correctement signalé sur la panne Storage 402.
+
+## Conditions externes avant PASS opérationnel complet
+
+1. Reconnecter Drive et Gmail : le diagnostic réel post-déploiement retourne Drive `EXPIRED`/`NOT_CONNECTED` et Gmail `NOT_CONNECTED`.
+2. Exécuter l'E2E Gmail réel : succès, rejet définitif, timeout incertain, réconciliation et absence de doublon.
+3. Exécuter l'E2E Drive réel : provisioning progressif, upload, aperçu Cloudflare R2 et permissions.
+4. Lever le HTTP 402 Supabase Storage puis contrôler une sauvegarde complète et sa restauration documentaire.
 
 Aucune de ces opérations externes n'a été simulée comme une preuve de production.

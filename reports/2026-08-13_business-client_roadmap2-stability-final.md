@@ -1,11 +1,11 @@
 # Verdict Business Client Mystère — stabilité Roadmap 2
 
 Date : 2026-08-13
-Périmètre : candidat local testable, non déployé.
+Périmètre : code Roadmap 2 déployé en production au commit `b9353fd`.
 
 ## Verdict
 
-**PASS — 4,5/5. Paierait pour le candidat local contrôlé.**
+**PASS CODE DÉPLOYÉ — 4,5/5. Activation opérationnelle conditionnelle aux connexions Google et au quota Storage.**
 
 | Critère | Score |
 | --- | ---: |
@@ -23,8 +23,8 @@ Périmètre : candidat local testable, non déployé.
 
 ## Frictions externes avant achat production complet
 
-1. Le lot n'est pas encore déployé et sa migration n'est pas active en production.
-2. Les parcours Gmail/Drive doivent être observés avec les vrais fournisseurs connectés.
-3. Le quota Supabase empêche encore une sauvegarde documentaire complète.
+1. Gmail et Drive ne sont pas connectés après déploiement ; les parcours réels ne sont donc pas encore utilisables.
+2. Les parcours Gmail/Drive doivent être observés après consentement OAuth.
+3. Le quota Supabase empêche encore une sauvegarde documentaire complète, même si le dump DB est désormais préservé et explicitement marqué `PARTIAL`.
 
 Ces réserves ne sont pas des défauts cachés du candidat local ; elles interdisent en revanche de présenter la production actuelle comme déjà mise à jour.
