@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ROADMAP2_DRIVE_STRUCTURE,
+  ROADMAP2_REQUIRED_DRIVE_EDITORS,
   Roadmap2DriveError,
   Roadmap2DriveValidationError,
   createRoadmap2DriveAutomation,
@@ -203,6 +204,8 @@ runner("roadmap_2_drive_smoke", async () => {
   const first = await drive.provisionWorkspace({ workspaceId, workspaceName: "LE BON REBOND", rootDriveUrl: null });
   const expectedFolders = ROADMAP2_DRIVE_STRUCTURE.reduce((count, entry) => count + 1 + ("children" in entry ? entry.children.length : 0), 0);
   assert(first.rootCreated && first.foldersCreated === expectedFolders, `L’arborescence complète doit être créée (${expectedFolders} dossiers attendus).`);
+  const requiredEditor = driver.items.get(first.rootId)?.permissions?.find((permission) => permission.emailAddress === ROADMAP2_REQUIRED_DRIVE_EDITORS[0]);
+  assert(requiredEditor?.role === "writer", "Le collaborateur permanent doit devenir éditeur du dossier racine dès le provisionnement.");
   const recoveredProvision = await drive.provisionWorkspace({ workspaceId, workspaceName: "LE BON REBOND", rootDriveUrl: null, operationId: "provider-succeeded-before-db-commit" });
   assert(!recoveredProvision.rootCreated && recoveredProvision.foldersCreated === 0 && recoveredProvision.rootId === first.rootId, "Après une panne avant commit DB, une reprise sans URL locale doit retrouver la racine déterministe au lieu de la dupliquer.");
   const second = await drive.provisionWorkspace({ workspaceId, workspaceName: "LE BON REBOND", rootDriveUrl: first.rootDriveUrl });
@@ -400,9 +403,9 @@ runner("roadmap_2_drive_smoke", async () => {
   step("private_file_reader_and_idor_guards");
 
   const permissions = await drive.syncPermissions({ workspaceId, rootDriveUrl: first.rootDriveUrl, emails: ["owner@example.com", "mathurin@example.com", "dorian@example.com"] });
-  assert(permissions.created === 1 && permissions.updated === 1 && permissions.unchanged === 1, "La synchronisation doit créer, promouvoir ou conserver chaque permission selon son état.");
+  assert(permissions.created === 1 && permissions.updated === 1 && permissions.unchanged === 2, "La synchronisation doit créer, promouvoir ou conserver chaque permission, y compris l’éditeur permanent.");
   const permissionsAgain = await drive.syncPermissions({ workspaceId, rootDriveUrl: first.rootDriveUrl, emails: ["owner@example.com", "mathurin@example.com", "dorian@example.com"] });
-  assert(permissionsAgain.unchanged === 3, "La synchronisation des permissions doit être idempotente.");
+  assert(permissionsAgain.unchanged === 4, "La synchronisation des permissions doit être idempotente et préserver l’éditeur permanent.");
   const rootBeforeFailures = driver.items.get(first.rootId);
   const mathurinPermission = rootBeforeFailures?.permissions?.find((permission) => permission.emailAddress === "mathurin@example.com");
   assert(Boolean(mathurinPermission), "La permission de Mathurin doit exister avant le test d’échec de promotion.");

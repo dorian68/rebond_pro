@@ -64,6 +64,9 @@ const TOOLS = {
 
 const ROADMAP2_DRIVE_TOOLKIT_VERSION = process.env.COMPOSIO_TOOLKIT_VERSION_GOOGLEDRIVE || "20260811_00";
 
+/** Collaborateurs permanents du dossier projet. Le partage est additif et hérité par tous les descendants. */
+export const ROADMAP2_REQUIRED_DRIVE_EDITORS = ["dorian.labry@gmail.com"] as const;
+
 /** Arborescence documentaire de référence. Elle reste additive et n'efface jamais l'existant. */
 export const ROADMAP2_DRIVE_STRUCTURE = [
   { name: "00_ROADMAP", children: ["Roadmap_Le_Bon_Rebond", "00_Suivi_Global"] },
@@ -424,6 +427,30 @@ async function createFolder(driver: Roadmap2DriveDriver, workspaceId: string, na
   return { id, url: optionalString(data.display_url) ?? optionalString(data.webViewLink) ?? folderUrl(id) };
 }
 
+async function syncRootPermissions(driver: Roadmap2DriveDriver, workspaceId: string, rootId: string, rawEmails: readonly string[]) {
+  const emails = [...new Set(rawEmails.map((email) => email.trim().toLowerCase()))];
+  const root = await metadata(driver, workspaceId, rootId, "id,mimeType,trashed,owners(emailAddress),permissions(id,emailAddress,role,type)");
+  if (root.mimeType !== FOLDER_MIME || root.trashed === true) throw new Roadmap2DriveError("Le dossier Drive racine n’est plus accessible.");
+  const permissions = Array.isArray(root.permissions) ? root.permissions.map(record).filter(Boolean) as DriveRecord[] : [];
+  const owners = Array.isArray(root.owners) ? root.owners.map(record).filter(Boolean) as DriveRecord[] : [];
+  let created = 0;
+  let updated = 0;
+  let unchanged = 0;
+  for (const email of emails) {
+    if (owners.some((owner) => optionalString(owner.emailAddress)?.toLowerCase() === email)) { unchanged += 1; continue; }
+    const existing = permissions.find((permission) => optionalString(permission.emailAddress)?.toLowerCase() === email);
+    if (existing) {
+      if (["writer", "organizer", "fileOrganizer", "owner"].includes(optionalString(existing.role) ?? "")) { unchanged += 1; continue; }
+      unwrapRoadmap2DriveResult(await driver.execute(entityId(workspaceId), TOOLS.updatePermission, { fileId: rootId, permissionId: requireFileId(existing.id, "Permission Drive"), permission: { role: "writer" }, supportsAllDrives: true }));
+      updated += 1;
+      continue;
+    }
+    unwrapRoadmap2DriveResult(await driver.execute(entityId(workspaceId), TOOLS.createPermission, { file_id: rootId, type: "user", role: "writer", email_address: email, send_notification_email: true, supports_all_drives: true, email_message: "Accès éditeur permanent aux fichiers du projet Roadmap 2." }));
+    created += 1;
+  }
+  return { created, updated, unchanged };
+}
+
 async function findOrCreateFolder(driver: Roadmap2DriveDriver, workspaceId: string, parentId: string, name: string) {
   const safeName = safeResourceName(name);
   const existing = await findChild(driver, workspaceId, parentId, safeName, FOLDER_MIME);
@@ -669,6 +696,7 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
           if (child.created) foldersCreated += 1;
         }
       }
+      await syncRootPermissions(driver, input.workspaceId, rootId, ROADMAP2_REQUIRED_DRIVE_EDITORS);
       return { rootDriveUrl: folderUrl(rootId), rootId, rootCreated, foldersCreated };
     },
 
@@ -919,26 +947,7 @@ export function createRoadmap2DriveAutomation(driver: Roadmap2DriveDriver = comp
       const emails = z.array(z.string().trim().email()).min(1).max(10).parse(input.emails).map((email) => email.toLowerCase());
       const rootId = extractRoadmap2DriveFolderId(input.rootDriveUrl);
       if (!rootId) throw new Roadmap2DriveError("Créez d’abord le dossier Drive racine.");
-      const root = await metadata(driver, input.workspaceId, rootId, "id,mimeType,trashed,owners(emailAddress),permissions(id,emailAddress,role,type)");
-      if (root.mimeType !== FOLDER_MIME || root.trashed === true) throw new Roadmap2DriveError("Le dossier Drive racine n’est plus accessible.");
-      const permissions = Array.isArray(root.permissions) ? root.permissions.map(record).filter(Boolean) as DriveRecord[] : [];
-      const owners = Array.isArray(root.owners) ? root.owners.map(record).filter(Boolean) as DriveRecord[] : [];
-      let created = 0;
-      let updated = 0;
-      let unchanged = 0;
-      for (const email of [...new Set(emails)]) {
-        if (owners.some((owner) => optionalString(owner.emailAddress)?.toLowerCase() === email)) { unchanged += 1; continue; }
-        const existing = permissions.find((permission) => optionalString(permission.emailAddress)?.toLowerCase() === email);
-        if (existing) {
-          if (["writer", "organizer", "fileOrganizer", "owner"].includes(optionalString(existing.role) ?? "")) { unchanged += 1; continue; }
-          unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.updatePermission, { fileId: rootId, permissionId: requireFileId(existing.id, "Permission Drive"), permission: { role: "writer" }, supportsAllDrives: true }));
-          updated += 1;
-          continue;
-        }
-        unwrapRoadmap2DriveResult(await driver.execute(entityId(input.workspaceId), TOOLS.createPermission, { file_id: rootId, type: "user", role: "writer", email_address: email, send_notification_email: true, supports_all_drives: true, email_message: "Accès au dossier de pilotage partagé depuis Roadmap 2." }));
-        created += 1;
-      }
-      return { created, updated, unchanged };
+      return syncRootPermissions(driver, input.workspaceId, rootId, [...ROADMAP2_REQUIRED_DRIVE_EDITORS, ...emails]);
     },
   };
 }
