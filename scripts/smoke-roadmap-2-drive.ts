@@ -46,6 +46,7 @@ class FakeDrive implements Roadmap2DriveDriver {
   downloadUrl = "https://storage.composio.dev/roadmap2-preview";
   failNextRename = false;
   failNextPermission = false;
+  preferredAccounts: Array<string | null | undefined> = [];
   private sequence = 0;
 
   constructor() {
@@ -66,7 +67,10 @@ class FakeDrive implements Roadmap2DriveDriver {
   }
 
   enabled() { return true; }
-  async status() { return { connected: true, status: "ACTIVE" as const, account: { displayName: "Dorian", emailAddress: "dorian@example.com", alias: null, verified: true } }; }
+  async status(_entityId: string, preferredAccountId?: string | null) {
+    this.preferredAccounts.push(preferredAccountId);
+    return { connected: true, status: "ACTIVE" as const, account: { displayName: "Dorian", emailAddress: "dorian@example.com", alias: null, verified: true }, connectionId: "account-drive-stable" };
+  }
   async authLink() { return "https://auth.composio.dev/connect/roadmap2-test"; }
   async uploadText(name: string) {
     this.uploads += 1;
@@ -183,16 +187,35 @@ class FakeDrive implements Roadmap2DriveDriver {
 
 runner("roadmap_2_drive_smoke", async () => {
   const driver = new FakeDrive();
-  const drive = createRoadmap2DriveAutomation(driver);
+  let pinnedAccountId: string | null = null;
+  let pinCount = 0;
+  const connectionStore = {
+    get: async () => pinnedAccountId,
+    pin: async (_workspaceId: string, connectedAccountId: string) => { pinnedAccountId = connectedAccountId; pinCount += 1; },
+  };
+  const drive = createRoadmap2DriveAutomation(driver, undefined, connectionStore);
   const workspaceId = "workspace-drive-smoke";
 
   const status = await drive.status(workspaceId);
   assert(status.connected && status.enabled && status.status === "ACTIVE" && status.account?.emailAddress === "dorian@example.com" && status.account.verified, "Le statut et l’identité du compte connecté doivent être renvoyés sans exposer de jeton.");
+  assert(pinnedAccountId === "account-drive-stable" && pinCount === 1, "La première connexion saine doit être épinglée durablement au workspace.");
+  await drive.status(workspaceId);
+  assert(driver.preferredAccounts.at(-1) === "account-drive-stable" && pinCount === 1, "Après redémarrage logique, le compte épinglé doit être réutilisé sans nouvelle sélection ni écriture DB.");
   const activeSelected = selectRoadmap2DriveConnection({ items: [
     { id: "expired", status: "EXPIRED", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-12T12:00:00.000Z" },
     { id: "active", alias: "Compte de pilotage", status: "ACTIVE", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-11T12:00:00.000Z" },
   ] });
   assert(activeSelected.connected && activeSelected.status === "ACTIVE" && activeSelected.accountId === "active", "Une connexion ACTIVE doit primer sur un ancien compte expiré.");
+  const preferredSelected = selectRoadmap2DriveConnection({ items: [
+    { id: "active-new", status: "ACTIVE", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-12T12:00:00.000Z" },
+    { id: "active-pinned", status: "ACTIVE", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-11T12:00:00.000Z" },
+  ] }, "active-pinned");
+  assert(preferredSelected.accountId === "active-pinned", "Un compte Drive sain déjà épinglé doit rester prioritaire face à un doublon ACTIVE plus récent.");
+  const expiredPreferred = selectRoadmap2DriveConnection({ items: [
+    { id: "active-fallback", status: "ACTIVE", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-12T12:00:00.000Z" },
+    { id: "expired-pinned", status: "EXPIRED", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-13T12:00:00.000Z" },
+  ] }, "expired-pinned");
+  assert(expiredPreferred.accountId === "active-fallback" && expiredPreferred.connected, "Un compte épinglé expiré doit céder la place à une connexion active disponible.");
   const expiredSelected = selectRoadmap2DriveConnection({ items: [{ id: "expired", status: "EXPIRED", toolkit: { slug: "googledrive" } }] });
   assert(!expiredSelected.connected && expiredSelected.status === "EXPIRED", "Une autorisation expirée doit rester distincte d’une absence de connexion.");
   assert(selectRoadmap2DriveConnection({ items: [] }).status === "NOT_CONNECTED", "L’absence de compte doit seule produire NOT_CONNECTED.");
@@ -471,6 +494,9 @@ runner("roadmap_2_drive_smoke", async () => {
   assert(previewRoute.includes("getPlatformAdmin") && previewRoute.indexOf("getPlatformAdmin") < previewRoute.indexOf("request.json()") && previewRoute.includes('"Cache-Control": "private, no-store') && previewRoute.includes('"X-Content-Type-Options": "nosniff"'), "Le lecteur doit authentifier avant le payload et renvoyer des octets privés sans sniffing.");
   assert(driveService.includes("/admin/roadmap-2/google-drive/callback") && !driveService.includes("/integrations/composio/callback?connector=google_drive"), "Le retour OAuth doit rester dans le layout admin privé, même sans tenant centre.");
   assert(driveService.includes("activeComposioConnections") && driveService.includes("connectedAccountId"), "Toutes les mutations doivent être épinglées sur le même compte que l’identité Drive affichée.");
+  assert(driveService.includes("persistentConnectionStore") && driveService.includes("driveConnectedAccountId") && driveService.includes("preferredAccountId"), "Le compte Composio sain doit être persisté par roadmap et restauré après un redémarrage du processus.");
+  assert(driveService.includes("inspectComposioDriveAccount") && driveService.includes("activeCandidates") && driveService.includes('status: "FAILED" as const'), "Un doublon marqué ACTIVE mais inutilisable doit être testé, ignoré et ne jamais devenir le compte persistant.");
+  assert(client.includes("background = false") && client.includes("refreshDriveStatus(false, true)") && client.includes("else if (!background)"), "Un échec de rafraîchissement silencieux ne doit pas effacer une connexion Drive précédemment valide ni désactiver la zone d’upload.");
   assert(callback.includes("drive=setup") && callback.includes("Créer l’arborescence Drive"), "Après OAuth, l’utilisateur doit revenir directement dans le parcours de configuration Drive.");
   assert(callback.includes("getRoadmap2DriveStatus") && callback.includes("verified.data.connected") && callback.includes("{0,119}"), "Le callback doit vérifier la connexion active et accepter toute clé de workspace valide avant d’annoncer un succès.");
   for (const statusLabel of ["Connexion en cours", "Connexion échouée", "Autorisation expirée", "Connexion inactive", "Autorisation révoquée"]) {

@@ -1249,12 +1249,13 @@ enum Roadmap2EmailOperationStatus {
  * le client ne fournit jamais workspaceId comme preuve d'autorisation.
  */
 model Roadmap2Workspace {
-  id           String   @id @default(cuid())
-  key          String   @unique
-  name         String
-  rootDriveUrl String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  key                     String   @unique
+  name                    String
+  rootDriveUrl            String?
+  driveConnectedAccountId String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   nodes           Roadmap2Node[]
   edges           Roadmap2Edge[]

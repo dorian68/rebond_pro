@@ -144,6 +144,9 @@ Auth.js credentials + Google OAuth, session JWT et membership tenant. Un compte 
 - La dernière roadmap explicitement choisie est mémorisée dans le navigateur ; un retour par `/admin/roadmap-2` restaure ce choix si le workspace existe encore.
 - Les liens explicites `?roadmap=...` restent prioritaires afin qu’un lien partagé ouvre toujours la roadmap demandée.
 - La restauration du workspace conserve l’intention `drive=setup` d’un retour de connexion Google Drive.
+- Lorsqu’un workspace possède plusieurs connexions Composio, le backend épingle durablement l’identifiant opaque du compte Drive sain et le réutilise après chaque redémarrage ; cet identifiant n’est jamais envoyé au navigateur.
+- Si le compte épinglé n’est plus `ACTIVE`, le backend peut sélectionner puis persister une nouvelle connexion active ; un doublon actif plus récent ne remplace pas silencieusement un compte épinglé encore sain.
+- Un échec ponctuel du rafraîchissement Drive en arrière-plan conserve le dernier état valide dans l’interface et ne désactive pas la zone d’upload ; une action manuelle continue d’afficher les erreurs réelles.
 - Le contrat UX et Drive est couvert par `npm run smoke:roadmap-2:drive` et `npm run smoke:roadmap-2:a11y`.
 
 ### Planning formateurs et modules

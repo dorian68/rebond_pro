@@ -212,24 +212,24 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false, workspace
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const refreshDriveStatus = useCallback(async (showError = false) => {
-    setDriveStatusLoading(true);
+  const refreshDriveStatus = useCallback(async (showError = false, background = false) => {
+    if (!background) setDriveStatusLoading(true);
     const result = await getRoadmap2DriveStatus(workspace.key);
     if (result.ok) {
       setDriveStatus(result.data);
       setDriveStatusError(null);
-    } else {
+    } else if (!background) {
       setDriveStatus(null);
       setDriveStatusError(result.error);
       if (showError) setDriveError(result.error);
     }
-    setDriveStatusLoading(false);
+    if (!background) setDriveStatusLoading(false);
     return result;
   }, [workspace.key]);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => void refreshDriveStatus(false), 0);
-    const timer = window.setInterval(() => void refreshDriveStatus(false), 60000);
+    const timer = window.setInterval(() => void refreshDriveStatus(false, true), 60000);
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);

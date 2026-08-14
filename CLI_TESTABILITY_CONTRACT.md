@@ -35,7 +35,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:admin-agents` | Vérifie l'accès admin, la lecture seule et les garde-fous du bac à sable des agents internes. |
 | `npm run smoke:roadmap` | Vérifie la persistance, les mutations gardées et l'intégration admin de la roadmap. |
 | `npm run smoke:roadmap-2:agentic-gmail` | Vérifie le contexte serveur Roadmap 2, les approbations signées et non transférables, le corps Gmail exact, le registre d'envoi et les contraintes anti-double envoi. |
-| `npm run smoke:roadmap-2:drive` | Vérifie le cycle Drive simulé : OAuth, arborescence, ressources de nœuds, upload, aperçu privé R2, permissions obligatoires et protections IDOR. |
+| `npm run smoke:roadmap-2:drive` | Vérifie le cycle Drive simulé : OAuth, épinglage persistant du compte sain malgré les doublons actifs et les redémarrages, arborescence, ressources de nœuds, upload, aperçu privé R2, permissions obligatoires et protections IDOR. |
 | `npm run smoke:roadmap-2:a11y:runtime` | Sur serveur authentifié, vérifie Axe, débordements, clavier, zoom 200 %, cibles 44 px et la régression « Aucun résultat / Afficher toute la roadmap » sur desktop, tablette et mobile. |
 | `npm run smoke:beneficiary` | Vérifie l'espace bénéficiaire : `Beneficiary` lié au compte, parcours/phases, accès scopé. Nettoyage. |
 | `npm run smoke:platform-beneficiaries` | Vérifie la vue bénéficiaires cross-centres réservée au super-admin. |
