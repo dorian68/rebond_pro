@@ -801,6 +801,9 @@
 .nodeDriveDropzone:hover,
 .nodeDriveDropzone:focus-visible,
 .nodeDriveDropzoneActive { border-color: var(--rm-coral); background: #fff6ed; outline: none; transform: translateY(-1px); }
+.nodeDriveDropzoneDisabled,
+.nodeDriveDropzoneDisabled:hover { border-color: #cbd7cf; background: #f4f6f4; opacity: .72; cursor: not-allowed; transform: none; }
+.nodeDriveDropzoneDisabled .nodeDriveDropAction { background: #e6ebe7; color: var(--rm-muted); }
 .nodeDriveDropzone > span:nth-child(2) { min-width: 0; display: grid; gap: 3px; }
 .nodeDriveDropzone strong { font-size: 13px; }
 .nodeDriveDropzone small { color: var(--rm-muted); font-size: 10px; }

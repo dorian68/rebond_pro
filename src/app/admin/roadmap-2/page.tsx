@@ -19,5 +19,5 @@ export default async function AdminRoadmap2Page({ searchParams }: { searchParams
     if (error instanceof Roadmap2NotFoundError) notFound();
     throw error;
   }
-  return <Roadmap2Client key={data.workspace.key} initialData={data} openDriveOnLoad={drive === "setup"} />;
+  return <Roadmap2Client key={data.workspace.key} initialData={data} openDriveOnLoad={drive === "setup"} workspaceExplicit={Boolean(roadmap)} />;
 }

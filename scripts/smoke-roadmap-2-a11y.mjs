@@ -28,7 +28,7 @@ try {
 
   assert(graph.includes('tabIndex={0}') && graph.includes('event.key === "Enter"') && graph.includes('edgesFocusable'), "Le graphe doit exposer un accès clavier.");
   assert(detail.includes('event.key === "Escape"') && detail.includes('event.key !== "Tab"') && detail.includes("previousFocusRef.current?.focus()") && detail.includes('aria-modal="true"') && detail.includes('aria-label="Fermer le panneau"'), "Le panneau doit confiner Tab, restaurer le focus, être fermable au clavier et annoncé comme modal.");
-  assert(detail.includes("onDrop={handleDrop}") && detail.includes('role="button"') && detail.includes("tabIndex={nodeDriveBusy ? -1 : 0}") && detail.includes('aria-disabled={Boolean(nodeDriveBusy)}'), "La zone de dépôt doit rester utilisable et désactivable de façon sémantique au clavier.");
+  assert(detail.includes("onDrop={handleDrop}") && detail.includes('role="button"') && detail.includes("tabIndex={canUploadToDrive && !nodeDriveBusy ? 0 : -1}") && detail.includes('aria-disabled={!canUploadToDrive || Boolean(nodeDriveBusy)}'), "La zone de dépôt doit rester visible, utilisable et désactivable de façon sémantique au clavier.");
   assert(detail.includes('event.key === "Enter" || event.key === " "') && detail.includes('type="file" multiple') && detail.includes('aria-label="Sélectionner les fichiers à ajouter au dossier Google Drive de ce nœud"'), "Entrée, Espace et le sélecteur multiple doivent offrir une alternative complète au glisser-déposer.");
   assert(list.includes("alternative accessible au glisser-déposer") && list.includes("aria-label={`Statut de"), "La Liste doit fournir l'alternative accessible aux interactions de graphe.");
   step("keyboard_alternative");

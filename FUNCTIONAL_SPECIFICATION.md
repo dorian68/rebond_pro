@@ -136,6 +136,16 @@ Auth.js credentials + Google OAuth, session JWT et membership tenant. Un compte 
 - Un administrateur de centre sans `User.platformAdmin` ne peut ni ouvrir l’écran ni appeler ses actions.
 - Le parcours backend est couvert par `npm run smoke:platform-admin-access`.
 
+### Roadmap 2 et documents Google Drive
+
+- La section documentaire d’un nœud affiche toujours la zone de dépôt, y compris pendant la vérification, avant connexion, avant préparation du dossier et en consultation d’un nœud archivé.
+- Quand un prérequis manque, la zone est visiblement désactivée, explique précisément l’étape attendue et ne déclenche ni sélecteur de fichiers ni upload.
+- Quand Drive est connecté et que le dossier du nœud est prêt, la même zone devient utilisable au clavier, au clic et par glisser-déposer.
+- La dernière roadmap explicitement choisie est mémorisée dans le navigateur ; un retour par `/admin/roadmap-2` restaure ce choix si le workspace existe encore.
+- Les liens explicites `?roadmap=...` restent prioritaires afin qu’un lien partagé ouvre toujours la roadmap demandée.
+- La restauration du workspace conserve l’intention `drive=setup` d’un retour de connexion Google Drive.
+- Le contrat UX et Drive est couvert par `npm run smoke:roadmap-2:drive` et `npm run smoke:roadmap-2:a11y`.
+
 ### Planning formateurs et modules
 
 - Un centre OWNER/ADMIN/ASSISTANT peut ouvrir `/formateurs/disponibilites`.

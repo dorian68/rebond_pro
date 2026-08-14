@@ -64,6 +64,7 @@ type DriveNodeResources = Extract<Awaited<ReturnType<typeof createRoadmap2NodeDr
 type ReviewPreset = "overview" | "weekly" | "decisions" | "dueSoon";
 
 const VIEW_PREFERENCES_PREFIX = "rebondpro:roadmap2:view:v1";
+const LAST_WORKSPACE_STORAGE_KEY = "rebondpro:roadmap2:last-workspace:v1";
 
 function isDefaultRoadmap2Filters(filters: Roadmap2Filters) {
   return JSON.stringify(filters) === JSON.stringify(EMPTY_FILTERS);
@@ -106,7 +107,7 @@ function relativeTime(iso: string | null) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 }
 
-export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initialData: Roadmap2Data; openDriveOnLoad?: boolean }) {
+export function Roadmap2Client({ initialData, openDriveOnLoad = false, workspaceExplicit = false }: { initialData: Roadmap2Data; openDriveOnLoad?: boolean; workspaceExplicit?: boolean }) {
   const router = useRouter();
   const [nodes, setNodes] = useState(initialData.nodes);
   const [edges, setEdges] = useState(initialData.edges);
@@ -157,6 +158,18 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
     }, 0);
     return () => window.clearTimeout(timer);
   }, [initialData]);
+
+  useEffect(() => {
+    try {
+      const rememberedWorkspace = window.localStorage.getItem(LAST_WORKSPACE_STORAGE_KEY);
+      if (!workspaceExplicit && rememberedWorkspace && rememberedWorkspace !== workspace.key && workspaceOptions.some((item) => item.key === rememberedWorkspace)) {
+        const driveSetupQuery = openDriveOnLoad ? "&drive=setup" : "";
+        router.replace(`/admin/roadmap-2?roadmap=${encodeURIComponent(rememberedWorkspace)}${driveSetupQuery}`);
+        return;
+      }
+      window.localStorage.setItem(LAST_WORKSPACE_STORAGE_KEY, workspace.key);
+    } catch { /* sélection facultative : la roadmap courante reste utilisable */ }
+  }, [openDriveOnLoad, router, workspace.key, workspaceExplicit, workspaceOptions]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -610,7 +623,11 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false }: { initi
           <div className={styles.workspaceChooser} data-private-export>
             <label>
               <span>Roadmap active</span>
-              <select aria-label="Choisir une roadmap" value={workspace.key} onChange={(event) => router.push(`/admin/roadmap-2?roadmap=${encodeURIComponent(event.target.value)}`)}>
+              <select aria-label="Choisir une roadmap" value={workspace.key} onChange={(event) => {
+                const nextWorkspace = event.target.value;
+                try { window.localStorage.setItem(LAST_WORKSPACE_STORAGE_KEY, nextWorkspace); } catch { /* sélection facultative */ }
+                router.push(`/admin/roadmap-2?roadmap=${encodeURIComponent(nextWorkspace)}`);
+              }}>
                 {workspaceOptions.map((item) => <option key={item.key} value={item.key}>{item.name} · {item.nodeCount} nœud{item.nodeCount === 1 ? "" : "s"}</option>)}
               </select>
             </label>

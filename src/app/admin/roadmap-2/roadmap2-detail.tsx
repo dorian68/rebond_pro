@@ -153,6 +153,26 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
   const trackingDocListed = useMemo(() => visibleNodeFiles.some((file) => file.name === "00 - SUIVI & DÉCISIONS" || file.url === form.trackingDocUrl), [form.trackingDocUrl, visibleNodeFiles]);
   const drivePending = isRoadmap2DrivePending(driveStatus?.status);
   const driveReconnect = roadmap2DriveNeedsReconnect(driveStatus?.status);
+  const canUploadToDrive = Boolean(
+    node
+    && !isArchived
+    && !driveStatusLoading
+    && !driveStatusError
+    && driveStatus?.enabled !== false
+    && driveStatus?.connected
+    && hasRootDrive
+    && form.driveFolderUrl,
+  );
+  const uploadUnavailable = (() => {
+    if (isArchived) return { title: "Ajout de fichiers désactivé", help: "Restaurez ce résultat pour ajouter de nouveaux documents." };
+    if (!node) return { title: "Ajout disponible après création", help: "Enregistrez d’abord le nœud pour lui associer un dossier Google Drive." };
+    if (driveStatusLoading) return { title: "Vérification de Google Drive…", help: "La zone sera activée automatiquement dès que la connexion sera confirmée." };
+    if (driveStatusError || driveStatus?.enabled === false) return { title: "Ajout momentanément indisponible", help: "Réessayez la vérification de Google Drive pour réactiver cette zone." };
+    if (!driveStatus?.connected) return { title: "Connectez Google Drive pour ajouter des fichiers", help: "Vos documents existants ne sont pas supprimés. Utilisez l’action de connexion ci-dessus." };
+    if (!hasRootDrive) return { title: "Préparez le dossier Drive racine", help: "La zone sera activée une fois l’arborescence de cette roadmap créée ou sélectionnée." };
+    if (!form.driveFolderUrl) return { title: "Préparez l’espace Drive de ce nœud", help: "Créez son dossier dédié avec l’action ci-dessus, puis déposez vos fichiers ici." };
+    return { title: "Ajout de fichiers indisponible", help: "Vérifiez la configuration Google Drive de ce nœud." };
+  })();
 
   async function loadNodeFiles() {
     if (!node?.driveFolderUrl || !driveStatus?.connected) return;
@@ -418,8 +438,34 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragActive(false);
-    if (!nodeDriveBusy) void uploadFiles(event.dataTransfer.files);
+    if (canUploadToDrive && !nodeDriveBusy) void uploadFiles(event.dataTransfer.files);
   }
+
+  const uploadDropzone = <>
+    <div
+      className={`${styles.nodeDriveDropzone} ${dragActive && canUploadToDrive ? styles.nodeDriveDropzoneActive : ""} ${nodeDriveBusy ? styles.uploadDisabled : ""} ${!canUploadToDrive ? styles.nodeDriveDropzoneDisabled : ""}`}
+      onDragEnter={(event) => { event.preventDefault(); if (canUploadToDrive && !nodeDriveBusy) setDragActive(true); }}
+      onDragOver={(event) => { event.preventDefault(); if (canUploadToDrive && !nodeDriveBusy) setDragActive(true); }}
+      onDragLeave={(event) => { if (canUploadToDrive && !event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false); }}
+      onDrop={handleDrop}
+      onClick={() => { if (canUploadToDrive && !nodeDriveBusy) fileInputRef.current?.click(); }}
+      onKeyDown={(event) => { if ((event.key === "Enter" || event.key === " ") && canUploadToDrive && !nodeDriveBusy) { event.preventDefault(); fileInputRef.current?.click(); } }}
+      role="button"
+      tabIndex={canUploadToDrive && !nodeDriveBusy ? 0 : -1}
+      aria-disabled={!canUploadToDrive || Boolean(nodeDriveBusy)}
+      aria-busy={nodeDriveBusy === "upload"}
+      aria-labelledby="roadmap2-node-upload-title"
+      aria-describedby="roadmap2-node-upload-help"
+    >
+      <span className={styles.nodeDriveDropIcon}><Icon name="paperclip" size={21} /></span>
+      <span>
+        <strong id="roadmap2-node-upload-title" aria-live="polite">{nodeDriveBusy === "upload" ? "Ajout dans Google Drive…" : dragActive && canUploadToDrive ? "Déposez les fichiers ici" : canUploadToDrive ? "Glissez-déposez vos fichiers" : uploadUnavailable.title}</strong>
+        <small id="roadmap2-node-upload-help">{canUploadToDrive ? "ou cliquez pour sélectionner plusieurs documents dans le dossier Drive de ce nœud" : uploadUnavailable.help}</small>
+      </span>
+      <span className={styles.nodeDriveDropAction}>{canUploadToDrive ? "Choisir des fichiers" : "Zone désactivée"}</span>
+    </div>
+    <input ref={fileInputRef} className={styles.visuallyHidden} type="file" multiple tabIndex={-1} disabled={!canUploadToDrive || Boolean(nodeDriveBusy)} aria-label="Sélectionner les fichiers à ajouter au dossier Google Drive de ce nœud" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.webp" onChange={(event) => void uploadFiles(event.target.files)} />
+  </>;
 
   return (
     <div className={styles.detailBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -480,36 +526,36 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
           <section className={`${styles.editorialSection} ${styles.privateSection}`} data-private-export>
             <div className={styles.sectionKicker}>Documents Google Drive · privé</div>
             {!node ? (
-              <p className={styles.inlineEmpty}>Créez d’abord le nœud. Vous pourrez ensuite préparer son dossier Drive et y ajouter des fichiers.</p>
+              <><p className={styles.inlineEmpty}>Créez d’abord le nœud. Vous pourrez ensuite préparer son dossier Drive et y ajouter des fichiers.</p>{uploadDropzone}</>
             ) : driveStatusLoading ? (
-              <div className={styles.nodeDriveState} role="status">
+              <><div className={styles.nodeDriveState} role="status">
                 <span className={`${styles.driveStatusDot} ${styles.driveStatusChecking}`} aria-hidden="true" />
                 <div><strong>Vérification de Google Drive…</strong><small>Nous vérifions la connexion avant d’afficher les documents de ce résultat.</small></div>
-              </div>
+              </div>{uploadDropzone}</>
             ) : driveStatusError || driveStatus?.enabled === false ? (
-              <div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`} role="alert">
+              <><div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`} role="alert">
                 <span className={styles.driveStatusDot} aria-hidden="true" />
                 <div><strong>Google Drive est momentanément indisponible</strong><small>Votre dossier n’est pas déconnecté. Réessayez la vérification dans quelques instants.</small></div>
                 <button type="button" className={styles.secondaryButton} onClick={onRefreshDrive}>Réessayer</button>
-              </div>
+              </div>{uploadDropzone}</>
             ) : !driveStatus?.connected ? (
-              <div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`}>
+              <><div className={`${styles.nodeDriveState} ${styles.nodeDriveStateWarning}`}>
                 <span className={styles.driveStatusDot} aria-hidden="true" />
                 <div><strong>Google Drive · {roadmap2DriveStatusLabel(driveStatus?.status)}</strong><small>{drivePending ? "Terminez l’autorisation Google pour afficher les documents." : driveReconnect ? "Reconnectez l’autorisation Google pour retrouver les documents." : "Connectez le compte Drive pour afficher et ajouter les fichiers de ce résultat."}</small></div>
                 <button type="button" className={styles.primaryButton} onClick={onManageDrive}>{drivePending ? "Reprendre la connexion" : driveReconnect ? "Reconnecter Drive" : "Connecter Drive"}</button>
-              </div>
+              </div>{uploadDropzone}</>
             ) : !hasRootDrive ? (
-              <div className={styles.nodeDriveState}>
+              <><div className={styles.nodeDriveState}>
                 <span className={`${styles.driveStatusDot} ${styles.driveStatusConnected}`} aria-hidden="true" />
                 <div><strong>Drive connecté · arborescence à préparer</strong><small>Créez ou choisissez le dossier racine avant d’associer ce nœud.</small></div>
                 <button type="button" className={styles.primaryButton} onClick={onManageDrive}>Préparer Drive</button>
-              </div>
+              </div>{uploadDropzone}</>
             ) : !form.driveFolderUrl ? (
-              <div className={styles.nodeDriveState}>
+              <><div className={styles.nodeDriveState}>
                 <span className={`${styles.driveStatusDot} ${styles.driveStatusConnected}`} aria-hidden="true" />
                 <div><strong>{isArchived ? "Aucun dossier Drive associé" : "Drive connecté · dossier du nœud à créer"}</strong><small>{isArchived ? "Restaurez ce résultat pour préparer son espace documentaire." : "Roadmap 2 créera un dossier dédié et le document « 00 - SUIVI & DÉCISIONS »."}</small></div>
                 {!isArchived && <button type="button" className={styles.primaryButton} disabled={pending || remoteVersionChanged} onClick={createDriveResources}><Icon name="plus" size={15} /> Préparer l’espace Drive</button>}
-              </div>
+              </div>{uploadDropzone}</>
             ) : (
               <div className={styles.nodeDriveWorkspace}>
                 <div className={styles.nodeDriveHeading}>
@@ -521,26 +567,7 @@ export function Roadmap2Detail({ workspaceKey, node, createDefaults, nodes, edge
 
                 {form.trackingDocUrl && !trackingDocListed && <a className={styles.trackingDocCard} href={form.trackingDocUrl} target="_blank" rel="noopener noreferrer"><span className={styles.driveFileIcon}><Icon name="file-text" size={17} /></span><span><strong>00 - SUIVI & DÉCISIONS</strong><small>Document de référence · ouvrez-le dans Drive pendant le chargement de la liste</small></span><Icon name="external" size={14} /></a>}
 
-                {!isArchived && <><div
-                  className={`${styles.nodeDriveDropzone} ${dragActive ? styles.nodeDriveDropzoneActive : ""} ${nodeDriveBusy ? styles.uploadDisabled : ""}`}
-                  onDragEnter={(event) => { event.preventDefault(); if (!nodeDriveBusy) setDragActive(true); }}
-                  onDragOver={(event) => { event.preventDefault(); if (!nodeDriveBusy) setDragActive(true); }}
-                  onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false); }}
-                  onDrop={handleDrop}
-                  onClick={() => { if (!nodeDriveBusy) fileInputRef.current?.click(); }}
-                  onKeyDown={(event) => { if ((event.key === "Enter" || event.key === " ") && !nodeDriveBusy) { event.preventDefault(); fileInputRef.current?.click(); } }}
-                  role="button"
-                  tabIndex={nodeDriveBusy ? -1 : 0}
-                  aria-disabled={Boolean(nodeDriveBusy)}
-                  aria-busy={nodeDriveBusy === "upload"}
-                  aria-labelledby="roadmap2-node-upload-title"
-                  aria-describedby="roadmap2-node-upload-help"
-                >
-                  <span className={styles.nodeDriveDropIcon}><Icon name="paperclip" size={21} /></span>
-                  <span><strong id="roadmap2-node-upload-title" aria-live="polite">{nodeDriveBusy === "upload" ? "Ajout dans Google Drive…" : dragActive ? "Déposez les fichiers ici" : "Glissez-déposez vos fichiers"}</strong><small id="roadmap2-node-upload-help">ou cliquez pour sélectionner plusieurs documents dans le dossier Drive de ce nœud</small></span>
-                  <span className={styles.nodeDriveDropAction}>Choisir des fichiers</span>
-                </div>
-                <input ref={fileInputRef} className={styles.visuallyHidden} type="file" multiple tabIndex={-1} disabled={Boolean(nodeDriveBusy)} aria-label="Sélectionner les fichiers à ajouter au dossier Google Drive de ce nœud" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.webp" onChange={(event) => void uploadFiles(event.target.files)} /></>}
+                {uploadDropzone}
 
                 <div className={styles.driveLayoutBar}>
                   <div><strong>Classement Drive</strong><small>{layoutPreview ? layoutPreview.inSync ? "Ce dossier suit la hiérarchie du nœud." : "L’organisation Drive diffère de la roadmap." : "Vérifiez le chemin après un renommage, un changement de parent ou de catégorie."}</small></div>
