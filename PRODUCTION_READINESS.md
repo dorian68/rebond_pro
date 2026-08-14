@@ -1,12 +1,13 @@
 # Production Readiness
 
-Dernière mise à jour : 13 août 2026. Périmètre évalué : site public, marketplace modérée, cockpit multi-tenant, parcours de contact et Roadmap 2 agentique déployée. Les paiements publics restent volontairement désactivés.
+Dernière mise à jour : 14 août 2026. Périmètre évalué : site public, marketplace modérée, cockpit multi-tenant, parcours de contact, Roadmap 2 agentique et gestion des super-admins déployées. Les paiements publics restent volontairement désactivés.
 
 | Domaine | Verdict | Preuve / condition |
 |---|---|---|
 | Authentification | PASS | Credentials, vérification email, reset à usage unique, politique de session, anti-bruteforce et OAuth Google testés. OAuth est configuré sur le VPS ; `DEV_AUTOLOGIN=false`. |
-| Autorisation et isolation | PASS | Rôles serveur, guards plateforme et isolation cross-tenant couverts par les smokes `tenant`, `persona`, `platform` et `admin-auth`. |
-| Base et migrations | PASS production | Le dump frais a été restauré en répétition avant migration. La production est à 27/27 migrations ; l'index partiel `Roadmap2EmailOperation_workspaceId_requestHash_key` est actif et 67 nœuds Roadmap 2 sont conservés. |
+| Autorisation et isolation | PASS | Rôles serveur, guards plateforme et isolation cross-tenant couverts par les smokes `tenant`, `persona`, `platform`, `admin-auth` et `platform-admin-access`. L’auto-révocation et les retraits d’accès imposés par configuration sont refusés côté serveur. |
+| Base et migrations | PASS production | Sauvegarde PostgreSQL fraîche et vérifiée avant migration. La production est à 28/28 migrations ; `PlatformAdminAuditLog` existe avec RLS actif, l'index Gmail anti-double envoi reste actif et 67 nœuds Roadmap 2 sont conservés. |
+| Gestion des super-admins | PASS production | `/admin/super-admins` attribue le rôle uniquement à un compte existant et vérifié, distingue les accès DB/configuration, confirme les actions sensibles et journalise attribution/retrait dans la même transaction. Smoke DB réel PASS avec fixtures nettoyées. |
 | Marketplace | PASS | Publication réservée aux centres activés, approuvés et associés à une revue humaine datée ; aucune donnée CARIF ou démo non revue n'est exposée. |
 | Formulaires publics | PASS | Validation Zod, honeypot, quotas anonymisés, logs sans PII brute et erreur explicite si l'email échoue. |
 | Connecteurs Socrate | PASS code production / CONNEXION REQUISE | Gmail super-admin est restreint à l'endpoint serveur Roadmap 2, affiche exactement le corps envoyé, exige une validation signée à usage unique et utilise un registre durable avec réconciliation et anti-double envoi. Le diagnostic post-déploiement trouve Drive `EXPIRED`/`NOT_CONNECTED` et Gmail `NOT_CONNECTED` : une reconnexion OAuth est requise avant l'E2E réel. |
@@ -17,9 +18,9 @@ Dernière mise à jour : 13 août 2026. Périmètre évalué : site public, mark
 | Accessibilité | PASS local | Roadmap 2 authentifiée : Axe critique/sérieuse 0, aucun débordement en 1440/768/390 px, clavier, zoom 200 %, cibles tactiles ≥ 44 px et réinitialisation de l'état vide vérifiée dans un navigateur réel. Les états Google réellement connectés restent à confirmer. |
 | SEO | PASS | Métadonnées par route principale, `metadataBase`, Open Graph, `robots.txt` et `sitemap.xml`. |
 | Dépendances | PASS | Next 16.2.10, React 19.2.7 ; `npm audit --audit-level=low` retourne 0 vulnérabilité. |
-| Build | PASS production | ESLint, TypeScript et build Next sont propres. `smoke:all` passe 39/39 ; les smokes agent, Gmail, Drive et sauvegarde passent aussi directement contre le schéma production avec fixtures nettoyées. |
+| Build | PASS production | ESLint local PASS ; compilation Next.js et TypeScript PASS dans l’image Linux. La campagne précédente `smoke:all` reste à 39/39 et le nouveau smoke `platform-admin-access` passe séparément contre la base de production avec fixtures nettoyées. |
 | Observabilité | PASS socle | Logs JSON, endpoint readiness DB, health-check de déploiement, rollback automatique, Caddy actif et sauvegardes quotidiennes. Un APM externe reste une amélioration non bloquante. |
-| Déploiement | PASS | Commit `b9353fd` publié sur `origin/main`, image `rebondpro-app:b9353fd` active, health HTTPS et DB `up`. L'image `46523a0` reste disponible pour rollback. Runbook : `DEPLOYMENT.md`. |
+| Déploiement | PASS | Commit `27d0c75` publié sur `origin/main`, image `rebondpro-app:27d0c75` active, health HTTPS et DB `up`. L'image `cf13dd4` reste disponible pour rollback. Runbook : `DEPLOYMENT.md`. |
 
 ## Verdict
 
@@ -37,13 +38,16 @@ Dernière mise à jour : 13 août 2026. Périmètre évalué : site public, mark
 ## Evidence CLI
 
 - `npm run smoke:all` : **39/39 suites PASS** sur une base PostgreSQL jetable avec 27 migrations rejouées depuis zéro (13 août 2026) ;
+- `npm run smoke:platform-admin-access -- --static` : **PASS** local ; smoke DB complet : **PASS** en production après migration, attribution/révocation/audit réels et zéro fixture résiduelle ;
+- chaîne propre de **28 migrations** : PASS sur schéma temporaire ; production : **28/28**, table `PlatformAdminAuditLog` avec RLS actif ;
 - `npm run smoke:roadmap-2:a11y:runtime` : **PASS**, 3 viewports, zoom 200 %, cibles 44 px et reset des filtres ;
 - `npm run smoke:roadmap-2:http` : **PASS** ;
 - `npm run smoke:backup` : **PASS** sur succès complet simulé et panne Storage post-dump ;
-- `npm run lint`, `npx tsc --noEmit`, `npm run build` : **PASS** sur le candidat local ;
+- `npm run lint` : **PASS** local ; compilation Next.js + TypeScript : **PASS** dans le build Docker Linux `27d0c75` ;
 - smokes production ciblés `agent`, `roadmap-2:agentic-gmail`, `roadmap-2:drive`, `backup` : **PASS**, fixtures restantes 0 ;
-- health post-déploiement `b9353fd` : **PASS**, DB `up` ;
-- backup production post-déploiement : dump DB vérifié `rebondpro-2026-08-13-1859.sql.gz`, état `PARTIAL` correctement publié sur le HTTP 402 Storage ;
+- health post-déploiement `27d0c75` : **PASS**, DB `up`, route `/admin/super-admins` protégée par redirection admin ;
+- backup pré-migration : dump DB vérifié `rebondpro-2026-08-14-1717.sql.gz` (154 780 octets), état `PARTIAL` correctement publié sur le HTTP 402 Storage ;
+- contrôle de conservation : **67 nœuds Roadmap 2**, **0 fixture smoke**, 4,5 Go libres après purge du cache et des anciennes images RebondPro ;
 
 - `npm run smoke:all:local` : 34/34 suites PASS ;
 - `npm run smoke:accessibility` : 28/28 parcours PASS ;
