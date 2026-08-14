@@ -41,6 +41,7 @@ Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orienta
   - **Espace bénéficiaire** (`/espace`) : vue d'ensemble, parcours (3 phases), catalogue, profil ; achat formation + règlement bilan via Stripe (`createFormationCheckout`, `createBilanCheckout`). Modèle `Beneficiary`. Testé `smoke:beneficiary`.
   - **Portail formateur** (`/trainer`) : disponibilités, planning, demandes, profil. Testé `smoke:trainer-portal`.
   - **Admin god-mode** (`/admin`) : vue d'ensemble cross-tenant, centres, formateurs, bénéficiaires, **flux financiers**. `requirePlatformAdmin()`. Testé `smoke:platform`.
+  - **Gestion des super-admins** (`/admin/super-admins`) : attribution par adresse email vérifiée, retrait protégé et journal global durable. Les accès provenant de `PLATFORM_ADMIN_EMAILS` sont visibles mais restent gérés par la configuration serveur. Testé par `smoke:platform-admin-access`.
   - **Personas AG-UI** (`src/lib/ag-ui/persona.ts`) : visitor/beneficiary/trainer/center/platform_admin ; allowlist d'outils côté serveur ; `resolvePersona(role+pathname+isPlatformAdmin)`. Testé `smoke:persona`.
   - **Flux financiers** (`src/server/finance.ts`, modèle `Transaction`) : commissions (achats formation), abonnements, bilans ; `recordTransaction` idempotent ; `getFinanceSummary` (brut, commissions, net à reverser). Webhook branché (FORMATION_PURCHASE/BILAN/SUBSCRIPTION/invoice.paid). Testé `smoke:finance`. **Table `Transaction` à migrer** (route `/api/migrate-finance`).
   - **Inscription auto à l'achat** (livré, `src/server/enrollment-from-purchase.ts`) : un achat FORMATION_PURCHASE crée/retrouve un `Learner` et l'inscrit (`Enrollment`) à la prochaine session OUVERTE ; idempotent ; lien `Transaction.enrollmentId`.
@@ -122,6 +123,18 @@ Auth.js credentials + Google OAuth, session JWT et membership tenant. Un compte 
 - Les pages non spécialisées enregistrent des artefacts structurés : contenu JSON, source, statut, partageabilité.
 - Les mutations restent auditées et passent par les server actions protégées.
 - Le parcours est couvert par `npm run smoke:platform-beneficiaries`.
+
+### Gestion des super-admins
+
+- Seul un super-admin authentifié peut ouvrir `/admin/super-admins`, consulter les accès effectifs ou déclencher une mutation.
+- L’attribution cible un compte existant par son adresse email exacte et exige une adresse déjà vérifiée.
+- L’interface explique avant confirmation que le rôle donne accès à toutes les données cross-centres et aux actions plateforme sensibles.
+- Le retrait du propre accès de l’acteur est bloqué côté serveur afin d’éviter un verrouillage accidentel.
+- Un accès provenant de `PLATFORM_ADMIN_EMAILS` est affiché comme géré par configuration et ne peut pas être présenté comme retiré par une simple modification en base.
+- Chaque attribution ou retrait met à jour `User.platformAdmin` et crée dans la même transaction un `PlatformAdminAuditLog` sans dépendre d’un tenant.
+- L’historique indique l’acteur, la cible, l’action et la date sans journaliser de secret.
+- Un administrateur de centre sans `User.platformAdmin` ne peut ni ouvrir l’écran ni appeler ses actions.
+- Le parcours backend est couvert par `npm run smoke:platform-admin-access`.
 
 ### Planning formateurs et modules
 

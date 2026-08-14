@@ -1,0 +1,303 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, .7fr);
+  gap: 18px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 22px;
+}
+
+.warning {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--warn-strong) 30%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--warn-bg);
+  color: var(--ink);
+}
+
+.warning p,
+.sectionHeading p,
+.hint,
+.configNotice p {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.warningIcon,
+.sectionIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--surface-3);
+  color: var(--primary);
+}
+
+.warningIcon {
+  color: var(--warn-strong);
+  background: color-mix(in srgb, var(--warn-strong) 12%, white);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.sectionHeading h2 {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.formRow {
+  display: flex;
+  gap: 10px;
+}
+
+.formRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint {
+  margin-top: 12px;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.summary div {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.summary dt {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.summary dd {
+  margin: 5px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.success,
+.error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.success {
+  color: var(--positive-600);
+  background: var(--positive-bg);
+}
+
+.error {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.adminList {
+  display: flex;
+  flex-direction: column;
+}
+
+.adminRow {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(250px, .85fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 0;
+  border-top: 1px solid var(--border);
+}
+
+.adminRow:first-child {
+  border-top: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(140deg, #2f9488, #2469a6);
+  font-weight: 800;
+}
+
+.nameLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.email,
+.metadata,
+.lockedReason,
+.empty {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.email {
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+
+.metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lockedReason {
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.configNotice {
+  margin-top: 14px;
+  padding: 13px 15px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.historyRow:first-child {
+  border-top: 0;
+}
+
+.historyRow time {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .metadata {
+    grid-column: 1;
+  }
+
+  .action {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 620px) {
+  .card {
+    padding: 17px;
+  }
+
+  .formRow,
+  .warning {
+    flex-direction: column;
+  }
+
+  .formRow button {
+    width: 100%;
+  }
+
+  .adminRow,
+  .historyRow {
+    grid-template-columns: 1fr;
+  }
+
+  .metadata,
+  .action {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .action {
+    justify-content: stretch;
+  }
+
+  .action button {
+    width: 100%;
+  }
+
+  .historyRow time {
+    order: -1;
+  }
+}

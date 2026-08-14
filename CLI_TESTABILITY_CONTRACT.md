@@ -14,6 +14,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:lot5` | Résout une page publique, crée un prospect dans le bon tenant, valide la déduplication puis nettoie ses données. |
 | `npm run smoke:auth` | Vérifie un jeton email haché, son expiration logique et sa consommation. |
 | `npm run smoke:admin-auth` | Vérifie le circuit d'authentification et les gardes d'accès super-admin. |
+| `npm run smoke:platform-admin-access` | Crée des comptes jetables, accorde puis retire le rôle super-admin, vérifie la persistance et l’audit atomique, refuse un compte non vérifié, l’auto-révocation et le retrait d’un accès imposé par configuration, puis nettoie les fixtures. |
 | `npm run smoke:auth-session` | Vérifie les durées de session courte/mémorisée et le rejet serveur des jetons expirés. |
 | `npm run smoke:google-oauth` | Vérifie Google OAuth sans navigateur : contexte signé, détection env, connexion d'un compte existant, refus d'un login inconnu sans intention d'inscription, refus d'un email Google non vérifié, création centre OWNER avec trial. Nettoyage. |
 | `npm run smoke:registration` | Crée un compte/tenant/trial, exige la vérification email puis nettoie les données. |

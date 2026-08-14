@@ -5,6 +5,7 @@ export const HEADLESS_SMOKE_SUITES = [
   "smoke:lot5",
   "smoke:auth",
   "smoke:admin-auth",
+  "smoke:platform-admin-access",
   "smoke:auth-session",
   "smoke:google-oauth",
   "smoke:registration",

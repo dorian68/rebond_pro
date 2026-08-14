@@ -35,6 +35,7 @@
     "smoke:lot5": "tsx scripts/smoke-lot5.ts",
     "smoke:auth": "tsx scripts/smoke-auth-verification.ts",
     "smoke:admin-auth": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-admin-auth-circuit.ts",
+    "smoke:platform-admin-access": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-platform-admin-access.ts",
     "smoke:auth-session": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-auth-session-policy.ts",
     "smoke:registration": "tsx scripts/smoke-registration.ts",
     "smoke:crud": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-crud.ts",

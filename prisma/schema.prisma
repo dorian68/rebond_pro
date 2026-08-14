@@ -335,25 +335,46 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships              Membership[]
-  trainer                  Trainer?
-  ownedProspects           Prospect[]               @relation("ProspectOwner")
-  createdDocumentTemplates DocumentTemplate[]
-  aiInteractions           AiInteraction[]
-  auditLogs                AuditLog[]
-  notifications            Notification[]
-  emailVerificationTokens  EmailVerificationToken[]
-  passwordResetTokens      PasswordResetToken[]
-  beneficiary              Beneficiary?
-  roadmap2OwnedNodes       Roadmap2Node[]           @relation("Roadmap2NodeOwner")
-  roadmap2CreatedNodes     Roadmap2Node[]           @relation("Roadmap2NodeCreator")
-  roadmap2UpdatedNodes     Roadmap2Node[]           @relation("Roadmap2NodeUpdater")
-  roadmap2CreatedEdges     Roadmap2Edge[]           @relation("Roadmap2EdgeCreator")
-  roadmap2Updates          Roadmap2Update[]         @relation("Roadmap2UpdateAuthor")
-  roadmap2AuditLogs        Roadmap2AuditLog[]       @relation("Roadmap2AuditActor")
-  roadmap2DriveOperations  Roadmap2DriveOperation[] @relation("Roadmap2DriveOperationActor")
-  roadmap2EmailOperations  Roadmap2EmailOperation[] @relation("Roadmap2EmailOperationActor")
-  agentApprovalUses        AgentApprovalUse[]       @relation("AgentApprovalUseActor")
+  memberships               Membership[]
+  trainer                   Trainer?
+  ownedProspects            Prospect[]               @relation("ProspectOwner")
+  createdDocumentTemplates  DocumentTemplate[]
+  aiInteractions            AiInteraction[]
+  auditLogs                 AuditLog[]
+  notifications             Notification[]
+  emailVerificationTokens   EmailVerificationToken[]
+  passwordResetTokens       PasswordResetToken[]
+  beneficiary               Beneficiary?
+  roadmap2OwnedNodes        Roadmap2Node[]           @relation("Roadmap2NodeOwner")
+  roadmap2CreatedNodes      Roadmap2Node[]           @relation("Roadmap2NodeCreator")
+  roadmap2UpdatedNodes      Roadmap2Node[]           @relation("Roadmap2NodeUpdater")
+  roadmap2CreatedEdges      Roadmap2Edge[]           @relation("Roadmap2EdgeCreator")
+  roadmap2Updates           Roadmap2Update[]         @relation("Roadmap2UpdateAuthor")
+  roadmap2AuditLogs         Roadmap2AuditLog[]       @relation("Roadmap2AuditActor")
+  roadmap2DriveOperations   Roadmap2DriveOperation[] @relation("Roadmap2DriveOperationActor")
+  roadmap2EmailOperations   Roadmap2EmailOperation[] @relation("Roadmap2EmailOperationActor")
+  agentApprovalUses         AgentApprovalUse[]       @relation("AgentApprovalUseActor")
+  platformAdminAuditActions PlatformAdminAuditLog[]  @relation("PlatformAdminAuditActor")
+  platformAdminAuditTargets PlatformAdminAuditLog[]  @relation("PlatformAdminAuditTarget")
+}
+
+/// Journal global des attributions et retraits du rôle super-admin.
+/// Cette donnée n'appartient à aucun tenant et n'est accessible que par le backend de confiance.
+model PlatformAdminAuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?
+  targetUserId String?
+  action       String
+  before       Json
+  after        Json
+  createdAt    DateTime @default(now())
+
+  actor  User? @relation("PlatformAdminAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  target User? @relation("PlatformAdminAuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([createdAt])
 }
 
 model Membership {
@@ -1420,7 +1441,9 @@ model Roadmap2EmailOperation {
   @@index([nodeId, createdAt])
 }
 
-/** Jeton de validation consommé une seule fois, sans stockage des arguments. */
+/**
+ * Jeton de validation consommé une seule fois, sans stockage des arguments.
+ */
 model AgentApprovalUse {
   id          String   @id @default(cuid())
   approvalId  String   @unique

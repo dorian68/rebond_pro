@@ -15,6 +15,7 @@ const ITEMS = [
   { href: "/admin/roadmap-2", label: "Roadmap 2", icon: "layers" },
   { href: "/admin/agents", label: "Agents sandbox", icon: "sparkles" },
   { href: "/admin/finances", label: "Flux financiers", icon: "euro" },
+  { href: "/admin/super-admins", label: "Super-admins", icon: "shield" },
 ];
 
 export function AdminNav() {
