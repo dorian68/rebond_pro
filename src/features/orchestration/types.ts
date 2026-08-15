@@ -72,18 +72,39 @@ export type SkillGap = {
   explanation: string;
 };
 
+export type ActorMatchLevel = "ACTIVATABLE" | "QUALIFIED_WITH_CHECKS" | "DISCOVERY_ONLY" | "EXCLUDED";
+
+export type ActorMatchScoreComponent = {
+  criterion: "CAPABILITY" | "ACTOR_VERIFICATION" | "TERRITORY" | "SERVICE_FIT" | "SERVICE_VERIFICATION" | "AVAILABILITY" | "PREREQUISITES";
+  points: number;
+  maximum: number;
+  explanation: string;
+};
+
 export type ActorMatch = {
   actor: Actor;
   capability: ActorCapability;
   serviceOffers: ServiceOffer[];
+  level: ActorMatchLevel;
+  score: number;
+  scoreBreakdown: ActorMatchScoreComponent[];
   reasons: string[];
   unknowns: string[];
+  hardStops: string[];
+};
+
+export type PathwayMatchSuggestion = {
+  planType: "A" | "B";
+  needId: string;
+  needLabel: string;
+  matches: ActorMatch[];
 };
 
 export type PathwayDraftResult = {
   planA: Pathway;
   planB: Pathway;
   needs: Need[];
+  matchSuggestions: PathwayMatchSuggestion[];
   explanations: string[];
   unknowns: string[];
   humanValidationRequired: true;

@@ -645,6 +645,15 @@
 .solutionList strong { color: var(--orch-green-dark); font-size: 11px; }
 .solutionList span,
 .solutionList small { color: var(--orch-muted); font-size: 11px; line-height: 1.35; }
+.solutionList .statusPill { font-size: 9px; line-height: 1; }
+.solutionList .statusDone { color: var(--orch-green); }
+.solutionList .statusWaiting { color: var(--orch-amber); }
+.solutionList .statusBlocked { color: var(--orch-red); }
+.solutionList .statusDraft { color: var(--orch-muted); }
+.solutionAction { justify-self: start; display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 3px 0 0; background: transparent; color: var(--orch-green) !important; font: inherit; font-size: 10px !important; font-weight: 700; cursor: pointer; }
+.solutionAction:hover { text-decoration: underline; }
+.solutionAction:focus-visible { border-radius: 4px; outline: 2px solid var(--orch-coral); outline-offset: 2px; }
+.panel ul { margin: 8px 0; padding-left: 18px; color: var(--orch-muted); font-size: 11px; line-height: 1.55; }
 
 .actorCardButton { width: 100%; display: grid; gap: 10px; border: 0; padding: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .claimVerified { border: 1px solid #c7dacd; background: var(--orch-green-soft); color: var(--orch-green); }

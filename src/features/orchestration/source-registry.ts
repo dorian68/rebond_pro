@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import rawSourceRegistry from "../../../data/guadeloupe-orchestration.sources.json";
+import rawSourceRegistryEnrichment from "../../../data/guadeloupe-orchestration.enrichment.json";
 import {
   actorTypeSchema,
   capabilitySchema,
@@ -27,6 +28,7 @@ const registrySourceSchema = z
     publishedAt: isoDateTimeSchema.nullable(),
     verificationStatus: verificationStatusSchema,
     freshness: shortTextSchema,
+    reviewAfterDays: z.number().int().positive().max(3_650).default(90),
     caveats: z.array(shortTextSchema).max(30),
   })
   .strict();
@@ -111,7 +113,11 @@ const officialActorSchema = z
       sourceId: identifierSchema,
       notes: longTextSchema,
     }).strict()).max(50),
+    pathwayRoles: z.array(shortTextSchema).max(50).default([]),
     eligibilityRules: z.array(shortTextSchema).max(100),
+    requiredInputs: z.array(shortTextSchema).max(100).default([]),
+    producedOutputs: z.array(shortTextSchema).max(100).default([]),
+    mobilizationNotes: z.array(shortTextSchema).max(100).default([]),
     sourceId: identifierSchema,
     verificationStatus: verificationStatusSchema,
     lastVerifiedAt: isoDateTimeSchema,
@@ -200,7 +206,31 @@ export const sourceRegistrySchema = z
   })
   .strict()
   .superRefine((registry, context) => {
+    const collections = [
+      ["source", registry.sources],
+      ["signal de marché", registry.marketSignals],
+      ["mécanisme de financement", registry.fundingMechanisms],
+      ["scénario de programme", registry.budgetScenarios],
+      ["exigence de preuve", registry.evidenceRequirements],
+      ["acteur", registry.officialActors],
+      ["service", registry.officialServiceOffers],
+      ["opportunité", registry.officialOpportunities],
+    ] as const;
+    for (const [label, entries] of collections) {
+      const seen = new Set<string>();
+      for (const entry of entries) {
+        if (seen.has(entry.id)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Identifiant ${label} dupliqué : ${entry.id}.`,
+          });
+        }
+        seen.add(entry.id);
+      }
+    }
+
     const sourceIds = new Set(registry.sources.map((source) => source.id));
+    const actorIds = new Set(registry.officialActors.map((actor) => actor.id));
     const referencedSourceIds = [
       ...registry.marketSignals.map((signal) => signal.sourceId),
       ...registry.fundingMechanisms.map((mechanism) => mechanism.sourceId),
@@ -219,8 +249,117 @@ export const sourceRegistrySchema = z
         });
       }
     }
+
+    for (const offer of registry.officialServiceOffers) {
+      if (!actorIds.has(offer.actorId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Acteur de service inconnu : ${offer.id} -> ${offer.actorId}.`,
+        });
+      }
+      for (const funderActorId of offer.possibleFunderActorIds) {
+        if (!actorIds.has(funderActorId)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Financeur potentiel inconnu : ${offer.id} -> ${funderActorId}.`,
+          });
+        }
+      }
+    }
+
+    for (const mechanism of registry.fundingMechanisms) {
+      if (mechanism.funderActorId && !actorIds.has(mechanism.funderActorId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Financeur de mécanisme inconnu : ${mechanism.id} -> ${mechanism.funderActorId}.`,
+        });
+      }
+    }
+
+    for (const opportunity of registry.officialOpportunities) {
+      const unresolvedProvider = opportunity.providerActorId.startsWith("actor-provider-unresolved-");
+      if (!actorIds.has(opportunity.providerActorId) && !(unresolvedProvider && opportunity.verificationStatus === "NEEDS_VERIFICATION")) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Fournisseur d'opportunité inconnu : ${opportunity.id} -> ${opportunity.providerActorId}.`,
+        });
+      }
+    }
   });
 
-export type SourceRegistry = z.infer<typeof sourceRegistrySchema>;
+const sourceRegistryEnrichmentSchema = z
+  .object({
+    sources: z.array(registrySourceSchema),
+    fundingMechanisms: z.array(fundingMechanismSchema),
+    officialActors: z.array(officialActorSchema),
+    actorAugmentations: z.array(z.object({
+      actorId: identifierSchema,
+      actorTypes: z.array(actorTypeSchema).max(20).default([]),
+      capabilities: z.array(z.object({
+        capability: capabilitySchema,
+        verificationStatus: verificationStatusSchema,
+        sourceId: identifierSchema,
+        notes: longTextSchema,
+      }).strict()).max(50).default([]),
+      pathwayRoles: z.array(shortTextSchema).max(50).default([]),
+      eligibilityRules: z.array(shortTextSchema).max(100).default([]),
+      requiredInputs: z.array(shortTextSchema).max(100).default([]),
+      producedOutputs: z.array(shortTextSchema).max(100).default([]),
+      mobilizationNotes: z.array(shortTextSchema).max(100).default([]),
+    }).strict()),
+    officialServiceOffers: z.array(officialServiceOfferSchema),
+    officialOpportunities: z.array(officialOpportunitySchema),
+  })
+  .strict();
 
-export const sourceRegistry: SourceRegistry = sourceRegistrySchema.parse(rawSourceRegistry);
+export type SourceRegistry = z.infer<typeof sourceRegistrySchema>;
+export type SourceFreshnessStatus = "CURRENT" | "REVIEW_DUE" | "NEEDS_VERIFICATION";
+
+export function evaluateSourceFreshness(
+  source: SourceRegistry["sources"][number],
+  now = new Date().toISOString(),
+): { status: SourceFreshnessStatus; reviewDueAt: string } {
+  const reviewDueAt = new Date(Date.parse(source.checkedAt) + source.reviewAfterDays * 86_400_000).toISOString();
+  if (source.verificationStatus !== "VERIFIED") return { status: "NEEDS_VERIFICATION", reviewDueAt };
+  return { status: Date.parse(now) > Date.parse(reviewDueAt) ? "REVIEW_DUE" : "CURRENT", reviewDueAt };
+}
+
+const enrichment = sourceRegistryEnrichmentSchema.parse(rawSourceRegistryEnrichment);
+const baseRegistry = sourceRegistrySchema.parse(rawSourceRegistry);
+const baseActorIds = new Set(baseRegistry.officialActors.map((actor) => actor.id));
+const augmentedActorIds = new Set<string>();
+for (const augmentation of enrichment.actorAugmentations) {
+  if (!baseActorIds.has(augmentation.actorId)) {
+    throw new Error(`Augmentation d'acteur sans identité de base : ${augmentation.actorId}.`);
+  }
+  if (augmentedActorIds.has(augmentation.actorId)) {
+    throw new Error(`Augmentation d'acteur dupliquée : ${augmentation.actorId}.`);
+  }
+  augmentedActorIds.add(augmentation.actorId);
+}
+const augmentationsByActorId = new Map(enrichment.actorAugmentations.map((augmentation) => [augmentation.actorId, augmentation]));
+const augmentedBaseActors = baseRegistry.officialActors.map((actor) => {
+  const augmentation = augmentationsByActorId.get(actor.id);
+  if (!augmentation) return actor;
+  const claimsByCapability = new Map(actor.capabilities.map((claim) => [claim.capability, claim]));
+  for (const claim of augmentation.capabilities) claimsByCapability.set(claim.capability, claim);
+  return {
+    ...actor,
+    actorTypes: [...new Set([...actor.actorTypes, ...augmentation.actorTypes])],
+    capabilities: [...claimsByCapability.values()],
+    pathwayRoles: [...new Set([...actor.pathwayRoles, ...augmentation.pathwayRoles])],
+    eligibilityRules: [...new Set([...actor.eligibilityRules, ...augmentation.eligibilityRules])],
+    requiredInputs: [...new Set([...actor.requiredInputs, ...augmentation.requiredInputs])],
+    producedOutputs: [...new Set([...actor.producedOutputs, ...augmentation.producedOutputs])],
+    mobilizationNotes: [...new Set([...actor.mobilizationNotes, ...augmentation.mobilizationNotes])],
+  };
+});
+
+export const sourceRegistry: SourceRegistry = sourceRegistrySchema.parse({
+  ...baseRegistry,
+  sources: [...baseRegistry.sources, ...enrichment.sources],
+  fundingMechanisms: [...baseRegistry.fundingMechanisms, ...enrichment.fundingMechanisms],
+  officialActors: [...augmentedBaseActors, ...enrichment.officialActors],
+  officialServiceOffers: [...baseRegistry.officialServiceOffers, ...enrichment.officialServiceOffers],
+  officialOpportunities: [...baseRegistry.officialOpportunities, ...enrichment.officialOpportunities],
+});

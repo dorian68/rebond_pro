@@ -13,6 +13,8 @@ export type UiSource = {
   publishedAt: string | null;
   verificationStatus: VerificationStatus;
   freshness: string;
+  freshnessStatus: "CURRENT" | "REVIEW_DUE" | "NEEDS_VERIFICATION";
+  reviewDueAt: string;
   caveats: string[];
 };
 
@@ -92,6 +94,10 @@ export type UiActor = {
   territory: string;
   employmentBasin?: string | null;
   capabilities: string[];
+  pathwayRoles: string[];
+  requiredInputs: string[];
+  producedOutputs: string[];
+  mobilizationNotes: string[];
   capabilityClaims: UiCapabilityClaim[];
   sectors: string[];
   services: string[];
@@ -265,7 +271,14 @@ export type UiService = {
   actorName: string;
   name: string;
   capabilityLabels: string[];
+  needsResolved: string[];
   skills: string[];
+  territory: string[];
+  eligibilityRules: string[];
+  prerequisites: string[];
+  requiredDocuments: string[];
+  expectedOutput: string | null;
+  mobilizationStatus: "ACTIVATABLE" | "QUALIFIED_WITH_CHECKS" | "UNAVAILABLE" | "TO_VERIFY";
   duration: string | null;
   places: string | null;
   cost: number | null;
@@ -273,6 +286,22 @@ export type UiService = {
   sourceLabel: string;
   sourceUrl: string | null;
   caveats: string[];
+};
+
+export type UiNeedSolution = {
+  needId: string;
+  needLabel: string;
+  requiredCapability: string;
+  candidates: Array<{
+    actorId: string;
+    actorName: string;
+    serviceId: string | null;
+    serviceName: string | null;
+    readiness: "ACTIVATABLE" | "QUALIFIED_WITH_CHECKS" | "DISCOVERY_ONLY" | "EXCLUDED";
+    score: number;
+    reasons: string[];
+    unknowns: string[];
+  }>;
 };
 
 export type UiOpportunity = {
@@ -299,6 +328,7 @@ export type OrchestrationUiModel = {
   referenceSkills: UiReferenceSkill[];
   actors: UiActor[];
   services: UiService[];
+  needSolutions: UiNeedSolution[];
   opportunities: UiOpportunity[];
   steps: UiStep[];
   referrals: UiReferral[];

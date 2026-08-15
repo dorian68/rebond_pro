@@ -1,4 +1,9 @@
-import { sourceRegistry, type OrchestrationSnapshot } from "@/features/orchestration";
+import {
+  evaluateSourceFreshness,
+  findActorMatchesForNeed,
+  sourceRegistry,
+  type OrchestrationSnapshot,
+} from "@/features/orchestration";
 import type {
   OrchestrationUiModel,
   UiActor,
@@ -110,9 +115,17 @@ function referenceSkillsView(snapshot: OrchestrationSnapshot): UiReferenceSkill[
   });
 }
 
-function sourceRegistryView(snapshot: OrchestrationSnapshot): UiSourceRegistry {
+function sourceRegistryView(snapshot: OrchestrationSnapshot, now = new Date().toISOString()): UiSourceRegistry {
   const actorsById = new Map(snapshot.actors.map((actor) => [actor.id, actor.displayName]));
-  const sources = sourceRegistry.sources.map((source) => ({ ...source, caveats: [...source.caveats] }));
+  const sources = sourceRegistry.sources.map((source) => {
+    const freshness = evaluateSourceFreshness(source, now);
+    return {
+      ...source,
+      freshnessStatus: freshness.status,
+      reviewDueAt: freshness.reviewDueAt,
+      caveats: [...source.caveats],
+    };
+  });
   const checkedDates = sources.map((source) => source.checkedAt).filter((value) => !Number.isNaN(Date.parse(value)));
   return {
     sources,
@@ -135,6 +148,7 @@ function sourceRegistryView(snapshot: OrchestrationSnapshot): UiSourceRegistry {
 }
 
 function actorView(actor: OrchestrationSnapshot["actors"][number], snapshot: OrchestrationSnapshot, usedActorIds: Set<string>): UiActor {
+  const registryActor = sourceRegistry.officialActors.find((candidate) => candidate.id === actor.id);
   const offers = snapshot.serviceOffers.filter((offer) => offer.actorId === actor.id);
   const opportunities = snapshot.opportunities.filter((opportunity) => opportunity.providerActorId === actor.id);
   const occupationsById = new Map(snapshot.occupations.map((occupation) => [occupation.id, occupation]));
@@ -156,6 +170,10 @@ function actorView(actor: OrchestrationSnapshot["actors"][number], snapshot: Orc
     territory: actor.territory.join(", ") || "Territoire non renseigné",
     employmentBasin: actor.employmentBasin.join(", ") || null,
     capabilities: actor.capabilities.map((entry) => entry.capability),
+    pathwayRoles: registryActor?.pathwayRoles ?? [],
+    requiredInputs: actor.requiredInputs,
+    producedOutputs: actor.producedOutputs,
+    mobilizationNotes: registryActor?.mobilizationNotes ?? [],
     capabilityClaims: actor.capabilities.map((entry) => ({
       capability: entry.capability,
       verificationStatus: entry.verificationStatus,
@@ -232,6 +250,10 @@ function emptyOutcome(pathwayId: string): UiOutcome {
 
 export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): OrchestrationUiModel {
   const data = snapshot;
+  const sourceEvaluationNow = new Date().toISOString();
+  const sourceFreshnessById = Object.fromEntries(
+    sourceRegistry.sources.map((source) => [source.id, evaluateSourceFreshness(source, sourceEvaluationNow).status]),
+  );
   const passport = data.passports[0];
   const cohort = data.cohorts[0];
   const occupation = data.occupations.find((candidate) => candidate.id === passport.planA.occupationId) ?? data.occupations[0];
@@ -247,6 +269,29 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
     ...(planB?.steps.map((step, index) => stepView(step, "B", index, actorsById)) ?? []),
   ];
   const needs = data.needs.filter((need) => need.participantId === passport.participantId);
+  const needSolutions = needs.map((need) => ({
+    needId: need.id,
+    needLabel: need.label,
+    requiredCapability: need.requiredCapability,
+    candidates: findActorMatchesForNeed({
+      need,
+      actors: data.actors,
+      serviceOffers: data.serviceOffers,
+      territory: cohort.territory,
+      verifiedOnly: true,
+      now: sourceEvaluationNow,
+      sourceFreshnessById,
+    }).slice(0, 3).map((match) => ({
+      actorId: match.actor.id,
+      actorName: match.actor.displayName,
+      serviceId: match.serviceOffers[0]?.id ?? null,
+      serviceName: match.serviceOffers[0]?.name ?? null,
+      readiness: match.level,
+      score: match.score,
+      reasons: match.reasons,
+      unknowns: match.unknowns,
+    })),
+  }));
   const fundingByCostId = new Map(data.fundingAllocations.map((allocation) => [allocation.costItemId, allocation]));
   const stepById = new Map(steps.map((step) => [step.id, step]));
   const costs: UiCostItem[] = data.costItems
@@ -334,26 +379,38 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
     occupations,
     referenceSkills: referenceSkillsView(data),
     actors,
-    services: data.serviceOffers.map((offer) => ({
-      id: offer.id,
-      actorId: offer.actorId,
-      actorName: actorsById.get(offer.actorId)?.displayName ?? "Acteur à vérifier",
-      name: offer.name,
-      capabilityLabels: offer.capabilitiesProvided,
-      skills: offer.skillsDeveloped,
-      duration: offer.duration,
-      places: offer.places === null ? null : String(offer.places),
-      cost: offer.costCents,
-      verificationStatus: offer.verificationStatus,
-      sourceLabel: offer.sourceRef.label,
-      sourceUrl: offer.sourceRef.uri ?? null,
-      caveats: [
-        ...(offer.verificationStatus !== "VERIFIED" ? ["Offre à vérifier avant mobilisation."] : []),
-        ...(offer.dates.length === 0 ? ["Dates non renseignées."] : []),
-        ...(offer.places === null ? ["Places non renseignées."] : []),
-        ...(offer.costCents === null ? ["Coût non renseigné."] : []),
-      ],
-    })),
+    services: data.serviceOffers.map((offer) => {
+      const actor = actorsById.get(offer.actorId);
+      return {
+        id: offer.id,
+        actorId: offer.actorId,
+        actorName: actor?.displayName ?? "Acteur à vérifier",
+        name: offer.name,
+        capabilityLabels: offer.capabilitiesProvided,
+        needsResolved: offer.needsResolved,
+        skills: offer.skillsDeveloped,
+        territory: offer.territory,
+        eligibilityRules: offer.eligibilityRules,
+        prerequisites: offer.prerequisites,
+        requiredDocuments: offer.requiredDocuments,
+        expectedOutput: offer.expectedOutput,
+        mobilizationStatus: serviceMobilizationStatus(offer, actor),
+        duration: offer.duration,
+        places: offer.places === null ? null : String(offer.places),
+        cost: offer.costCents,
+        verificationStatus: offer.verificationStatus,
+        sourceLabel: offer.sourceRef.label,
+        sourceUrl: offer.sourceRef.uri ?? null,
+        caveats: [
+          ...(offer.verificationStatus !== "VERIFIED" ? ["Offre à vérifier avant mobilisation."] : []),
+          ...(offer.dates.length === 0 ? ["Dates non renseignées."] : []),
+          ...(offer.places === null ? ["Places non renseignées."] : []),
+          ...(offer.costCents === null ? ["Coût non renseigné."] : []),
+          ...(offer.eligibilityRules.length > 0 || offer.prerequisites.length > 0 ? ["Éligibilité et prérequis à instruire."] : []),
+        ],
+      };
+    }),
+    needSolutions,
     opportunities: data.opportunities.map((opportunity) => ({
       id: opportunity.id,
       providerName: actorsById.get(opportunity.providerActorId)?.displayName ?? "Acteur à vérifier",
@@ -402,6 +459,20 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
     pathwayVersion: planA.version,
     pathwayStatus: planA.status,
     planBActive: planB?.status === "ACTIVE" || canonicalOutcome?.planBActivated === true,
-    sourceRegistry: sourceRegistryView(data),
+    sourceRegistry: sourceRegistryView(data, sourceEvaluationNow),
   };
+}
+
+function serviceMobilizationStatus(
+  offer: OrchestrationSnapshot["serviceOffers"][number],
+  actor: OrchestrationSnapshot["actors"][number] | undefined,
+): "ACTIVATABLE" | "QUALIFIED_WITH_CHECKS" | "UNAVAILABLE" | "TO_VERIFY" {
+  if (offer.verificationStatus !== "VERIFIED" || actor?.verificationStatus !== "VERIFIED") return "TO_VERIFY";
+  if (offer.places === 0 || actor.currentCapacity.status === "UNAVAILABLE") return "UNAVAILABLE";
+  if (offer.dates.length > 0 && offer.dates.every((date) => Date.parse(date) < Date.now())) return "UNAVAILABLE";
+  const availabilityConfirmed = actor.currentCapacity.status === "AVAILABLE"
+    && (actor.currentCapacity.places === null || actor.currentCapacity.places > 0)
+    && offer.places !== null
+    && offer.places > 0;
+  return availabilityConfirmed ? "ACTIVATABLE" : "QUALIFIED_WITH_CHECKS";
 }

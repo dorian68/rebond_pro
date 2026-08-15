@@ -38,7 +38,10 @@ import type {
   ServiceOffer,
   SkillClaim,
   SkillGap,
+  SourceRef,
 } from "./types";
+
+type SourceFreshnessById = Record<string, "CURRENT" | "REVIEW_DUE" | "NEEDS_VERIFICATION">;
 
 function normalize(value: string) {
   return value
@@ -180,6 +183,114 @@ function territoryMatches(actor: Actor, territory?: string) {
   });
 }
 
+function territoryValuesMatch(values: string[], territory?: string) {
+  if (!territory) return true;
+  const expected = normalize(territory);
+  return values.some((value) => {
+    const candidate = normalize(value);
+    return candidate.includes(expected) || expected.includes(candidate);
+  });
+}
+
+function meaningfulTokens(value: string) {
+  const ignored = new Set(["avec", "dans", "pour", "niveau", "contexte", "confirmer", "professionnelle"]);
+  return normalize(value)
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 4 && !ignored.has(token));
+}
+
+function serviceDevelopsNeedSkill(offer: ServiceOffer, need: Need) {
+  if (!(["LANGUAGE", "SKILL_GAP"] as NeedType[]).includes(need.type)) return true;
+  const expectedTokens = meaningfulTokens(need.label);
+  if (expectedTokens.length === 0) return false;
+  return offer.skillsDeveloped.some((skill) => {
+    const offeredTokens = new Set(meaningfulTokens(skill));
+    return expectedTokens.some((token) => offeredTokens.has(token));
+  });
+}
+
+function deduplicate(values: string[]) {
+  return [...new Set(values)];
+}
+
+function sourceFreshness(sourceRef: SourceRef, statuses?: SourceFreshnessById) {
+  if (!statuses || !sourceRef.recordId) return "CURRENT" as const;
+  return statuses[sourceRef.recordId] ?? "NEEDS_VERIFICATION";
+}
+
+type ServiceAssessment = {
+  offer: ServiceOffer;
+  exact: boolean;
+  score: number;
+  unknowns: string[];
+  hardStops: string[];
+};
+
+function assessServiceForNeed(input: {
+  offer: ServiceOffer;
+  need: Need;
+  territory?: string;
+  now: string;
+  sourceFreshnessById?: SourceFreshnessById;
+}): ServiceAssessment {
+  const { offer, need } = input;
+  const exact =
+    offer.capabilitiesProvided.includes(need.requiredCapability) &&
+    offer.needsResolved.includes(need.type) &&
+    serviceDevelopsNeedSkill(offer, need);
+  if (!exact) return { offer, exact: false, score: 0, unknowns: [], hardStops: [] };
+
+  const unknowns: string[] = [];
+  const hardStops: string[] = [];
+  let score = 50;
+  const offerSourceFreshness = sourceFreshness(offer.sourceRef, input.sourceFreshnessById);
+  if (offer.verificationStatus === "VERIFIED" && offerSourceFreshness === "CURRENT") score += 10;
+  else if (offerSourceFreshness === "REVIEW_DUE") unknowns.push("Source du service arrivée à échéance de revue ; rafraîchissement requis.");
+  else unknowns.push("Offre de service à vérifier avant mobilisation.");
+
+  if (input.territory) {
+    if (offer.territory.length === 0) {
+      unknowns.push(`Territoire du service non renseigné pour ${input.territory}.`);
+    } else if (!territoryValuesMatch(offer.territory, input.territory)) {
+      hardStops.push(`Le service ne couvre pas le territoire ${input.territory}.`);
+    } else {
+      score += 10;
+    }
+  }
+
+  if (offer.places === 0) {
+    hardStops.push("Le service indique zéro place disponible.");
+  } else if (offer.places === null) {
+    unknowns.push("Nombre de places du service non renseigné.");
+  } else {
+    score += 5;
+  }
+
+  const now = new Date(input.now).getTime();
+  const datedSessions = offer.dates.map((date) => new Date(date).getTime());
+  if (datedSessions.length === 0) {
+    unknowns.push("Calendrier du service non renseigné.");
+  } else if (datedSessions.every((date) => date < now)) {
+    hardStops.push("Le service ne comporte que des dates passées.");
+  } else {
+    score += 5;
+  }
+
+  const textualChecks = [
+    ...offer.targetPublic,
+    ...offer.eligibilityRules,
+    ...offer.prerequisites,
+    ...offer.requiredDocuments,
+  ];
+  if (textualChecks.length > 0) {
+    unknowns.push("Éligibilité, prérequis ou documents du service à instruire humainement.");
+  } else {
+    score += 5;
+  }
+
+  return { offer, exact: true, score, unknowns: deduplicate(unknowns), hardStops: deduplicate(hardStops) };
+}
+
 /** Actor-level and capability-level verification are both required by `verifiedOnly`. */
 export function findActorsByCapability(
   actors: Actor[],
@@ -209,6 +320,9 @@ export function findActorMatchesForNeed(input: {
   serviceOffers: ServiceOffer[];
   territory?: string;
   verifiedOnly?: boolean;
+  includeExcluded?: boolean;
+  now?: string;
+  sourceFreshnessById?: SourceFreshnessById;
 }): ActorMatch[] {
   const offers = input.serviceOffers.map((offer) => serviceOfferSchema.parse(offer));
   const actors = findActorsByCapability(input.actors, input.need.requiredCapability, {
@@ -216,34 +330,142 @@ export function findActorMatchesForNeed(input: {
     verifiedOnly: input.verifiedOnly ?? false,
   });
 
-  return actors.map((actor) => {
+  const now = input.now ?? new Date().toISOString();
+  const matches = actors.map((actor): ActorMatch => {
     const capability = actor.capabilities.find((claim) => claim.capability === input.need.requiredCapability)!;
-    const matchingOffers = offers.filter(
-      (offer) =>
-        offer.actorId === actor.id &&
-        offer.capabilitiesProvided.includes(input.need.requiredCapability) &&
-        (!input.verifiedOnly || offer.verificationStatus === "VERIFIED"),
+    const actorOffers = offers.filter(
+      (offer) => offer.actorId === actor.id && (!input.verifiedOnly || offer.verificationStatus === "VERIFIED"),
     );
+    const assessedOffers = actorOffers.map((offer) => assessServiceForNeed({
+      offer,
+      need: input.need,
+      territory: input.territory,
+      now,
+      sourceFreshnessById: input.sourceFreshnessById,
+    }));
+    const exactOffers = assessedOffers.filter((assessment) => assessment.exact);
+    const usableOffers = exactOffers
+      .filter((assessment) => assessment.hardStops.length === 0)
+      .sort((left, right) => right.score - left.score || left.offer.name.localeCompare(right.offer.name, "fr"));
+    const bestOffer = usableOffers[0] ?? null;
     const unknowns: string[] = [];
-    if (actor.verificationStatus !== "VERIFIED" || capability.verificationStatus !== "VERIFIED") {
+    const hardStops: string[] = [];
+    const actorSourceFreshness = sourceFreshness(actor.sourceRef, input.sourceFreshnessById);
+    const capabilitySourceFreshness = sourceFreshness(capability.sourceRef, input.sourceFreshnessById);
+    const actorEvidenceCurrent = actor.verificationStatus === "VERIFIED" && actorSourceFreshness === "CURRENT";
+    const capabilityEvidenceCurrent = capability.verificationStatus === "VERIFIED" && capabilitySourceFreshness === "CURRENT";
+    if (!actorEvidenceCurrent || !capabilityEvidenceCurrent) {
       unknowns.push("Capacité de l'acteur à vérifier avant orientation.");
     }
-    if (actor.currentCapacity.status === "UNKNOWN") unknowns.push("Capacité d'accueil actuelle non renseignée.");
-    if (matchingOffers.length === 0) unknowns.push("Aucune offre de service correspondante vérifiée n'est renseignée.");
+    if (actorSourceFreshness === "REVIEW_DUE" || capabilitySourceFreshness === "REVIEW_DUE") {
+      unknowns.push("Source de l'acteur ou de sa capacité arrivée à échéance de revue.");
+    }
+    if (actor.currentCapacity.status === "UNAVAILABLE" || actor.currentCapacity.places === 0) {
+      hardStops.push("L'acteur est indisponible ou indique zéro place.");
+    } else if (actor.currentCapacity.status === "UNKNOWN") {
+      unknowns.push("Capacité d'accueil actuelle non renseignée.");
+    } else if (actor.currentCapacity.status === "LIMITED") {
+      unknowns.push("Capacité d'accueil limitée à reconfirmer.");
+    }
+    if (actor.eligibilityRules.length > 0) unknowns.push("Règles d'éligibilité de l'acteur à instruire humainement.");
+
+    if (exactOffers.length > 0 && usableOffers.length === 0) {
+      hardStops.push(...exactOffers.flatMap((assessment) => assessment.hardStops));
+    }
+    if (bestOffer) unknowns.push(...bestOffer.unknowns);
+    if (exactOffers.length === 0) unknowns.push("Aucune offre de service concrète ne répond exactement au besoin.");
+
+    const level: ActorMatch["level"] = hardStops.length > 0
+      ? "EXCLUDED"
+      : !bestOffer
+        ? "DISCOVERY_ONLY"
+        : unknowns.length > 0
+          ? "QUALIFIED_WITH_CHECKS"
+          : "ACTIVATABLE";
+
+    const scoreBreakdown: ActorMatch["scoreBreakdown"] = [
+      {
+        criterion: "CAPABILITY",
+        points: capabilityEvidenceCurrent ? 20 : 8,
+        maximum: 20,
+        explanation: capabilityEvidenceCurrent ? "Capacité documentée par une source fraîche." : "Capacité ou source encore à vérifier.",
+      },
+      {
+        criterion: "ACTOR_VERIFICATION",
+        points: actorEvidenceCurrent ? 10 : 4,
+        maximum: 10,
+        explanation: actorEvidenceCurrent ? "Identité acteur vérifiée par une source fraîche." : "Identité acteur ou source à vérifier.",
+      },
+      {
+        criterion: "TERRITORY",
+        points: input.territory && territoryMatches(actor, input.territory) ? 10 : input.territory ? 0 : 10,
+        maximum: 10,
+        explanation: input.territory ? `Implantation acteur compatible avec ${input.territory}.` : "Aucun territoire imposé.",
+      },
+      {
+        criterion: "SERVICE_FIT",
+        points: bestOffer ? 30 : 0,
+        maximum: 30,
+        explanation: bestOffer ? "Service concret relié au besoin et à la compétence." : "Aucun service concret exact mobilisable.",
+      },
+      {
+        criterion: "SERVICE_VERIFICATION",
+        points: bestOffer?.offer.verificationStatus === "VERIFIED" && sourceFreshness(bestOffer.offer.sourceRef, input.sourceFreshnessById) === "CURRENT" ? 10 : bestOffer ? 3 : 0,
+        maximum: 10,
+        explanation: bestOffer?.offer.verificationStatus === "VERIFIED" && sourceFreshness(bestOffer.offer.sourceRef, input.sourceFreshnessById) === "CURRENT" ? "Service sourcé, vérifié et frais." : "Service absent, à vérifier ou à rafraîchir.",
+      },
+      {
+        criterion: "AVAILABILITY",
+        points:
+          bestOffer && actor.currentCapacity.status === "AVAILABLE" && bestOffer.offer.places !== null && bestOffer.offer.places > 0 && bestOffer.offer.dates.length > 0
+            ? 15
+            : bestOffer && hardStops.length === 0
+              ? 5
+              : 0,
+        maximum: 15,
+        explanation: hardStops.length > 0 ? "Disponibilité incompatible." : unknowns.some((unknown) => /place|calendrier|capacité d'accueil/i.test(unknown)) ? "Disponibilité à confirmer." : "Disponibilité documentée.",
+      },
+      {
+        criterion: "PREREQUISITES",
+        points: bestOffer && !unknowns.some((unknown) => /éligibilité|prérequis|documents/i.test(unknown)) ? 5 : 0,
+        maximum: 5,
+        explanation: unknowns.some((unknown) => /éligibilité|prérequis|documents/i.test(unknown)) ? "Contrôles humains requis." : "Aucun prérequis textuel non instruit.",
+      },
+    ];
+    const score = scoreBreakdown.reduce((total, component) => total + component.points, 0);
 
     return {
       actor,
       capability,
-      serviceOffers: matchingOffers,
+      serviceOffers: usableOffers.map((assessment) => assessment.offer),
+      level,
+      score,
+      scoreBreakdown,
       reasons: [
-        capability.verificationStatus === "VERIFIED"
-          ? `La capacité ${input.need.requiredCapability} est documentée pour cet acteur.`
-          : `Le registre associe provisoirement ${input.need.requiredCapability} à cet acteur; cette capacité reste à vérifier.`,
+        capabilityEvidenceCurrent
+          ? `La capacité ${input.need.requiredCapability} est documentée par une source fraîche pour cet acteur.`
+          : `Le registre associe provisoirement ${input.need.requiredCapability} à cet acteur ; la capacité ou sa source reste à vérifier.`,
         ...(input.territory && territoryMatches(actor, input.territory) ? [`Territoire compatible avec ${input.territory}.`] : []),
+        ...(bestOffer ? [`Le service « ${bestOffer.offer.name} » répond directement au besoin « ${input.need.label} ».`] : []),
       ],
-      unknowns,
+      unknowns: deduplicate(unknowns),
+      hardStops: deduplicate(hardStops),
     };
   });
+
+  const levelPriority: Record<ActorMatch["level"], number> = {
+    ACTIVATABLE: 4,
+    QUALIFIED_WITH_CHECKS: 3,
+    DISCOVERY_ONLY: 2,
+    EXCLUDED: 1,
+  };
+  return matches
+    .filter((match) => input.includeExcluded || match.level !== "EXCLUDED")
+    .sort((left, right) =>
+      levelPriority[right.level] - levelPriority[left.level] ||
+      right.score - left.score ||
+      left.actor.displayName.localeCompare(right.actor.displayName, "fr"),
+    );
 }
 
 function stepTypeForNeed(type: NeedType): PathwayStep["type"] {
@@ -276,12 +498,14 @@ function draftPathway(input: {
   territory?: string;
   verifiedOnly: boolean;
   now: string;
-}): { pathway: Pathway; explanations: string[]; unknowns: string[] } {
+  sourceFreshnessById?: SourceFreshnessById;
+}): { pathway: Pathway; matchSuggestions: PathwayDraftResult["matchSuggestions"]; explanations: string[]; unknowns: string[] } {
   const pathwayId = stableId("pathway", input.passport.participantId, `plan-${input.planType}`, input.occupation.id);
   const diagnosticId = stableId(pathwayId, "diagnostic");
   const projectId = stableId(pathwayId, "validation-projet");
   const explanations: string[] = [];
   const unknowns: string[] = [];
+  const matchSuggestions: PathwayDraftResult["matchSuggestions"] = [];
 
   const steps: PathwayStep[] = [
     {
@@ -358,23 +582,35 @@ function draftPathway(input: {
       serviceOffers: input.serviceOffers,
       territory: input.territory,
       verifiedOnly: input.verifiedOnly,
+      now: input.now,
+      sourceFreshnessById: input.sourceFreshnessById,
     });
-    const match = matches[0] ?? null;
+    const suggestedMatches = matches.slice(0, 3);
+    matchSuggestions.push({
+      planType: input.planType,
+      needId: need.id,
+      needLabel: need.label,
+      matches: suggestedMatches,
+    });
+    const match = suggestedMatches.find((candidate) => candidate.level === "ACTIVATABLE") ?? null;
+    const bestCandidate = suggestedMatches[0] ?? null;
     const offer = match?.serviceOffers[0] ?? null;
+    const suggestedOffer = bestCandidate?.serviceOffers[0] ?? null;
     const stepId = stableId(pathwayId, "need", need.id);
-    const noVerifiedSolution = input.verifiedOnly && !match;
     const sourceReason = match
-      ? `Cette étape répond au besoin « ${need.label} ». Le registre associe ${need.requiredCapability} à ${match.actor.displayName}${match.capability.verificationStatus === "VERIFIED" ? " avec une source vérifiée" : " à titre provisoire"}; l'affectation reste à valider par le CIP.`
-      : `Cette étape répond au besoin « ${need.label} ». Aucune solution${input.verifiedOnly ? " vérifiée" : " compatible"} n'a été trouvée; une recherche manuelle est nécessaire.`;
+      ? `Cette étape répond au besoin « ${need.label} ». Le service « ${offer?.name ?? "à confirmer"} » de ${match.actor.displayName} est classé ACTIVATABLE avec un score explicable de ${match.score}/100; l'affectation reste à valider par le CIP.`
+      : bestCandidate
+        ? `Cette étape répond au besoin « ${need.label} ». ${bestCandidate.actor.displayName} est une piste ${bestCandidate.level} classée ${bestCandidate.score}/100, mais des contrôles restent nécessaires : aucune affectation automatique, solution à instruire par le CIP.`
+        : `Cette étape répond au besoin « ${need.label} ». Aucune solution${input.verifiedOnly ? " vérifiée" : " compatible"} n'a été trouvée; une recherche manuelle est nécessaire.`;
 
-    if (noVerifiedSolution) unknowns.push(`Aucune solution vérifiée trouvée pour « ${need.label} ».`);
+    if (!match) unknowns.push(`Aucune solution vérifiée et activable trouvée pour « ${need.label} »; la meilleure piste reste à instruire.`);
     explanations.push(sourceReason);
     steps.push({
       id: stepId,
       pathwayId,
       type: stepTypeForNeed(need.type),
       title: need.label,
-      description: offer?.description ?? `Organiser une réponse au besoin : ${need.label}.`,
+      description: suggestedOffer?.description ?? `Organiser une réponse au besoin : ${need.label}.`,
       assignedActorId: match?.actor.id ?? null,
       serviceOfferId: offer?.id ?? null,
       opportunityId: null,
@@ -384,8 +620,12 @@ function draftPathway(input: {
       dueDate: null,
       dueOffsetDays: null,
       completedAt: null,
-      requiredInputs: [],
-      expectedOutputs: [`Besoin « ${need.label} » traité ou réévalué`],
+      requiredInputs: suggestedOffer
+        ? deduplicate([...suggestedOffer.prerequisites, ...suggestedOffer.requiredDocuments])
+        : [],
+      expectedOutputs: suggestedOffer?.expectedOutput
+        ? [suggestedOffer.expectedOutput]
+        : [`Besoin « ${need.label} » traité ou réévalué`],
       evidence: [],
       expectedCostCents: offer?.costCents ?? null,
       actualCostCents: null,
@@ -396,9 +636,18 @@ function draftPathway(input: {
       sourceReason,
       suggestion: {
         humanValidationRequired: true,
-        confidence: match && match.unknowns.length === 0 ? "HIGH" : match ? "MEDIUM" : "LOW",
-        dataUsed: [need.label, need.requiredCapability, ...(match ? [match.actor.displayName] : [])],
-        unknowns: match?.unknowns ?? ["Acteur, offre, disponibilité et coût à renseigner."],
+        confidence: match ? "HIGH" : bestCandidate?.level === "QUALIFIED_WITH_CHECKS" ? "MEDIUM" : "LOW",
+        dataUsed: [
+          need.label,
+          need.requiredCapability,
+          ...(bestCandidate ? [`${bestCandidate.actor.displayName} · ${bestCandidate.level} · ${bestCandidate.score}/100`] : []),
+          ...(suggestedOffer ? [`Service : ${suggestedOffer.name}`] : []),
+        ],
+        unknowns: match
+          ? []
+          : bestCandidate
+            ? deduplicate([...bestCandidate.unknowns, "Affectation acteur/service à instruire et valider par le CIP."])
+            : ["Acteur, offre, disponibilité et coût à renseigner."],
       },
     });
     precedingIds = [stepId];
@@ -500,7 +749,7 @@ function draftPathway(input: {
     activatedAt: null,
     activationReason: null,
   });
-  return { pathway, explanations, unknowns };
+  return { pathway, matchSuggestions, explanations, unknowns };
 }
 
 export function generatePathwayDraft(input: {
@@ -514,6 +763,7 @@ export function generatePathwayDraft(input: {
   territory?: string;
   verifiedSolutionsOnly?: boolean;
   now?: string;
+  sourceFreshnessById?: SourceFreshnessById;
 }): PathwayDraftResult {
   const passport = participantPassportSchema.parse(input.passport);
   const planAOccupation = occupationSchema.parse(input.planAOccupation);
@@ -534,6 +784,7 @@ export function generatePathwayDraft(input: {
     territory: input.territory,
     verifiedOnly,
     now,
+    sourceFreshnessById: input.sourceFreshnessById,
   };
   const planA = draftPathway({ ...common, occupation: planAOccupation, planType: "A", needs: planANeeds });
   const planB = draftPathway({ ...common, occupation: planBOccupation, planType: "B", needs: planBNeeds });
@@ -542,6 +793,7 @@ export function generatePathwayDraft(input: {
     planA: planA.pathway,
     planB: planB.pathway,
     needs: uniqueNeeds([...planANeeds, ...planBNeeds]),
+    matchSuggestions: [...planA.matchSuggestions, ...planB.matchSuggestions],
     explanations: [...planA.explanations, ...planB.explanations],
     unknowns: [...new Set([...planA.unknowns, ...planB.unknowns])],
     humanValidationRequired: true,

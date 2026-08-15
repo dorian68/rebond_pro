@@ -10,12 +10,13 @@ import type {
   UiCostItem,
   UiOutcome,
   UiReferral,
+  UiService,
   UiSource,
   UiStep,
 } from "./ui-types";
 import styles from "./orchestration.module.css";
 
-const STORAGE_KEY = "le-bon-rebond:orchestration:mixed-sources:v2";
+const STORAGE_KEY = "le-bon-rebond:orchestration:mixed-sources:v3";
 const DEMO_NOW_MS = Date.parse("2026-08-15T12:00:00.000Z");
 
 const VIEWS: { id: OrchestrationView; label: string; icon: string }[] = [
@@ -144,6 +145,15 @@ const CAPABILITY_LABELS: Record<string, string> = {
 const REFERRAL_CYCLE = ["SENT", "ACKNOWLEDGED", "ACCEPTED", "IN_PROGRESS", "COMPLETED"];
 const STEP_STATUSES = ["DRAFT", "READY", "ASSIGNED", "SENT", "ACKNOWLEDGED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "REJECTED", "BLOCKED", "NO_RESPONSE", "CANCELLED"];
 
+const MATCH_LEVEL_LABELS: Record<string, string> = {
+  ACTIVATABLE: "Mobilisable",
+  QUALIFIED_WITH_CHECKS: "À instruire",
+  DISCOVERY_ONLY: "Référentiel seulement",
+  EXCLUDED: "Exclu par une règle dure",
+  UNAVAILABLE: "Indisponible",
+  TO_VERIFY: "À vérifier",
+};
+
 type PersistedDemo = {
   steps: UiStep[];
   referrals: UiReferral[];
@@ -214,6 +224,13 @@ function actorTypeLabel(actor: Pick<UiActor, "actorTypes">, firstOnly = false) {
 function actorVerificationLabel(actor: Pick<UiActor, "verificationStatus" | "synthetic">) {
   if (actor.synthetic) return "Démo synthétique";
   return actor.verificationStatus === "VERIFIED" ? "Vérifié" : "À vérifier";
+}
+
+function matchLevelClass(level: string) {
+  if (level === "ACTIVATABLE") return styles.statusDone;
+  if (level === "QUALIFIED_WITH_CHECKS") return styles.statusWaiting;
+  if (level === "UNAVAILABLE" || level === "EXCLUDED") return styles.statusBlocked;
+  return styles.statusDraft;
 }
 
 function signalValue(value: number, unit: string) {
@@ -425,6 +442,7 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
             }}
             onShare={() => setShareOpen(true)}
             onGoals={updateGoals}
+            onOpenActor={setSelectedActorId}
           />
         )}
         {view === "ecosystem" && <Ecosystem actors={actors} initialCapability={ecosystemCapability} onOpenActor={setSelectedActorId} />}
@@ -447,7 +465,7 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
           }}
         />
       )}
-      {selectedActor && <ActorDrawer actor={selectedActor} onChange={(next) => setActors((current) => current.map((actor) => actor.id === next.id ? next : actor))} onClose={() => setSelectedActorId(null)} />}
+      {selectedActor && <ActorDrawer actor={selectedActor} services={model.services.filter((service) => service.actorId === selectedActor.id)} onChange={(next) => setActors((current) => current.map((actor) => actor.id === next.id ? next : actor))} onClose={() => setSelectedActorId(null)} />}
       {shareOpen && <SharePreview passport={model.passport} onClose={() => setShareOpen(false)} />}
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
@@ -489,7 +507,8 @@ function Overview({ model, steps, referrals, costs, outcome, onOpenSarah, onView
     [outcome.followups.J90 === "ACTIVE" ? "1" : "0", "Maintenue à J+90", false],
   ] as const;
   const registry = model.sourceRegistry;
-  const verifiedSources = registry.sources.filter((source) => source.verificationStatus === "VERIFIED").length;
+  const currentSources = registry.sources.filter((source) => source.freshnessStatus === "CURRENT").length;
+  const reviewDueSources = registry.sources.filter((source) => source.freshnessStatus === "REVIEW_DUE").length;
   const sourcedActors = model.actors.filter((actor) => !actor.synthetic).length;
 
   return (
@@ -502,13 +521,13 @@ function Overview({ model, steps, referrals, costs, outcome, onOpenSarah, onView
         </div>
         <div className={styles.sourceHealthMetrics}>
           <div><strong>{registry.sources.length}</strong><span>sources enregistrées</span></div>
-          <div><strong>{verifiedSources}/{registry.sources.length}</strong><span>sources vérifiées</span></div>
+          <div><strong>{currentSources}/{registry.sources.length}</strong><span>sources fraîches</span></div>
           <div><strong>{sourcedActors}</strong><span>acteurs candidats sourcés</span></div>
           <div><strong>{shortDate(registry.latestCheckedAt)}</strong><span>dernier contrôle</span></div>
         </div>
-        <div className={`${styles.sourceHealthAlert} ${registry.missingSources.length === 0 ? styles.sourceHealthOk : ""}`}>
-          <Icon name={registry.missingSources.length === 0 ? "check-circle" : "alert-circle"} size={14} />
-          <span>{registry.missingSources.length === 0 ? "Aucune source attendue signalée comme manquante." : `${registry.missingSources.length} source(s) attendue(s) restent absentes : ${registry.missingSources.join(" · ")}`}</span>
+        <div className={`${styles.sourceHealthAlert} ${registry.missingSources.length === 0 && reviewDueSources === 0 ? styles.sourceHealthOk : ""}`}>
+          <Icon name={registry.missingSources.length === 0 && reviewDueSources === 0 ? "check-circle" : "alert-circle"} size={14} />
+          <span>{reviewDueSources > 0 ? `${reviewDueSources} source(s) ont dépassé leur échéance de revue. ` : ""}{registry.missingSources.length === 0 ? "Aucune source attendue signalée comme manquante." : `${registry.missingSources.length} source(s) attendue(s) restent absentes : ${registry.missingSources.join(" · ")}`}</span>
         </div>
       </section>
 
@@ -598,7 +617,7 @@ function Cohorts({ model, onOpenSarah }: { model: OrchestrationUiModel; onOpenSa
   );
 }
 
-function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActive, planBReason, pathwayStatus, pathwayVersion, selectedStep, onSelectStep, onSteps, onActivatePlanB, onValidate, onShare, onGoals }: {
+function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActive, planBReason, pathwayStatus, pathwayVersion, selectedStep, onSelectStep, onSteps, onActivatePlanB, onValidate, onShare, onGoals, onOpenActor }: {
   model: OrchestrationUiModel;
   steps: UiStep[];
   referrals: UiReferral[];
@@ -615,6 +634,7 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
   onValidate: () => void;
   onShare: () => void;
   onGoals: (goals: { planA: string; planB: string }) => void;
+  onOpenActor: (actorId: string) => void;
 }) {
   const [canvasMode, setCanvasMode] = useState<"graph" | "timeline">("graph");
   const [planBReasonDraft, setPlanBReasonDraft] = useState(planBReason);
@@ -631,11 +651,9 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
   const evidenceIssues = relevantSteps.filter((step) => ["BLOCKED", "COMPLETED"].includes(step.status) && step.evidence.length === 0);
   const validationIssueCount = ownerIssues.length + deadlineIssues.length + evidenceIssues.length;
   const canValidate = validationIssueCount === 0 && pathwayStatus !== "ACTIVE";
-  const sourcedServices = model.services.filter((service) => service.verificationStatus === "VERIFIED");
-  const sourcedOpportunities = model.opportunities.filter((opportunity) => opportunity.verificationStatus === "VERIFIED" && !opportunity.synthetic);
   const romeSource = model.sourceRegistry.sources.find((source) => source.title.includes("ROME")) ?? null;
-  const fundingReferences = model.sourceRegistry.fundingMechanisms.filter((mechanism) => mechanism.verificationStatus === "VERIFIED");
-  const pathwayReferenceCount = sourcedServices.length + sourcedOpportunities.length + fundingReferences.length;
+  const needCandidates = model.needSolutions.flatMap((solution) => solution.candidates);
+  const activatableCount = needCandidates.filter((candidate) => candidate.readiness === "ACTIVATABLE").length;
 
   const moveStep = useCallback((stepId: string, x: number, y: number) => {
     onSteps(steps.map((step) => step.id === stepId ? { ...step, x, y } : step));
@@ -690,12 +708,14 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
           {romeSource && <div className={styles.romeReference}><SourceLink source={romeSource} label="Référentiel ROME consulté" /><small>{model.occupation.code ? "Code relié au métier cible dans le référentiel." : "Le référentiel est officiel, mais aucun code ROME n’est encore attribué à ce métier dans le Passeport."}</small></div>}
         </article>
         <article className={styles.pathwaySolutions}>
-          <div className={styles.spread}><div><div className={styles.sourceBadge}><Icon name="globe" size={11} /> Repères sourcés</div><h3>À instruire avant toute mobilisation</h3></div><span className={`${styles.statusPill} ${pathwayReferenceCount ? styles.verified : styles.needsVerification}`}>{pathwayReferenceCount} référence(s)</span></div>
-          {pathwayReferenceCount ? <div className={styles.solutionList}>
-            {sourcedServices.slice(0, 2).map((service) => <div key={service.id}><strong>{service.name}</strong><span>{service.actorName}</span><small>{service.caveats.join(" · ") || "Source vérifiée ; disponibilité à reconfirmer au moment de l’orientation."}</small><DirectSourceLink url={service.sourceUrl} label={service.sourceLabel} /></div>)}
-            {sourcedOpportunities.slice(0, 2).map((opportunity) => <div key={opportunity.id}><strong>{opportunity.title}</strong><span>{opportunity.providerName}</span><small>{opportunity.caveats.join(" · ") || "Disponibilité à reconfirmer au moment de la candidature."}</small><DirectSourceLink url={opportunity.sourceUrl} label={opportunity.sourceLabel} /></div>)}
-            {fundingReferences.slice(0, 2).map((mechanism) => { const source = model.sourceRegistry.sources.find((candidate) => candidate.id === mechanism.sourceId); return <div key={mechanism.id}><strong>{mechanism.name}</strong><span>{mechanism.purpose}</span><small>Cadre documenté uniquement · instruction et décision du financeur obligatoires.</small><SourceLink source={source} /></div>; })}
-          </div> : <div className={styles.unknown}>Aucune solution vérifiée n’est actuellement mobilisable depuis le registre. Une recherche humaine reste nécessaire.</div>}
+          <div className={styles.spread}><div><div className={styles.sourceBadge}><Icon name="globe" size={11} /> Pathway Engine · explicable</div><h3>Solutions classées par besoin</h3></div><span className={`${styles.statusPill} ${activatableCount ? styles.statusDone : styles.statusWaiting}`}>{activatableCount} mobilisable(s)</span></div>
+          {model.needSolutions.length ? <div className={styles.solutionList}>
+            {model.needSolutions.slice(0, 4).map((solution) => {
+              const candidate = solution.candidates[0];
+              return <div key={solution.needId}><div className={styles.spread}><strong>{solution.needLabel}</strong>{candidate && <span className={`${styles.statusPill} ${matchLevelClass(candidate.readiness)}`}>{MATCH_LEVEL_LABELS[candidate.readiness]} · {candidate.score}/100</span>}</div>{candidate ? <><span>{candidate.actorName}{candidate.serviceName ? ` · ${candidate.serviceName}` : " · capacité documentaire"}</span><small>{candidate.unknowns.slice(0, 2).join(" · ") || "Disponibilité, territoire et offre contrôlés ; validation CIP toujours requise."}</small><button type="button" className={styles.solutionAction} onClick={() => onOpenActor(candidate.actorId)}>Instruire la fiche acteur <Icon name="arrow-right" size={10} /></button></> : <small>Aucune piste vérifiée. Créer une tâche de recherche manuelle et compléter le registre.</small>}</div>;
+            })}
+          </div> : <div className={styles.unknown}>Aucun besoin structuré n’est disponible pour calculer des pistes.</div>}
+          <div className={styles.sourceLine} style={{ marginTop: 8 }}><Icon name="shield" size={10} /> Le score classe la qualité des preuves et la mobilisabilité ; il ne prédit jamais la réussite de Sarah. Aucune piste « À instruire » n’est auto-affectée.</div>
         </article>
       </section>
       <div className={styles.pathwayLayout}>
@@ -721,6 +741,7 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
           <div className={styles.columnTitle}><strong>Pilotage</strong><Icon name="gauge" size={15} /></div>
           <div className={styles.pilotSection}><h4>Checklist de validation</h4><div className={styles.miniList}><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={ownerIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Responsables</strong><small>{ownerIssues.length ? `${ownerIssues.length} étape(s) sans acteur` : "Chaque action a un responsable"}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={deadlineIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Échéances</strong><small>{deadlineIssues.length ? `${deadlineIssues.length} échéance(s) manquante(s)` : "Chaque responsable a une échéance"}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={evidenceIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Preuves</strong><small>{evidenceIssues.length ? `${evidenceIssues.length} blocage(s)/fin(s) sans preuve` : "Blocages et fins sont documentés"}</small></span></div></div></div>
           <div className={styles.pilotSection}><h4>Prochaine meilleure action</h4><div className={styles.nextAction}><strong>{nextStep?.title ?? "Aucune action active"}</strong><p>{nextStep?.sourceReason ?? "Le CIP doit définir la prochaine action."}</p></div></div>
+          <div className={styles.pilotSection}><h4>Solutions à instruire</h4><div className={styles.miniList}>{model.needSolutions.map((solution) => { const candidate = solution.candidates[0]; return <div className={styles.miniRow} key={solution.needId}><span className={styles.miniRowIcon}><Icon name={candidate?.readiness === "ACTIVATABLE" ? "check-circle" : candidate ? "search" : "alert-circle"} size={12} /></span><span><strong>{solution.needLabel}</strong><small>{candidate ? `${candidate.actorName}${candidate.serviceName ? ` · ${candidate.serviceName}` : " · référentiel"}` : "Recherche manuelle nécessaire"}</small></span><span className={`${styles.statusPill} ${matchLevelClass(candidate?.readiness ?? "DISCOVERY_ONLY")}`}>{candidate ? `${MATCH_LEVEL_LABELS[candidate.readiness]} · ${candidate.score}` : "Aucune piste"}</span></div>; })}</div></div>
           <div className={styles.pilotSection}><h4>Orientations en attente</h4><div className={styles.miniList}>{pendingReferrals.length ? pendingReferrals.slice(0, 3).map((referral) => <div className={styles.miniRow} key={referral.id}><span className={styles.miniRowIcon}><Icon name="send" size={12} /></span><span><strong>{referral.toActorName}</strong><small>{referral.title}</small></span><span className={`${styles.statusPill} ${statusClass(referral.status)}`}>{STATUS_LABELS[referral.status] ?? referral.status}</span></div>) : <small>Aucune orientation en attente.</small>}</div></div>
           <div className={styles.pilotSection}><h4>Blocages</h4><div className={styles.miniList}>{model.passport.needs.filter((need) => need.blocking).map((need) => <div className={styles.miniRow} key={need.id}><span className={styles.miniRowIcon} style={{ background: "var(--orch-red-soft)", color: "var(--orch-red)" }}><Icon name="alert-triangle" size={12} /></span><span><strong>{need.label}</strong><small>{need.evidence}</small></span></div>)}</div></div>
           <div className={styles.pilotSection}><h4>Coûts & couverture</h4><div className={styles.moneyLine}><span>{expectedSummary.hasKnown ? "Sous-total prévu connu" : "Coût prévisionnel"}</span><strong>{expectedSummary.hasKnown ? euro(expectedSummary.knownSubtotal) : "Non renseigné"}</strong></div>{expectedSummary.unknownCount > 0 && <div className={styles.unknown}>{expectedSummary.unknownCount} coût(s) non renseigné(s)</div>}<div className={styles.moneyLine}><span>{approvedSummary.hasKnown ? "Sous-total accordé connu" : "Financement accordé"}</span><strong>{approvedSummary.hasKnown ? euro(approvedSummary.knownSubtotal) : "Non renseigné"}</strong></div>{approvedSummary.unknownCount > 0 && <div className={styles.unknown}>{approvedSummary.unknownCount} couverture(s) inconnue(s)</div>}<div className={styles.moneyLine}><span>Reste à financer</span><strong>{euro(remaining)}</strong></div></div>
@@ -903,6 +924,8 @@ function Ecosystem({ actors, initialCapability, onOpenActor }: { actors: UiActor
   const sectors = Array.from(new Set(actors.flatMap((actor) => actor.sectors))).sort((left, right) => left.localeCompare(right, "fr"));
   const verifiedActorCount = actors.filter((actor) => actor.verificationStatus === "VERIFIED" && !actor.synthetic).length;
   const verifiedCapabilityCount = actors.flatMap((actor) => actor.capabilityClaims).filter((claim) => claim.verificationStatus === "VERIFIED").length;
+  const roleDocumentedCount = actors.filter((actor) => actor.pathwayRoles.length > 0 && !actor.synthetic).length;
+  const serviceBackedActorCount = actors.filter((actor) => actor.services.length > 0 && !actor.synthetic).length;
 
   return (
     <>
@@ -918,7 +941,7 @@ function Ecosystem({ actors, initialCapability, onOpenActor }: { actors: UiActor
         <select aria-label="Filtrer par filière" value={sector} onChange={(event) => setSector(event.target.value)}><option value="">Toutes les filières</option>{sectors.map((value) => <option value={value} key={value}>{value}</option>)}<option value="UNKNOWN">Filière non renseignée</option></select>
         <button type="button" className={styles.secondaryButton} onClick={() => { setSearch(""); setTerritory(""); setBasin(""); setType(""); setCapability(""); setVerification(""); setAvailability(""); setSector(""); }}><Icon name="refresh" size={12} /> Effacer</button>
       </div>
-      <div className={styles.sourceBox} style={{ marginBottom: 12 }}><strong>Lecture par niveau de preuve</strong><br />L’identité d’un acteur, une capacité, une offre et une disponibilité sont vérifiées séparément. {verifiedActorCount} identité(s) d’acteur et {verifiedCapabilityCount} claim(s) de capacité sont actuellement marqués vérifiés. Une source institutionnelle générale ne prouve ni une place disponible, ni un partenariat avec Le Bon Rebond.</div>
+      <div className={styles.sourceBox} style={{ marginBottom: 12 }}><strong>Lecture par niveau de preuve</strong><br />L’identité d’un acteur, son rôle dans le parcours, une capacité, une offre et sa disponibilité sont vérifiés séparément. {verifiedActorCount} identité(s), {verifiedCapabilityCount} claim(s), {roleDocumentedCount} rôle(s) acteur documenté(s) et {serviceBackedActorCount} acteur(s) relié(s) à un service concret. Une source institutionnelle générale ne prouve ni une place disponible, ni un partenariat avec Le Bon Rebond.</div>
       {orderedActors.length === 0 ? <div className={styles.emptyState}><span><strong>Aucun acteur ne répond à ces critères</strong><p>L’absence de donnée vérifiée n’est pas une conclusion négative. Une recherche et une validation manuelles sont nécessaires.</p></span></div> : mode === "map" ? <><div className={styles.sourceLine} style={{ marginBottom: 7 }}><Icon name="eye" size={11} /> Carte : {Math.min(orderedActors.length, 12)} acteur(s) affiché(s) sur {orderedActors.length}. Les identités vérifiées et acteurs mobilisés sont présentés en premier.</div><ActorMap actors={orderedActors} onOpen={onOpenActor} /></> : <ActorList actors={orderedActors} onOpen={onOpenActor} />}
     </>
   );
@@ -938,7 +961,7 @@ function ActorList({ actors, onOpen }: { actors: UiActor[]; onOpen: (id: string)
   return <div className={styles.actorList}>{actors.map((actor) => <article className={styles.actorCard} key={actor.id}><button type="button" className={styles.actorCardButton} onClick={() => onOpen(actor.id)}><div className={styles.actorHeader}><div className={styles.actorIdentity}><span className={styles.actorLogo}>{actor.name.slice(0, 2).toUpperCase()}</span><span><strong>{actor.name}</strong><small>{actor.territory}</small></span></div>{verificationBadge(actor)}</div><div className={styles.capabilityList}>{actor.capabilityClaims.length ? actor.capabilityClaims.slice(0, 3).map((claim) => <span className={`${styles.capability} ${claim.verificationStatus === "VERIFIED" ? styles.claimVerified : styles.claimPending}`} key={claim.capability}>{CAPABILITY_LABELS[claim.capability] ?? claim.capability} · {claim.verificationStatus === "VERIFIED" ? "vérifiée" : "à vérifier"}</span>) : <span className={styles.capability}>Capacités non documentées</span>}</div></button><div className={styles.sourceLine}><Icon name="file-text" size={10} /><DirectSourceLink url={actor.sourceUrl} label={actor.sourceLabel} /></div></article>)}</div>;
 }
 
-function ActorDrawer({ actor, onChange, onClose }: { actor: UiActor; onChange: (actor: UiActor) => void; onClose: () => void }) {
+function ActorDrawer({ actor, services, onChange, onClose }: { actor: UiActor; services: UiService[]; onChange: (actor: UiActor) => void; onClose: () => void }) {
   const [capabilityToAdd, setCapabilityToAdd] = useState("");
   const [verificationForm, setVerificationForm] = useState({ source: actor.verificationSource ?? "", owner: actor.verifiedBy ?? "", date: inputDate(actor.lastVerifiedAt) });
   const canVerify = Boolean(verificationForm.source.trim() && verificationForm.owner.trim() && verificationForm.date);
@@ -948,8 +971,9 @@ function ActorDrawer({ actor, onChange, onClose }: { actor: UiActor; onChange: (
       <div className={styles.drawerBody}>
         <div className={styles.spread}>{verificationBadge(actor)}{actor.usedInPathway && <span className={`${styles.statusPill} ${styles.statusActive}`}><Icon name="layers" size={10} /> Mobilisé dans Sarah</span>}</div>
         <div className={styles.actorDetailGrid}><div className={styles.detailBox}><span>Rôle(s)</span><strong>{actorTypeLabel(actor)}</strong></div><div className={styles.detailBox}><span>Territoire</span><strong>{actor.territory}</strong></div><div className={styles.detailBox}><span>Capacité actuelle</span><strong>{actor.capacity ?? "Non renseignée"}</strong></div><div className={styles.detailBox}><span>Délai de réponse</span><strong>{actor.responseSla ?? "Non renseigné"}</strong></div></div>
+        <section className={styles.panel}><div className={styles.spread}><h3>Rôle dans le parcours</h3><span className={`${styles.statusPill} ${actor.pathwayRoles.length ? styles.verified : styles.statusDraft}`}>{actor.pathwayRoles.length ? "Documenté" : "À qualifier"}</span></div>{actor.pathwayRoles.length ? <ul>{actor.pathwayRoles.map((role) => <li key={role}>{role}</li>)}</ul> : <div className={styles.unknown}>Aucun rôle opérationnel sourcé. L'acteur reste une piste de découverte.</div>}<div className={styles.evidence}><strong>Entrées requises :</strong> {actor.requiredInputs.join(" · ") || "Non renseignées"}</div><div className={styles.evidence}><strong>Sorties attendues :</strong> {actor.producedOutputs.join(" · ") || "Non renseignées"}</div>{actor.mobilizationNotes.map((note) => <div className={styles.sourceBox} key={note}>{note}</div>)}</section>
         <section className={styles.panel}><div className={styles.spread}><h3>Claims de capacité</h3><span className={`${styles.statusPill} ${styles.needsVerification}`}>Preuve propre à chaque capacité</span></div><div className={styles.claimList}>{actor.capabilityClaims.length ? actor.capabilityClaims.map((claim) => <div className={styles.claimRow} key={claim.capability}><div><strong>{CAPABILITY_LABELS[claim.capability] ?? claim.capability}</strong><span className={`${styles.statusPill} ${claim.verificationStatus === "VERIFIED" ? styles.verified : styles.needsVerification}`}>{claim.verificationStatus === "VERIFIED" ? "Claim vérifié" : "Claim à vérifier"}</span></div><p>{claim.notes ?? "Aucune précision supplémentaire."}</p><div className={styles.sourceLine}><Icon name="file-text" size={10} /><DirectSourceLink url={claim.sourceUrl} label={claim.sourceLabel} /> · contrôle {shortDate(claim.lastVerifiedAt)}</div>{claim.localDraft && <small>Brouillon local non persistant ; il n’est pas une capacité confirmée.</small>}<button type="button" className={styles.ghostButton} onClick={() => onChange({ ...actor, capabilities: actor.capabilities.filter((value) => value !== claim.capability), capabilityClaims: actor.capabilityClaims.filter((value) => value.capability !== claim.capability), verificationStatus: "NEEDS_VERIFICATION", lastVerifiedAt: null })}><Icon name="x" size={10} /> Retirer du brouillon local</button></div>) : <span className={styles.unknown}>Aucune capacité documentée. L’absence de claim n’est pas une conclusion négative.</span>}</div><div className={styles.referralActions}><select aria-label="Capacité à ajouter" value={capabilityToAdd} onChange={(event) => setCapabilityToAdd(event.target.value)}><option value="">Choisir une capacité…</option>{Object.entries(CAPABILITY_LABELS).filter(([id]) => !actor.capabilities.includes(id)).map(([id, label]) => <option value={id} key={id}>{label}</option>)}</select><button type="button" className={styles.secondaryButton} disabled={!capabilityToAdd} onClick={() => { onChange({ ...actor, capabilities: [...actor.capabilities, capabilityToAdd], capabilityClaims: [...actor.capabilityClaims, { capability: capabilityToAdd, verificationStatus: "NEEDS_VERIFICATION", sourceLabel: "Brouillon local non persistant", sourceUrl: null, lastVerifiedAt: null, notes: "Capacité ajoutée manuellement dans la démonstration ; preuve à joindre.", localDraft: true }], verificationStatus: "NEEDS_VERIFICATION", lastVerifiedAt: null }); setCapabilityToAdd(""); }}><Icon name="plus" size={12} /> Ajouter comme brouillon</button></div></section>
-        <section className={styles.panel}><h3>Services & opportunités</h3><div className={styles.evidence}><strong>Services :</strong> {actor.services.length ? actor.services.join(" · ") : "Non renseignés"}</div><div className={styles.evidence}><strong>Opportunités :</strong> {actor.opportunities.length ? actor.opportunities.join(" · ") : "Non renseignées"}</div></section>
+        <section className={styles.panel}><h3>Services & opportunités</h3>{services.length ? <div className={styles.claimList}>{services.map((service) => <div className={styles.claimRow} key={service.id}><div><strong>{service.name}</strong><span className={`${styles.statusPill} ${matchLevelClass(service.mobilizationStatus)}`}>{MATCH_LEVEL_LABELS[service.mobilizationStatus]}</span></div><p>{service.needsResolved.length ? `Besoins : ${service.needsResolved.join(" · ")}` : "Besoins non reliés."}</p><small>{service.eligibilityRules.join(" · ") || "Éligibilité non renseignée"} · {service.places ? `${service.places} place(s) annoncée(s)` : "places libres inconnues"}</small><div className={styles.sourceLine}><Icon name="file-text" size={10} /><DirectSourceLink url={service.sourceUrl} label={service.sourceLabel} /></div></div>)}</div> : <div className={styles.evidence}><strong>Services :</strong> Non renseignés</div>}<div className={styles.evidence}><strong>Opportunités :</strong> {actor.opportunities.length ? actor.opportunities.join(" · ") : "Non renseignées"}</div></section>
         <section className={styles.panel}><h3>Contacts</h3><div className={styles.evidence}>{actor.contacts.length ? actor.contacts.join(" · ") : "Aucun contact fourni"}</div></section>
         <section className={styles.panel}><div className={styles.spread}><h3>Vérification manuelle</h3>{verificationBadge(actor)}</div><div className={styles.sourceBox} style={{ marginTop: 9 }}>Cette action vérifie uniquement la fiche acteur dans votre démonstration locale. Elle ne vérifie pas automatiquement ses capacités, ses places, ses services ni une relation partenariale.</div><div className={styles.drawerBody} style={{ gap: 8 }}><label className={styles.field}><span>Nouvelle preuve de vérification</span><input value={verificationForm.source} onChange={(event) => setVerificationForm((current) => ({ ...current, source: event.target.value }))} placeholder="Compte rendu daté, registre contrôlé, confirmation écrite…" /></label><label className={styles.field}><span>Responsable de la vérification</span><input value={verificationForm.owner} onChange={(event) => setVerificationForm((current) => ({ ...current, owner: event.target.value }))} placeholder="Nom du responsable" /></label><label className={styles.field}><span>Date de vérification</span><input type="date" value={verificationForm.date} onChange={(event) => setVerificationForm((current) => ({ ...current, date: event.target.value }))} /></label><button type="button" className={styles.primaryButton} disabled={!canVerify} onClick={() => onChange({ ...actor, verificationSource: verificationForm.source.trim(), verifiedBy: verificationForm.owner.trim(), lastVerifiedAt: `${verificationForm.date}T12:00:00.000Z`, verificationStatus: "VERIFIED" })}><Icon name="check-circle" size={12} /> Enregistrer la revue locale</button>{actor.verificationStatus === "VERIFIED" && <button type="button" className={styles.secondaryButton} onClick={() => onChange({ ...actor, verificationStatus: "NEEDS_VERIFICATION", lastVerifiedAt: null })}><Icon name="refresh" size={12} /> Repasser à vérifier</button>}</div></section>
         <div className={styles.sourceBox}><strong>Traçabilité actuelle</strong><br />Source candidate conservée : <DirectSourceLink url={actor.sourceUrl} label={actor.sourceLabel} />{actor.sourceLocation ? ` · ${actor.sourceLocation}` : ""}<br />Preuve de contrôle : {actor.verificationSource ?? "Non renseignée"}<br />Dernière vérification : {shortDate(actor.lastVerifiedAt)}<br />Responsable : {actor.verifiedBy ?? "Non renseigné"}</div>
@@ -970,11 +994,11 @@ function Reference({ model, onOpenActor }: { model: OrchestrationUiModel; onOpen
         {tab === "occupations" && <table className={styles.referenceTable}><thead><tr><th>Métier</th><th>Code ROME</th><th>Compétences requises</th><th>Contraintes</th><th>Source</th><th>Vérification</th></tr></thead><tbody>{model.occupations.map((occupation) => <tr key={occupation.id}><td><strong>{occupation.label}</strong><small>{occupation.sector}</small></td><td>{occupation.code ?? "Non renseigné"}</td><td>{occupation.requiredSkills.join(" · ") || "Non renseignées"}</td><td>{occupation.constraints.join(" · ") || "Non renseignées"}</td><td><DirectSourceLink url={occupation.sourceUrl} label={occupation.sourceLabel} /></td><td><VerificationPill status={occupation.verificationStatus} /></td></tr>)}</tbody></table>}
         {tab === "skills" && <table className={styles.referenceTable}><thead><tr><th>Compétence</th><th>Métiers liés</th><th>État dans Sarah</th><th>Sources</th><th>Vérification</th></tr></thead><tbody>{model.referenceSkills.map((skill) => <tr key={skill.id}><td><strong>{skill.label}</strong></td><td>{skill.usedByOccupations.join(" · ") || "Aucun métier lié"}</td><td>{skill.participantConfidence ? STATUS_LABELS[skill.participantConfidence] ?? skill.participantConfidence : "Non revendiquée"}</td><td>{skill.sourceLabels.join(" · ") || "Non renseignées"}</td><td><VerificationPill status={skill.verificationStatus} /></td></tr>)}</tbody></table>}
         {tab === "actors" && <table className={styles.referenceTable}><thead><tr><th>Acteur</th><th>Catégories</th><th>Territoire</th><th>Claims de capacité</th><th>Source</th></tr></thead><tbody>{model.actors.map((actor) => <tr key={actor.id}><td><button type="button" className={styles.ghostButton} onClick={() => onOpenActor(actor.id)}>{actor.name}</button></td><td>{actorTypeLabel(actor)}</td><td>{actor.territory}</td><td>{actor.capabilityClaims.length ? actor.capabilityClaims.map((claim) => `${CAPABILITY_LABELS[claim.capability] ?? claim.capability} (${claim.verificationStatus === "VERIFIED" ? "vérifié" : "à vérifier"})`).join(" · ") : "Non documentées"}</td><td><DirectSourceLink url={actor.sourceUrl} label={actor.sourceLabel} /><small>{actorVerificationLabel(actor)}</small></td></tr>)}</tbody></table>}
-        {tab === "services" && <table className={styles.referenceTable}><thead><tr><th>Service</th><th>Acteur</th><th>Compétences développées</th><th>Places</th><th>Coût</th><th>Source & réserves</th></tr></thead><tbody>{model.services.length ? model.services.map((service) => <tr key={service.id}><td><strong>{service.name}</strong><small>{service.duration ?? "Durée non renseignée"}</small></td><td>{service.actorName}</td><td>{service.skills.join(" · ") || "Non renseignées"}</td><td>{service.places ?? "Non renseigné"}</td><td>{euro(service.cost)}</td><td><DirectSourceLink url={service.sourceUrl} label={service.sourceLabel} /><small>{service.caveats.join(" · ") || "Aucune réserve supplémentaire enregistrée."}</small><VerificationPill status={service.verificationStatus} /></td></tr>) : <tr><td colSpan={6}>Aucun service sourcé. Une recherche manuelle est nécessaire.</td></tr>}</tbody></table>}
+        {tab === "services" && <table className={styles.referenceTable}><thead><tr><th>Service</th><th>Acteur</th><th>Rôle dans le parcours</th><th>Mobilisabilité</th><th>Places / coût</th><th>Source & réserves</th></tr></thead><tbody>{model.services.length ? model.services.map((service) => <tr key={service.id}><td><strong>{service.name}</strong><small>{service.duration ?? "Durée non renseignée"}</small></td><td>{service.actorName}</td><td>{service.needsResolved.join(" · ") || service.skills.join(" · ") || "Non relié"}<small>{service.expectedOutput ?? "Sortie attendue non renseignée"}</small></td><td><span className={`${styles.statusPill} ${matchLevelClass(service.mobilizationStatus)}`}>{MATCH_LEVEL_LABELS[service.mobilizationStatus]}</span><small>{service.prerequisites.join(" · ") || "Aucun prérequis publié"}</small></td><td>{service.places ?? "Places inconnues"}<small>{euro(service.cost)}</small></td><td><DirectSourceLink url={service.sourceUrl} label={service.sourceLabel} /><small>{service.caveats.join(" · ") || "Aucune réserve supplémentaire enregistrée."}</small><VerificationPill status={service.verificationStatus} /></td></tr>) : <tr><td colSpan={6}>Aucun service sourcé. Une recherche manuelle est nécessaire.</td></tr>}</tbody></table>}
         {tab === "opportunities" && <table className={styles.referenceTable}><thead><tr><th>Opportunité</th><th>Type</th><th>Acteur</th><th>Lieu</th><th>Places</th><th>Source & réserves</th></tr></thead><tbody>{model.opportunities.length ? model.opportunities.map((opportunity) => <tr key={opportunity.id}><td><strong>{opportunity.title}</strong>{opportunity.synthetic && <small>Scénario synthétique</small>}</td><td>{OUTCOME_TYPE_LABELS[opportunity.type] ?? opportunity.type}</td><td>{opportunity.providerName}</td><td>{opportunity.location}</td><td>{opportunity.vacancies}</td><td><DirectSourceLink url={opportunity.sourceUrl} label={opportunity.sourceLabel} /><small>{opportunity.caveats.join(" · ") || "Aucune réserve supplémentaire enregistrée."}</small><VerificationPill status={opportunity.verificationStatus} /></td></tr>) : <tr><td colSpan={6}>Aucune opportunité sourcée. L’absence de donnée ne constitue pas une conclusion négative.</td></tr>}</tbody></table>}
         {tab === "funding" && <table className={styles.referenceTable}><thead><tr><th>Mécanisme</th><th>Finalité</th><th>Publics</th><th>Conditions</th><th>Coûts couverts</th><th>Règle de montant</th><th>Source</th></tr></thead><tbody>{registry.fundingMechanisms.length ? registry.fundingMechanisms.map((mechanism) => { const source = registry.sources.find((candidate) => candidate.id === mechanism.sourceId); return <tr key={mechanism.id}><td><strong>{mechanism.name}</strong><small>{mechanism.funderName ?? "Financeur à confirmer"}</small></td><td>{mechanism.purpose}</td><td>{mechanism.eligiblePublic.join(" · ") || "Non renseignés"}</td><td>{mechanism.conditions.join(" · ") || "Non renseignées"}</td><td>{mechanism.coveredCosts.join(" · ") || "Non renseignés"}</td><td>{mechanism.amountRule ?? "Non renseignée"}<small>Décision du financeur toujours requise.</small></td><td><SourceLink source={source} /><VerificationPill status={mechanism.verificationStatus} /></td></tr>; }) : <tr><td colSpan={7}>Aucun mécanisme sourcé. Aucun financement ne peut être présumé.</td></tr>}</tbody></table>}
         {tab === "sources" && <div className={styles.sourceReference}>
-          <section><h3>Registre des sources</h3><div className={styles.sourceCatalog}>{registry.sources.map((source) => <article key={source.id}><div className={styles.spread}><span className={styles.sourceBadge}>{source.kind}</span><VerificationPill status={source.verificationStatus} /></div><h4>{source.title}</h4><p>{source.publisher} · contrôlée le {shortDate(source.checkedAt)} · fraîcheur {source.freshness}</p><SourceLink source={source} />{source.caveats.map((caveat) => <small key={caveat}>{caveat}</small>)}</article>)}</div></section>
+          <section><h3>Registre des sources</h3><div className={styles.sourceCatalog}>{registry.sources.map((source) => <article key={source.id}><div className={styles.spread}><span className={styles.sourceBadge}>{source.kind}</span><span className={`${styles.statusPill} ${source.freshnessStatus === "CURRENT" ? styles.statusDone : source.freshnessStatus === "REVIEW_DUE" ? styles.statusWaiting : styles.statusDraft}`}>{source.freshnessStatus === "CURRENT" ? "Fraîche" : source.freshnessStatus === "REVIEW_DUE" ? "À rafraîchir" : "À vérifier"}</span></div><h4>{source.title}</h4><p>{source.publisher} · contrôlée le {shortDate(source.checkedAt)} · prochaine revue {shortDate(source.reviewDueAt)}</p><SourceLink source={source} />{source.caveats.map((caveat) => <small key={caveat}>{caveat}</small>)}</article>)}</div></section>
           <section><h3>Preuves attendues</h3><div className={styles.evidenceCatalog}>{registry.evidenceRequirements.map((requirement) => { const source = registry.sources.find((candidate) => candidate.id === requirement.sourceId); return <article key={requirement.id}><div className={styles.spread}><strong>{requirement.label}</strong><VerificationPill status={requirement.verificationStatus} /></div><p>{requirement.appliesTo}</p><ul>{requirement.requiredEvidence.map((evidence) => <li key={evidence}>{evidence}</li>)}</ul><SourceLink source={source} /></article>; })}</div></section>
           {registry.missingSources.length > 0 && <section className={styles.missingSources}><h3>Sources attendues mais absentes</h3><ul>{registry.missingSources.map((source) => <li key={source}>{source}</li>)}</ul></section>}
         </div>}

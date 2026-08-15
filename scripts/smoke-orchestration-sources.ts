@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
 
-import { createSarahDemoSnapshot, sourceRegistry } from "../src/features/orchestration";
+import { createSarahDemoSnapshot, evaluateSourceFreshness, sourceRegistry } from "../src/features/orchestration";
 
 type UnknownRecord = Record<string, unknown>;
 
 const suite = "orchestration-sources";
 
 const OFFICIAL_HOSTS = [
+  "actionlogement.fr",
+  "agefiph.fr",
   "akto.fr",
+  "anil.org",
   "aides.regionguadeloupe.fr",
   "candidat.francetravail.fr",
+  "caf.fr",
   "capemploi-971.com",
   "capexcellence.net",
+  "cg971.fr",
   "clubmed.fr",
   "creolebeach.com",
   "data.gouv.fr",
@@ -22,6 +27,8 @@ const OFFICIAL_HOSTS = [
   "geiq-guadeloupe.fr",
   "guadeloupe.cci.fr",
   "guadeloupe.deets.gouv.fr",
+  "ladom.fr",
+  "lesilesdeguadeloupe.com",
   "lesgeiq.fr",
   "lannuaire.service-public.gouv.fr",
   "missionlocaleguadeloupe.fr",
@@ -185,10 +192,27 @@ async function main() {
       const canonicalOpportunities = sourceRegistry.officialOpportunities.filter((record) => collectStrings(record).some((value) => value.includes(code)));
       assert.equal(
         canonicalOpportunities.every(
-          (record) => record.verificationStatus === "NEEDS_VERIFICATION" && (record.status === "UNKNOWN" || record.status === "DRAFT"),
+          (record) => record.verificationStatus === "NEEDS_VERIFICATION" && record.status === "CLOSED",
         ),
         true,
-        `Toute matérialisation de ${code} doit rester NEEDS_VERIFICATION et UNKNOWN/DRAFT.`,
+        `Toute matérialisation de ${code} doit rester NEEDS_VERIFICATION et CLOSED après le contrôle 404.`,
+      );
+    }
+
+    for (const code of ["211ZXWZ", "212LMKV", "212MPPZ", "212BSXW"]) {
+      const matchingSources = sourceRegistry.sources.filter((record) => collectStrings(record).some((value) => value.includes(code)));
+      assert.ok(matchingSources.length > 0, `La source de l'offre ouverte ${code} est absente.`);
+      assert.equal(matchingSources.every((record) => record.verificationStatus === "VERIFIED"), true, `${code} doit conserver la preuve de page consultée.`);
+      assert.equal(matchingSources.every((record) => record.reviewAfterDays === 1), true, `${code} doit être revérifiée sous 24 heures.`);
+
+      const canonicalOpportunities = sourceRegistry.officialOpportunities.filter((record) => collectStrings(record).some((value) => value.includes(code)));
+      assert.ok(canonicalOpportunities.length > 0, `L'opportunité canonique ouverte ${code} est absente.`);
+      assert.equal(
+        canonicalOpportunities.every(
+          (record) => record.verificationStatus === "NEEDS_VERIFICATION" && record.status === "OPEN" && record.vacancies === null,
+        ),
+        true,
+        `${code} doit rester OPEN, NEEDS_VERIFICATION et sans nombre de places inventé.`,
       );
     }
   });
@@ -224,6 +248,56 @@ async function main() {
       assert.notEqual(opportunity.vacancies, 0, `${opportunity.id}.vacancies ne doit pas employer zéro pour une inconnue.`);
       assertNullWhenPresent(opportunity as unknown as UnknownRecord, ["actualCostCents", "amountApprovedCents", "amountPaidCents"]);
     }
+  });
+
+  await runStep("09_enriched_local_ecosystem_coverage", () => {
+    assert.ok(sourceRegistry.sources.length >= 45, "Le registre enrichi doit conserver une couverture documentaire substantielle.");
+    assert.ok(sourceRegistry.officialActors.length >= 25, "Le registre doit couvrir emploi, formation et freins périphériques.");
+    assert.ok(sourceRegistry.officialServiceOffers.length >= 15, "Les capacités doivent être reliées à des services concrets lorsque la source le permet.");
+    assert.ok(sourceRegistry.fundingMechanisms.length >= 10, "Les mécanismes documentaires doivent couvrir plusieurs catégories de frein.");
+
+    for (const id of [
+      "actor-conseil-departemental-dsia",
+      "actor-caf-guadeloupe",
+      "actor-agefiph-antilles-guyane",
+      "actor-ladom",
+      "actor-greta-cfa",
+      "actor-vatel-guadeloupe",
+      "actor-ctig",
+    ]) {
+      const actor = sourceRegistry.officialActors.find((candidate) => candidate.id === id);
+      assert.ok(actor, `Acteur local enrichi absent : ${id}.`);
+      assert.ok(actor.pathwayRoles.length > 0, `Le rôle dans le parcours doit être explicite : ${id}.`);
+    }
+  });
+
+  await runStep("10_registry_relations_are_resolved", () => {
+    const actorIds = new Set(sourceRegistry.officialActors.map((actor) => actor.id));
+    for (const service of sourceRegistry.officialServiceOffers) {
+      assert.ok(actorIds.has(service.actorId), `Acteur de service non résolu : ${service.id}.`);
+      for (const funderActorId of service.possibleFunderActorIds) {
+        assert.ok(actorIds.has(funderActorId), `Financeur potentiel non résolu : ${service.id} -> ${funderActorId}.`);
+      }
+    }
+    for (const mechanism of sourceRegistry.fundingMechanisms) {
+      if (mechanism.funderActorId) assert.ok(actorIds.has(mechanism.funderActorId), `Financeur non résolu : ${mechanism.id}.`);
+    }
+    for (const opportunity of sourceRegistry.officialOpportunities) {
+      const unresolvedHistorical = opportunity.providerActorId.startsWith("actor-provider-unresolved-")
+        && opportunity.status === "CLOSED"
+        && opportunity.verificationStatus === "NEEDS_VERIFICATION";
+      assert.ok(actorIds.has(opportunity.providerActorId) || unresolvedHistorical, `Fournisseur non résolu et non archivé : ${opportunity.id}.`);
+    }
+  });
+
+  await runStep("11_source_freshness_is_machine_readable", () => {
+    const volatile = sourceRegistry.sources.find((source) => source.id === "source-ft-offer-212lmkv");
+    assert.ok(volatile);
+    assert.equal(evaluateSourceFreshness(volatile, "2026-08-15T18:00:00.000Z").status, "CURRENT");
+    assert.equal(evaluateSourceFreshness(volatile, "2026-08-17T12:00:00.000Z").status, "REVIEW_DUE");
+    const archived = sourceRegistry.sources.find((source) => source.id === "source-ft-offer-209wmfb");
+    assert.ok(archived);
+    assert.equal(evaluateSourceFreshness(archived).status, "NEEDS_VERIFICATION");
   });
 }
 

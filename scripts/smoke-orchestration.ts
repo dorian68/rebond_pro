@@ -11,6 +11,7 @@ import {
   createSarahDemoSnapshot,
   demoOccupations,
   ecosystemActors,
+  findActorMatchesForNeed,
   findActorsByCapability,
   generatePathwayDraft,
   recordOutcomeMilestone,
@@ -21,6 +22,7 @@ import {
   type FundingAllocation,
   type Outcome,
   type Referral,
+  type ServiceOffer,
   type SourceRef,
 } from "../src/features/orchestration";
 
@@ -181,6 +183,170 @@ async function main() {
     assert.equal(verifiedRegistryMatches.some((candidate) => candidate.id === "demo-actor-hotel-partenaire-a"), false);
   });
 
+  await runStep("05_specific_services_rank_before_general_capabilities", () => {
+    const mobilityNeed = snapshot.needs.find((need) => need.type === "MOBILITY")!;
+    const mobilityMatches = findActorMatchesForNeed({
+      need: mobilityNeed,
+      actors: snapshot.actors,
+      serviceOffers: snapshot.serviceOffers,
+      territory: "Guadeloupe",
+      verifiedOnly: true,
+      now: at,
+    });
+    assert.equal(mobilityMatches[0].actor.id, "actor-mobilizy");
+    assert.equal(mobilityMatches[0].serviceOffers[0].id, "service-mobilizy-location-sociale");
+    assert.equal(mobilityMatches[0].level, "QUALIFIED_WITH_CHECKS");
+    const missionLocale = mobilityMatches.find((match) => match.actor.id === "actor-mission-locale-guadeloupe")!;
+    assert.equal(missionLocale.level, "DISCOVERY_ONLY");
+    assert.ok(mobilityMatches[0].score > missionLocale.score);
+    assert.equal(mobilityMatches[0].score, mobilityMatches[0].scoreBreakdown.reduce((total, component) => total + component.points, 0));
+
+    const englishNeed = snapshot.needs.find((need) => need.type === "LANGUAGE")!;
+    const englishMatches = findActorMatchesForNeed({
+      need: englishNeed,
+      actors: snapshot.actors,
+      serviceOffers: snapshot.serviceOffers,
+      territory: "Guadeloupe",
+      verifiedOnly: true,
+      now: at,
+    });
+    assert.equal(englishMatches[0].actor.id, "actor-cci-iles-guadeloupe");
+    assert.equal(englishMatches[0].serviceOffers[0].id, "service-cci-anglais-collectif");
+    assert.equal(englishMatches.find((match) => match.actor.id === "actor-campus-guadeloupeen-apprentissage")?.level, "DISCOVERY_ONLY");
+  });
+
+  await runStep("06_matching_operational_gates_and_step_contract", () => {
+    const englishNeed = snapshot.needs.find((need) => need.type === "LANGUAGE")!;
+    const cciActor = snapshot.actors.find((candidate) => candidate.id === "actor-cci-iles-guadeloupe")!;
+    const cciOffer = snapshot.serviceOffers.find((candidate) => candidate.id === "service-cci-anglais-collectif")!;
+    const activatableActor: Actor = {
+      ...cciActor,
+      currentCapacity: { status: "AVAILABLE", places: 5, asOf: at },
+    };
+    const activatableOffer: ServiceOffer = {
+      ...cciOffer,
+      places: 5,
+      dates: ["2026-09-15T09:00:00.000Z"],
+      targetPublic: [],
+      eligibilityRules: [],
+      prerequisites: [],
+      requiredDocuments: [],
+      expectedOutput: "Attestation de niveau d'anglais professionnel",
+    };
+
+    const activatableMatches = findActorMatchesForNeed({
+      need: englishNeed,
+      actors: [activatableActor],
+      serviceOffers: [activatableOffer],
+      territory: "Guadeloupe",
+      verifiedOnly: true,
+      now: at,
+    });
+    assert.equal(activatableMatches[0].level, "ACTIVATABLE");
+
+    const actorSourceId = activatableActor.sourceRef.recordId!;
+    const capabilitySourceId = activatableActor.capabilities.find((claim) => claim.capability === englishNeed.requiredCapability)!.sourceRef.recordId!;
+    const offerSourceId = activatableOffer.sourceRef.recordId!;
+    const currentSourceFreshness = Object.fromEntries(
+      [actorSourceId, capabilitySourceId, offerSourceId].map((sourceId) => [sourceId, "CURRENT" as const]),
+    );
+    const staleSourceMatches = findActorMatchesForNeed({
+      need: englishNeed,
+      actors: [activatableActor],
+      serviceOffers: [activatableOffer],
+      territory: "Guadeloupe",
+      verifiedOnly: true,
+      now: at,
+      sourceFreshnessById: { ...currentSourceFreshness, [offerSourceId]: "REVIEW_DUE" },
+    });
+    assert.equal(staleSourceMatches[0].level, "QUALIFIED_WITH_CHECKS");
+    assert.match(staleSourceMatches[0].unknowns.join(" "), /échéance de revue/i);
+
+    const unavailableActor: Actor = {
+      ...activatableActor,
+      currentCapacity: { status: "UNAVAILABLE", places: 0, asOf: at },
+    };
+    assert.equal(findActorMatchesForNeed({ need: englishNeed, actors: [unavailableActor], serviceOffers: [activatableOffer], territory: "Guadeloupe", verifiedOnly: true, now: at }).length, 0);
+
+    for (const blockedOffer of [
+      { ...activatableOffer, places: 0 },
+      { ...activatableOffer, dates: ["2026-01-01T09:00:00.000Z"] },
+      { ...activatableOffer, territory: ["Saint-Martin"] },
+    ] satisfies ServiceOffer[]) {
+      const matches = findActorMatchesForNeed({
+        need: englishNeed,
+        actors: [activatableActor],
+        serviceOffers: [blockedOffer],
+        territory: "Guadeloupe",
+        verifiedOnly: true,
+        now: at,
+      });
+      assert.equal(matches.length, 0);
+      const diagnostics = findActorMatchesForNeed({
+        need: englishNeed,
+        actors: [activatableActor],
+        serviceOffers: [blockedOffer],
+        territory: "Guadeloupe",
+        verifiedOnly: true,
+        includeExcluded: true,
+        now: at,
+      });
+      assert.equal(diagnostics[0].level, "EXCLUDED");
+      assert.ok(diagnostics[0].hardStops.length > 0);
+    }
+
+    const checkedOffer: ServiceOffer = {
+      ...activatableOffer,
+      prerequisites: ["Niveau d'entrée à confirmer"],
+      requiredDocuments: ["Justificatif d'identité"],
+    };
+    const checkedMatches = findActorMatchesForNeed({
+      need: englishNeed,
+      actors: [activatableActor],
+      serviceOffers: [checkedOffer],
+      territory: "Guadeloupe",
+      verifiedOnly: true,
+      now: at,
+    });
+    assert.equal(checkedMatches[0].level, "QUALIFIED_WITH_CHECKS");
+
+    const checkedDraft = generatePathwayDraft({
+      passport: snapshot.passports[0],
+      planAOccupation: demoOccupations[0],
+      planBOccupation: demoOccupations[1],
+      cohortId: snapshot.cohorts[0].id,
+      actors: [activatableActor],
+      serviceOffers: [checkedOffer],
+      opportunities: [],
+      territory: "Guadeloupe",
+      verifiedSolutionsOnly: true,
+      now: at,
+    });
+    const checkedEnglishStep = checkedDraft.planA.steps.find((step) => step.title === "Anglais professionnel")!;
+    assert.equal(checkedEnglishStep.assignedActorId, null);
+    assert.equal(checkedEnglishStep.serviceOfferId, null);
+    assert.deepEqual(checkedEnglishStep.requiredInputs, ["Niveau d'entrée à confirmer", "Justificatif d'identité"]);
+    assert.deepEqual(checkedEnglishStep.expectedOutputs, ["Attestation de niveau d'anglais professionnel"]);
+    assert.match(checkedEnglishStep.sourceReason, /à instruire/i);
+    assert.equal(checkedDraft.matchSuggestions.find((suggestion) => suggestion.planType === "A" && suggestion.needLabel === englishNeed.label)?.matches[0].level, "QUALIFIED_WITH_CHECKS");
+
+    const activatableDraft = generatePathwayDraft({
+      passport: snapshot.passports[0],
+      planAOccupation: demoOccupations[0],
+      planBOccupation: demoOccupations[1],
+      cohortId: snapshot.cohorts[0].id,
+      actors: [activatableActor],
+      serviceOffers: [activatableOffer],
+      opportunities: [],
+      territory: "Guadeloupe",
+      verifiedSolutionsOnly: true,
+      now: at,
+    });
+    const activatableEnglishStep = activatableDraft.planA.steps.find((step) => step.title === "Anglais professionnel")!;
+    assert.equal(activatableEnglishStep.assignedActorId, activatableActor.id);
+    assert.equal(activatableEnglishStep.serviceOfferId, activatableOffer.id);
+  });
+
   let generated = generatePathwayDraft({
     passport: snapshot.passports[0],
     planAOccupation: demoOccupations[0],
@@ -194,7 +360,7 @@ async function main() {
     now: at,
   });
 
-  await runStep("05_generate_plan_a_draft", () => {
+  await runStep("07_generate_plan_a_draft", () => {
     generated = generatePathwayDraft({
       passport: snapshot.passports[0],
       planAOccupation: demoOccupations[0],
@@ -214,14 +380,14 @@ async function main() {
     assert.ok(generated.unknowns.some((unknown) => unknown.includes("Aucune solution vérifiée")));
   });
 
-  await runStep("06_generate_plan_b_draft", () => {
+  await runStep("08_generate_plan_b_draft", () => {
     assert.equal(generated.planB.planType, "B");
     assert.equal(generated.planB.status, "DRAFT");
     assert.notEqual(generated.planA.id, generated.planB.id);
     assert.ok(generated.planB.steps.some((step) => step.type === "OUTCOME"));
   });
 
-  await runStep("07_referral_status_cycle", () => {
+  await runStep("09_referral_status_cycle", () => {
     let referral: Referral = {
       id: "referral-smoke",
       participantId: "participant-smoke",
@@ -253,14 +419,14 @@ async function main() {
     assert.equal(referral.completedAt, at);
   });
 
-  await runStep("08_total_cost", () => {
+  await runStep("10_total_cost", () => {
     const result = calculateCostSummary([cost("cost-a", 100_000, 90_000), cost("cost-b", 50_000, 45_000)]);
     assert.equal(result.expectedTotalCents, 150_000);
     assert.equal(result.actualTotalCents, 135_000);
     assert.equal(result.expectedComplete, true);
   });
 
-  await runStep("09_remaining_funding", () => {
+  await runStep("11_remaining_funding", () => {
     const items = [cost("cost-a", 150_000, null)];
     const allocations = [funding("fund-a", "cost-a", 120_000, 120_000), funding("fund-b", "cost-a", 30_000, 30_000)];
     const result = calculateFundingSummary(items, allocations);
@@ -269,7 +435,7 @@ async function main() {
     assert.equal(result.remainingToFundCents, 0);
   });
 
-  await runStep("10_unknown_cost_is_not_zero", () => {
+  await runStep("12_unknown_cost_is_not_zero", () => {
     const result = calculateCostSummary([cost("cost-known", 20_000, 10_000), cost("cost-unknown", null, null)]);
     assert.equal(result.expectedTotalCents, null);
     assert.equal(result.actualTotalCents, null);
@@ -279,7 +445,7 @@ async function main() {
     assert.equal(fundingResult.remainingToFundCents, null);
   });
 
-  await runStep("11_activate_plan_b", () => {
+  await runStep("13_activate_plan_b", () => {
     const repository = createInMemoryOrchestrationRepository(snapshot);
     const planA = repository.getPathway("demo-pathway-sarah-plan-a")!;
     const planB = repository.getPathway("demo-pathway-sarah-plan-b")!;
@@ -300,7 +466,7 @@ async function main() {
     assert.equal(pureActivation.planB.activatedAt, at);
   });
 
-  await runStep("12_outcome_j7_j30_j60_j90", () => {
+  await runStep("14_outcome_j7_j30_j60_j90", () => {
     let outcome: Outcome = {
       id: "outcome-smoke",
       participantId: "participant-smoke",
@@ -327,7 +493,7 @@ async function main() {
     assert.equal(outcome.finalStatus, "MAINTAINED_J90");
   });
 
-  await runStep("13_human_approval_guardrails", () => {
+  await runStep("15_human_approval_guardrails", () => {
     const blockedRepository = createInMemoryOrchestrationRepository(snapshot);
     const initialIssues = blockedRepository.getPathwayApprovalIssues("demo-pathway-sarah-plan-a");
     assert.ok(initialIssues.some((issue) => issue.code === "MISSING_OWNER"));

@@ -27,7 +27,7 @@ async function openStudioView(name) {
 try {
   await page.goto(`${baseUrl}/admin/orchestration`, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.evaluate(() => {
-    window.localStorage.removeItem("le-bon-rebond:orchestration:synthetic-demo:v1");
+    window.localStorage.removeItem("le-bon-rebond:orchestration:mixed-sources:v3");
     window.sessionStorage.setItem("socrate-nudge-count", "30");
   });
   await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });

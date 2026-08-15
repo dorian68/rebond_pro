@@ -71,7 +71,7 @@ Le seed est un registre de pistes, pas une preuve de partenariat. Tant qu'un act
 
 ## Enrichissement par sources officielles — 2026-08-15
 
-Un registre documentaire distinct complète le seed initial à partir de sources publiques primaires. Cette séparation est volontaire :
+Deux registres documentaires complètent le seed initial à partir de sources publiques primaires : `guadeloupe-orchestration.sources.json` conserve le socle audité et `guadeloupe-orchestration.enrichment.json` porte l'enrichissement incrémental. Cette séparation est volontaire :
 
 - le seed `guadeloupe-ecosystem.seed.json` conserve fidèlement les pistes issues des fichiers locaux et du brief utilisateur ;
 - le registre officiel qualifie des assertions atomiques telles que l'identité d'un acteur, l'existence d'un dispositif, une session datée ou une statistique ;
@@ -80,7 +80,7 @@ Un registre documentaire distinct complète le seed initial à partir de sources
 
 Le relevé exhaustif, les URLs directes, dates, limites de fraîcheur et assertions proposées sont consignés dans `reports/2026-08-15_orchestration-sources.md`.
 
-État au 2026-08-15 : 26 références de source, neuf signaux de marché, quatre mécanismes de financement, trois scénarios budgétaires internes, huit exigences de preuve, douze acteurs officiels, 26 revendications de capacité vérifiées, trois services documentés et trois offres volatiles. Le snapshot contient 50 acteurs : les 47 candidats initiaux sont tous conservés, onze sont enrichis par correspondance d'identifiant exacte, Mobil'Izy est ajouté comme acteur officiel distinct et deux acteurs restent explicitement synthétiques. Les offres portent `verificationStatus = NEEDS_VERIFICATION`, `status = UNKNOWN` et doivent être rafraîchies avant toute utilisation.
+État après le second enrichissement du 2026-08-15 : 49 références de source, neuf signaux de marché, dix mécanismes de financement, trois scénarios budgétaires internes, huit exigences de preuve, 27 acteurs officiels, 18 services documentés et sept opportunités. Le snapshot contient 60 acteurs : les 47 candidats initiaux sont tous conservés, 16 sont enrichis uniquement par correspondance d'identifiant exacte, onze acteurs officiels s'ajoutent sans fusion floue et deux acteurs restent explicitement synthétiques. Les trois anciennes offres en HTTP 404 sont désormais `CLOSED`; les quatre nouvelles fiches restent `NEEDS_VERIFICATION` et doivent être rafraîchies sous 24 heures.
 
 ### Sources matérialisées dans le registre documentaire
 
@@ -92,7 +92,18 @@ Le relevé exhaustif, les URLs directes, dates, limites de fraîcheur et asserti
 - trois offres France Travail datées, conservées comme sources volatiles et non comme opportunités activables ;
 - les trois classeurs internes déjà audités, conservés comme sources `NEEDS_VERIFICATION` de scénarios et d'exigences de preuve.
 
-Le rapport élargi documente également des sources candidates concernant GRETA-CFA, FORE, Vatel, l'Académie des Métiers Saint-Martin et plusieurs identités d'employeurs. Elles ne sont pas automatiquement matérialisées comme acteur, service ou opportunité : l'absence de fournisseur explicite, de disponibilité ou de propriété utile reste un motif valable pour maintenir seulement la référence documentaire.
+Le second enrichissement matérialise GRETA-CFA, Vatel, CTIG, Conseil départemental, CAF, MDPH, Agefiph, LADOM, Action Logement, ADIL et plusieurs employeurs uniquement lorsque la source permet une assertion atomique. FORE, Tunon, AFPA, UDE-MEDEF, DEETS, Outremer Academy et les autres pistes sans preuve opérationnelle suffisante restent candidates. Deux programmes Outremer Academy présentant des codes RNCP contradictoires sont volontairement exclus du registre mobilisable en attente d'une confirmation écrite.
+
+### Contrat de fiabilité du Pathway Engine
+
+Le moteur ne classe plus une capacité institutionnelle générale devant un service concret. Chaque correspondance porte désormais un niveau explicite :
+
+- `ACTIVATABLE` : preuves, offre, territoire et disponibilité suffisants ; validation humaine toujours obligatoire ;
+- `QUALIFIED_WITH_CHECKS` : service pertinent documenté, mais disponibilité, éligibilité, calendrier ou pièces à contrôler ;
+- `DISCOVERY_ONLY` : capacité documentée sans offre opérationnelle correspondante ;
+- `EXCLUDED` : règle dure incompatible, par exemple indisponibilité, zéro place, session échue ou territoire de service incompatible.
+
+Seul `ACTIVATABLE` autorise une préaffectation dans un brouillon généré. Les autres niveaux restent des pistes, avec score explicable, inconnues, prérequis, documents attendus et sortie visée. Ce score mesure la qualité de la correspondance documentaire ; il ne prédit jamais la réussite d'une personne.
 
 ### Invariants d'import
 

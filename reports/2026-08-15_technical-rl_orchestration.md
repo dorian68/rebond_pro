@@ -82,9 +82,9 @@ Un second travail documentaire daté du 15 août 2026 qualifie des assertions at
 
 La matrice, ses URLs directes, dates et règles de fraîcheur sont consignées dans `reports/2026-08-15_orchestration-sources.md`.
 
-Le registre documentaire contient, au moment du contrôle, 26 références : 20 sources `VERIFIED`, trois offres volatiles et trois fichiers internes en `NEEDS_VERIFICATION`. Il expose aussi neuf signaux de marché, quatre mécanismes, trois scénarios budgétaires internes et huit exigences de preuve. Douze acteurs portent 26 revendications de capacité sourcées et trois services sont matérialisés uniquement dans les limites documentées ; capacité courante, places et coûts restent inconnus. Trois opportunités France Travail sont conservées en `NEEDS_VERIFICATION` avec statut `UNKNOWN`, fournisseur opérationnel non résolu et rafraîchissement requis sous 24 heures.
+Le registre documentaire initial contenait 26 références : 20 sources `VERIFIED`, trois offres volatiles et trois fichiers internes en `NEEDS_VERIFICATION`. Il exposait aussi neuf signaux de marché, quatre mécanismes, trois scénarios budgétaires internes et huit exigences de preuve. Douze acteurs portaient 26 revendications de capacité sourcées et trois services étaient matérialisés. Ces chiffres constituent le socle avant l’itération d’enrichissement détaillée plus bas.
 
-La fusion runtime est exacte et non floue : les 47 candidats initiaux sont conservés ; onze IDs identiques reçoivent leur enrichissement officiel, Mobil'Izy est ajouté comme acteur distinct et les deux acteurs `demo-` restent séparés. Le snapshot final comporte donc 50 acteurs, dont douze officiels vérifiés et deux synthétiques.
+La fusion runtime initiale était exacte et non floue : les 47 candidats étaient conservés, les enrichissements utilisaient les IDs exacts et les deux acteurs `demo-` restaient séparés. Le snapshot enrichi courant est décrit dans la section « Itération enrichissement écosystème ».
 
 ## Fonctionnalités du vertical slice
 
@@ -152,14 +152,14 @@ Le worktree contenait déjà de nombreuses modifications hors périmètre ; elle
 
 | Contrôle | Résultat |
 | --- | --- |
-| `npm run smoke:orchestration` | **PASS 13/13** — les 12 invariants demandés + garde d'approbation humaine |
-| `npm run smoke:orchestration-sources` | **PASS 8/8** — provenance officielle, séparation BMO/opportunités, mécanismes sans allocation, Sarah sans montants réels/accordés, offres volatiles, IDs exacts et inconnus `null` |
+| `npm run smoke:orchestration` | **PASS 15/15** — invariants métier, matching, fraîcheur et garde d'approbation humaine |
+| `npm run smoke:orchestration-sources` | **PASS 11/11** — provenance, relations, couverture, offres volatiles, IDs exacts, fraîcheur et inconnus `null` |
 | ESLint ciblé sur domaine, route, navigation et scripts | **PASS**, 0 erreur, 0 warning |
 | `npx tsc --noEmit --pretty false` | **PASS** |
 | `npm run build` | **PASS**, route dynamique `/admin/orchestration` produite |
-| Adaptateur runtime | **PASS** — 50 acteurs dont 12 officiels vérifiés et 2 synthétiques, 26 capacités vérifiées, 3 services, 4 opportunités dont 3 volatiles, 20 étapes, 3 coûts inconnus, 0 financement alloué et 0 sortie active |
+| Adaptateur runtime | **PASS** — 60 acteurs dont 27 identités officielles et 2 synthétiques, 56 claims, 18 services, 8 opportunités visibles dont une PMSMP synthétique, 0 financement alloué et 0 sortie active |
 | Inspection visuelle manuelle | **PASS**, six captures authentifiées |
-| Client Mystère | **PASS démo**, 4,5/5 et 89/100 |
+| Client Mystère | **PASS prototype**, 4,6/5 et 91/100 |
 
 Conformément à la contrainte : aucune suite Playwright/Cypress E2E, aucun test de charge et aucun audit de sécurité complet n'ont été exécutés. `smoke:all` n'a pas été lancé. Le nouveau contrôle de provenance est entièrement headless et sans mutation externe. Le script Playwright de capture n'effectue qu'une navigation courte et six captures ; il ne constitue pas une suite E2E.
 
@@ -208,3 +208,69 @@ Conformément à la contrainte : aucune suite Playwright/Cypress E2E, aucun test
 - analytics coûts/délais/handoffs/blocages/sorties/J+90 ;
 - performance partenaire contextualisée sans classement opaque ;
 - programmes supplémentaires sur le même Pathway Engine.
+
+## Itération enrichissement écosystème — 2026-08-15
+
+### Verdict Technical RL
+
+**PASS pour le prototype démontrable et pour un pilote encadré de qualification.**
+
+**NO-GO production et NO-GO déploiement comme orchestration opérationnelle.** Le registre et le matcher sont cohérents, déterministes, prudents et testables sans navigateur, mais le studio reste une simulation locale sans repository serveur, audit durable, RLS, consentements opposables ni boucle partenaire réelle. Aucune disponibilité, place, aide, orientation ou sortie ne peut être traitée comme engagée dans le monde réel.
+
+Ce verdict couvre l’itération d’enrichissement et de matching uniquement. Il ne remplace pas le verdict antérieur du périmètre déjà commercialisé dans `PRODUCTION_READINESS.md`.
+
+### État technique observé
+
+- Le registre fusionné expose **49 sources**, **27 acteurs officiels**, **56 claims de capacité vérifiés**, **22 acteurs avec un rôle de parcours documenté**, **18 services**, **10 mécanismes de financement** et **7 opportunités officielles**. Le snapshot de démonstration expose **60 acteurs**, **18 services** et **8 opportunités**, la huitième étant la PMSMP synthétique explicitement signalée.
+- Les 47 pistes du seed initial sont conservées. Les enrichissements d’acteurs utilisent uniquement l’identifiant exact ; les augmentations orphelines ou dupliquées sont rejetées au chargement et les IDs canoniques sont contrôlés.
+- Les trois anciennes offres France Travail constatées en HTTP 404 sont `CLOSED`. Les quatre offres ouvertes ajoutées restent `NEEDS_VERIFICATION`, avec places, échéance de réponse et disponibilité non présumées.
+- Les coûts inconnus et toutes les places libres non prouvées restent `null`. Les deux seuls coûts de service à zéro correspondent à des services explicitement documentés comme gratuits ; aucun zéro ne remplace une inconnue.
+- Les mécanismes financiers restent séparés des allocations : Sarah conserve zéro `FundingAllocation`, zéro montant approuvé ou payé et aucun plafond public n’est transformé en financement acquis.
+- La validation Zod vérifie les relations source/acteur/service/financeur et les imports échouent explicitement en cas d’ID orphelin ou dupliqué. Aucun fallback silencieux n’a été identifié.
+
+### Garde-fous du matching
+
+Chaque résultat porte un niveau `ACTIVATABLE`, `QUALIFIED_WITH_CHECKS`, `DISCOVERY_ONLY` ou `EXCLUDED`, un score sur 100 et une décomposition explicable. Le score mesure la qualité documentaire et la mobilisabilité ; il ne prédit pas une réussite individuelle.
+
+Le matcher applique les invariants suivants :
+
+- un service concret relié à la Capability, au type de Need, à la compétence et au territoire précède une capacité institutionnelle générale ;
+- un acteur indisponible, zéro place, une session uniquement passée ou un territoire de service incompatible produit une exclusion dure ;
+- l’état de fraîcheur `CURRENT`, `REVIEW_DUE` ou `NEEDS_VERIFICATION` est évalué à l’heure d’exécution ; une source échue ou à vérifier interdit le niveau `ACTIVATABLE` ;
+- disponibilité inconnue, règles textuelles d’éligibilité, prérequis ou pièces à contrôler produisent `QUALIFIED_WITH_CHECKS` ;
+- une capacité documentée sans offre exacte reste `DISCOVERY_ONLY` ;
+- le planner conserve jusqu’à trois pistes mais n’auto-affecte acteur et service que pour `ACTIVATABLE` ; les autres cas restent « à instruire » ;
+- les prérequis, pièces demandées et sorties attendues du service suggéré sont propagés à l’étape, sans inventer de coût.
+
+Sur le scénario réel du snapshot, le CCI arrive en tête pour l’anglais à **85/100**, Mobil’Izy en tête pour la mobilité à **85/100**, tous deux `QUALIFIED_WITH_CHECKS`. Le besoin « Expérience métier à confirmer » ne reçoit aucune solution vérifiée faute d’hôte PMSMP documenté. **Aucune piste n’est donc auto-affectée**, ce qui est le comportement sûr attendu.
+
+Le service CCI est désormais relié à la source précise « cours de langues à la carte » et transmet à l’étape l’évaluation préalable du niveau et des besoins ainsi que la proposition de parcours linguistique attendue.
+
+### Sécurité et contrat CLI
+
+- L’itération n’ajoute aucun endpoint, aucune mutation externe et aucun secret. Les références ajoutées sont des sources publiques ; aucune donnée sensible de Sarah ou CV brut n’est journalisée.
+- La route reste derrière la garde plateforme existante. Les modifications interactives restent dans le navigateur et sont annoncées comme démonstratives.
+- Les scripts de smoke produisent une ligne JSON par invariant, sortent avec un code non nul à l’échec et n’effectuent aucune mutation externe.
+
+### Preuves légères relancées sur l’état final
+
+| Contrôle | Résultat |
+| --- | --- |
+| `npm run smoke:orchestration` | **PASS 15/15** — matching concret, fraîcheur bloquant `ACTIVATABLE`, gates opérationnels, plans A/B, referral, coûts inconnus, Plan B, outcome et approbation humaine |
+| `npm run smoke:orchestration-sources` | **PASS 11/11** — provenance officielle, inconnues `null`, trois offres archivées, quatre offres ouvertes revues sous 24 h, relations, unicité et fraîcheur |
+| `npx tsc --noEmit --pretty false` | **PASS** |
+| ESLint ciblé sur les neuf fichiers TypeScript/TSX modifiés | **PASS**, zéro erreur et zéro warning |
+| `git diff --check` | **PASS** ; seuls les avertissements de conversion LF/CRLF restent présents |
+| Exécution directe de l’adaptateur | **PASS** — 60 acteurs, 18 services, 8 opportunités ; CCI et Mobil’Izy rendus `QUALIFIED_WITH_CHECKS`, besoin expérience sans faux résultat |
+
+Aucun E2E, Playwright/Cypress, test de charge, `smoke:all` ou audit de sécurité complet n’a été lancé. Le build final a été relancé après les derniers garde-fous et a produit avec succès la route dynamique `/admin/orchestration`.
+
+### Écarts et bloqueurs avant production
+
+1. **P0 — persistance et autorisation serveur absentes.** Le repository du prototype n’est pas raccordé à PostgreSQL/Supabase ; les mutations locales ne fournissent ni isolation tenant, ni RLS, ni audit opposable, ni contrôle de concurrence multi-utilisateur.
+2. **P0 — aucune solution opérationnellement activable.** Les 18 services restent à instruire faute de disponibilité/capacité complète et les quatre opportunités ouvertes restent volatiles. Aucun hôte PMSMP vérifié ne couvre le besoin d’expérience de Sarah.
+3. **P0 — boucle partenaire simulée.** Accusés de réception, refus, relances, financements et preuves ne sont ni envoyés ni persistés auprès d’acteurs externes.
+
+### Gate de sortie recommandé
+
+**Aucun bloqueur ne reste pour le lot prototype démontrable.** Le prototype peut être présenté sous la mention **« démonstration synthétique — solutions à instruire »**. Toute mise en production opérationnelle exige au minimum : correction des P0, dates de disponibilité et preuves sur un noyau d’acteurs, repository serveur protégé, puis tests ciblés d’IDOR/XSS, de concurrence, de transitions et de restauration. La double Definition of Done est satisfaite pour la **démo/pilote encadré** puisque les verdicts Technical RL et Business Client Mystère sont PASS sur ce périmètre ; elle ne l’est pas pour la production autonome.

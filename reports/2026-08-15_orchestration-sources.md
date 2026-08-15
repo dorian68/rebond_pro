@@ -10,7 +10,16 @@ Le corpus officiel permet de confirmer l'identité et le rôle général de plus
 
 Le statut `VERIFIED` porte donc sur une assertion précise et sourcée, jamais sur l'acteur entier. Toute information inconnue reste `null`. Une source officielle ne transforme pas un mécanisme en `FundingAllocation`, une intention BMO en `Opportunity`, ni un plafond d'aide en montant accordé.
 
-Matérialisation contrôlée : 26 sources, neuf signaux de marché, quatre mécanismes, trois scénarios internes, huit exigences de preuve, douze acteurs officiels portant 26 revendications de capacité sourcées, trois services et trois offres volatiles. Le snapshot conserve les 47 IDs candidats, ajoute seulement Mobil'Izy comme identité officielle distincte et maintient les deux acteurs de démonstration séparés.
+Socle initial avant enrichissement : 26 sources, neuf signaux de marché, quatre mécanismes, trois scénarios internes, huit exigences de preuve, douze acteurs officiels portant 26 revendications de capacité sourcées, trois services et trois offres volatiles. Le snapshot conserve les 47 IDs candidats, ajoute seulement Mobil'Izy comme identité officielle distincte et maintient les deux acteurs de démonstration séparés.
+
+## Itération enrichissement écosystème — 15 août 2026
+
+L'état fusionné effectivement chargé par `source-registry.ts` réunit le socle et `guadeloupe-orchestration.enrichment.json`. Il expose désormais **49 sources**, **27 identités officielles**, **56 claims de capacité vérifiés visibles**, **22 identités avec au moins un rôle de parcours documenté**, **18 services**, **10 mécanismes de financement** et **7 opportunités**, dont **3 archivées** avec `status: CLOSED`.
+
+- **Domaines couverts.** Prescription et emploi, formation/certification et langues, alternance, financement, mobilité, garde d'enfants, handicap/compensation, logement, insertion RSA et accompagnement des professionnels du tourisme. Les apports reposent notamment sur les pages directes de la [CCI IG](https://www.guadeloupe.cci.fr/produit/cours-de-langues-la-carte), du [GRETA-CFA](https://drafpic.site.ac-guadeloupe.fr/greta-cfa-de-la-guadeloupe/), du [GEIQ Guadeloupe](https://www.geiq-guadeloupe.fr/2025/05/12/vous-avez-18-ans-et-lenvie-davancer-le-geiq-transforme-votre-motivation-en-metier/), de [Cap emploi 971](https://www.capemploi-971.com/nos-missions/laccompagnement-vers-lemploi.html), du [Conseil départemental](https://www.cg971.fr/insertion-par-lemploi/) et du [CTIG](https://www.lesilesdeguadeloupe.com/espace-pro/). Ces sources prouvent des rôles ou dispositifs précis, jamais une prise en charge individuelle.
+- **Fraîcheur testable.** Une source `VERIFIED` est `CURRENT` jusqu'à `checkedAt + reviewAfterDays`, puis `REVIEW_DUE` ; toute autre source reste `NEEDS_VERIFICATION`. Les fenêtres implémentées sont principalement de 1 jour pour les offres, 7 jours pour sessions/capacités locales, 30 jours pour aides et financements, 90 jours pour rôles institutionnels et 180 jours pour certaines identités stables.
+- **Offres volatiles.** Les anciennes fiches [209WMFB](https://candidat.francetravail.fr/offres/recherche/detail/209WMFB), [210QCNL](https://candidat.francetravail.fr/offres/recherche/detail/210QCNL) et [211DFSX](https://candidat.francetravail.fr/offres/recherche/detail/211DFSX) renvoient HTTP 404 au contrôle du 15 août 2026 : elles sont conservées comme traces archivées, non mobilisables. Les fiches [211ZXWZ](https://candidat.francetravail.fr/offres/recherche/detail/211ZXWZ), [212LMKV](https://candidat.francetravail.fr/offres/recherche/detail/212LMKV), [212MPPZ](https://candidat.francetravail.fr/offres/recherche/detail/212MPPZ) et [212BSXW](https://candidat.francetravail.fr/offres/recherche/detail/212BSXW) sont matérialisées `OPEN`, mais restent `NEEDS_VERIFICATION` et à rafraîchir sous 24 heures.
+- **Inconnues et exclusions.** Places réellement libres, capacité, admission, coût, décision de financement, éligibilité individuelle, entreprise d'accueil en alternance, hôte/convention PMSMP et partenariat opérationnel restent inconnus. Les parcours Outremer Academy « Serveur » et « Réceptionniste » ne sont pas intégrés tant que les conflits de codes RNCP publiés (`39354` au lieu de `39534`, `40991` au lieu de `38870`) ne sont pas résolus ; la piste UMIH Formation accessible seulement sur un hôte `dev-` reste également exclue. BMO et statistiques touristiques restent des signaux de marché, jamais des opportunités.
 
 ## Matrice des sources primaires
 
@@ -40,9 +49,9 @@ Matérialisation contrôlée : 26 sources, neuf signaux de marché, quatre méca
 | Employeur | [La Créole Beach Hotel & Spa](https://www.creolebeach.com/) | non indiquée | Identité et localisation au Gosier | `VERIFIED` | recrutement, PMSMP et partenariat inconnus |
 | Employeur | [La Toubana Hotel & Spa](https://www.toubana.com/hotel) | non indiquée | Identité et localisation à Sainte-Anne | `VERIFIED` | recrutement, PMSMP et partenariat inconnus |
 | Employeur | [Club Med La Caravelle](https://www.clubmed.fr/r/la-caravelle/y) | page actuelle | Identité du resort de Sainte-Anne | `VERIFIED` | offre locale et partenariat inconnus |
-| Opportunité volatile | [Offre 209WMFB — Réceptionniste](https://candidat.francetravail.fr/offres/recherche/detail/209WMFB) | mise à jour 2026-06-16 | Offre publiée à Terre-de-Haut : intérim douze mois, 39 h, anglais indispensable ; agence GTEI, hôtel client non nommé | `NEEDS_VERIFICATION` pour activation | contenu source vérifiable, mais disponibilité à rafraîchir sous 24 h ; employeur final inconnu |
-| Opportunité volatile | [Offre 210QCNL — Conseiller vendeur en voyages](https://candidat.francetravail.fr/offres/recherche/detail/210QCNL) | mise à jour 2026-07-01 | CDD six mois, 35 h, BTS Tourisme et Amadeus demandés | `NEEDS_VERIFICATION` pour activation | candidat Plan B éventuel ; disponibilité à rafraîchir sous 24 h |
-| Opportunité volatile | [Offre 211DFSX — Extra serveur](https://candidat.francetravail.fr/offres/recherche/detail/211DFSX) | mise à jour 2026-07-13 | Contrat saisonnier de deux mois au Gosier, débutant accepté | `NEEDS_VERIFICATION` pour activation | très courte durée ; rafraîchissement sous 24 h |
+| Opportunité archivée | [Offre 209WMFB — Réceptionniste](https://candidat.francetravail.fr/offres/recherche/detail/209WMFB) | contrôle 2026-08-15 | La fiche historique décrivait une mission à Terre-de-Haut ; l'URL renvoie désormais HTTP 404 | `CLOSED` | trace documentaire uniquement ; employeur final inconnu ; ne pas mobiliser |
+| Opportunité archivée | [Offre 210QCNL — Conseiller vendeur en voyages](https://candidat.francetravail.fr/offres/recherche/detail/210QCNL) | contrôle 2026-08-15 | La fiche historique décrivait un CDD de six mois ; l'URL renvoie désormais HTTP 404 | `CLOSED` | trace documentaire uniquement ; ne pas mobiliser |
+| Opportunité archivée | [Offre 211DFSX — Extra serveur](https://candidat.francetravail.fr/offres/recherche/detail/211DFSX) | contrôle 2026-08-15 | La fiche historique décrivait un contrat saisonnier au Gosier ; l'URL renvoie désormais HTTP 404 | `CLOSED` | trace documentaire uniquement ; ne pas mobiliser |
 
 ## Règles testables de provenance
 
@@ -50,14 +59,14 @@ Matérialisation contrôlée : 26 sources, neuf signaux de marché, quatre méca
 2. BMO et statistiques sectorielles ne sont jamais typées `Opportunity`.
 3. Un mécanisme de financement n'instancie aucune allocation, demande, décision, approbation ou paiement.
 4. Aucun montant réel ou approuvé n'est affecté au scénario Sarah à partir d'un plafond, d'un forfait ou d'un tarif indicatif.
-5. Une offre volatile reste `NEEDS_VERIFICATION` ou `UNKNOWN` pour son activation et porte une règle de rafraîchissement.
+5. Une offre volatile ouverte reste `NEEDS_VERIFICATION` pour son activation et porte une règle de rafraîchissement ; une fiche constatée HTTP 404 est `CLOSED` et non mobilisable.
 6. Les identifiants du registre sont uniques ; la déduplication reste exacte et documentée, jamais floue.
 7. Les valeurs inconnues sont `null`, jamais chaîne vide, zéro ou fait supposé.
 
 ## Données à vérifier avant usage opérationnel
 
 - résidence, statut France Travail, niveau d'anglais, contraintes horaires, mobilité et consentements de Sarah ;
-- disponibilité des offres et identité de l'hôtel derrière l'offre `209WMFB` ;
+- disponibilité réelle des quatre offres ouvertes et résolution de la contradiction de type de contrat sur `212BSXW` ;
 - places, admissions, employeurs, coûts et calendriers réels des formations ;
 - capacité et prix Mobil'Izy ;
 - accord d'accueil PMSMP par un employeur ;
