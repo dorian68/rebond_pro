@@ -1,0 +1,1278 @@
+{
+  "version": "1.0.0-prototype",
+  "generated_at": "2026-08-15",
+  "provenance": {
+    "workspace_root": "C:/Users/Labry/documents/REBOND_PRO",
+    "dataset_scope": "Registre candidat de l'écosystème local pour le prototype Orchestration",
+    "fact_policy": "Une mention est conservée comme piste à vérifier. Elle ne confirme ni l'identité légale, ni le rôle, ni la capacité, ni l'offre, ni le financement de l'acteur.",
+    "extraction_method": "Inventaire local hors node_modules, .git, .next et .run, puis lecture cellule par cellule en mode read-only des classeurs XLSX disponibles.",
+    "sources": [
+      {
+        "id": "user-provided-list",
+        "kind": "user_prompt",
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "sha256": null,
+        "used_for": "Noms candidats uniquement",
+        "limitations": "Liste non exhaustive, mise en forme tabulaire perdue dans le texte, catégories et colonnes ambiguës, aucune preuve légale ou opérationnelle jointe."
+      },
+      {
+        "id": "user-provided-local-ecosystem-examples",
+        "kind": "user_prompt",
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier avant utilisation",
+        "sha256": null,
+        "used_for": "Noms candidats et territoire uniquement lorsque celui-ci figure dans le nom",
+        "limitations": "Le prompt qualifie explicitement ces noms de points de départ à vérifier."
+      },
+      {
+        "id": "cofinancements-partenaires-aap",
+        "kind": "xlsx",
+        "file": "financement/excel/Cofinancements_Partenaires_AAP.xlsx",
+        "sheet": "Partenaires",
+        "row_or_section": "A1:E9",
+        "sha256": "38C517963DCEA375CDF32EC4078B033B8B7A5F5CEB30640D6BEB113A1EF8F7AF",
+        "last_modified_at": "2026-07-13T01:11:11.4928634Z",
+        "used_for": "Mentions exactes Mission Locale et France Travail seulement",
+        "limitations": "Les colonnes indiquent un rôle attendu et une preuve encore à obtenir; elles ne confirment aucune capacité ou relation.",
+        "planning_observations": [
+          {
+            "row": 2,
+            "partner_label": "Mission Locale",
+            "role_expected": "Prescription jeunes, CEJ/PACEA, suivi jeunes",
+            "contribution_type": "Flux bénéficiaires / temps / locaux",
+            "proof_to_obtain": "Lettre intention",
+            "verification_status": "needs_verification",
+            "imported_actor_id": "actor-mission-locale"
+          },
+          {
+            "row": 3,
+            "partner_label": "France Travail",
+            "role_expected": "Prescription, AIF, PMSMP, POE",
+            "contribution_type": "Flux bénéficiaires / financement formation",
+            "proof_to_obtain": "Rendez-vous + courrier soutien",
+            "verification_status": "needs_verification",
+            "imported_actor_id": "actor-france-travail"
+          },
+          {
+            "row": 4,
+            "partner_label": "Rectorat / MLDS / CIO",
+            "role_expected": "Signalement décrochage et coordination éducation",
+            "proof_to_obtain": "Lettre intention",
+            "verification_status": "needs_verification",
+            "imported_actor_id": null,
+            "exclusion_reason": "Libellé composite; aucune organisation unique ne peut être créée sans désambiguïsation."
+          },
+          {
+            "row": 5,
+            "partner_label": "CFA",
+            "role_expected": "Détection rupture, médiation, maintien ou repositionnement",
+            "proof_to_obtain": "Lettre intention",
+            "verification_status": "needs_verification",
+            "imported_actor_id": null,
+            "exclusion_reason": "Catégorie générique, pas une organisation identifiée."
+          },
+          {
+            "row": 6,
+            "partner_label": "Conseil départemental",
+            "role_expected": "RSA, insertion, cofinancement",
+            "proof_to_obtain": "Engagement financier ou soutien",
+            "verification_status": "needs_verification",
+            "imported_actor_id": null,
+            "exclusion_reason": "Territoire et identité légale non précisés dans le classeur."
+          },
+          {
+            "row": 7,
+            "partner_label": "Communes / CCAS",
+            "role_expected": "Repérage, publics fragiles, locaux",
+            "proof_to_obtain": "Lettre intention",
+            "verification_status": "needs_verification",
+            "imported_actor_id": null,
+            "exclusion_reason": "Libellé composite et générique."
+          },
+          {
+            "row": 8,
+            "partner_label": "Centres de formation",
+            "role_expected": "Places, devis, entrées formation",
+            "proof_to_obtain": "Convention partenaire",
+            "verification_status": "needs_verification",
+            "imported_actor_id": null,
+            "exclusion_reason": "Catégorie générique, pas une organisation identifiée."
+          },
+          {
+            "row": 9,
+            "partner_label": "Entreprises",
+            "role_expected": "Enquêtes métiers, PMSMP, alternance, emploi",
+            "proof_to_obtain": "Lettre intention",
+            "verification_status": "needs_verification",
+            "imported_actor_id": null,
+            "exclusion_reason": "Catégorie générique, pas une organisation identifiée."
+          }
+        ]
+      },
+      {
+        "id": "matrice-prestations-financeurs-preuve",
+        "kind": "xlsx",
+        "file": "financement/excel/Matrice_Prestations_Financeurs_Preuve.xlsx",
+        "sheet": "Prestations financeurs; Preuves financeur",
+        "row_or_section": "Prestations financeurs!A1:H11; Preuves financeur!A1:C9",
+        "sha256": "60DDF18CC739B6A5BC1A9CDAC56C6ED0E395C901D7190FCB79C610AE4369D23B",
+        "last_modified_at": "2026-07-13T01:11:11.4918644Z",
+        "used_for": "Contrôle de présence de sources seulement",
+        "limitations": "Matrice générique de prestations et preuves; aucune identité locale suffisamment précise. Aucun financement n'est importé dans ce seed."
+      },
+      {
+        "id": "budgets-aap-le-bon-rebond",
+        "kind": "xlsx",
+        "file": "financement/excel/Budgets_AAP_Le_Bon_Rebond.xlsx",
+        "sheet": "Synthese; AAP1 Jeunes; AAP2 Decrochage; AAP3 AS RUP",
+        "row_or_section": "Classeur complet",
+        "sha256": "CD3B8FF03F5FA0149D329EA97509F8D04F61FC450DDCA69008C09909461DB987",
+        "last_modified_at": "2026-07-13T01:11:11.4898527Z",
+        "used_for": "Contrôle de présence de sources seulement",
+        "limitations": "Budgets de projets et mentions génériques de publics/partenaires; aucun coût, financement ou acteur n'est importé."
+      }
+    ],
+    "requested_sources_not_found": [
+      "LE_BON_REBOND_STRAT*.xlsx",
+      "Support_BMO26_v5.pdf",
+      "fichier CSV ou TSV d'acteurs locaux",
+      "fichier PDF d'acteurs locaux",
+      "fichier source exploitable dont le nom contient ACTEURS, ENTREPRISES, CFA, PARTENAIRES, PRESCRIPTEURS, OPPORTUNITES ou EMPLOITON"
+    ],
+    "non_actor_labels_not_imported": [
+      "Entreprises",
+      "Centre_De_Formation_CFA",
+      "Acheteurs/Prescripteurs",
+      "Sorties dynamiques/actives",
+      "Formations/CFA",
+      "Alternances",
+      "Emploi CDI/CDD",
+      "Assistant de Vie aux Familles (ADVF)",
+      "aides à domicile et auxiliaires de vie",
+      "CAP AEPE (Accompagnement Éducatif Petite Enfance)",
+      "Structures d'Aide à Domicile (SAD)"
+    ]
+  },
+  "deduplication_policy": {
+    "match_order": [
+      "SIRET identique si disponible",
+      "identifiant interne existant",
+      "nom normalisé et territoire identique après revue manuelle"
+    ],
+    "normalization_for_review_only": [
+      "trim des espaces",
+      "normalisation Unicode NFC",
+      "comparaison insensible à la casse"
+    ],
+    "automatic_fuzzy_merge": false,
+    "merges_performed": [
+      {
+        "kept_id": "actor-region-guadeloupe",
+        "mentions": [
+          "Région Guadeloupe",
+          "Region Guadeloupe"
+        ],
+        "basis": "Même libellé après normalisation des accents, même contexte utilisateur, revue explicite de ce seed."
+      },
+      {
+        "kept_id": "actor-umih-guadeloupe",
+        "mentions": [
+          "UMIH Guadeloupe",
+          "UMIH Guadeloupe (Organisation professionnelle regroupant les cafés/hotels et métiers de la nuit)"
+        ],
+        "basis": "Même libellé principal exact dans deux sections du prompt, revue explicite de ce seed."
+      },
+      {
+        "kept_id": "actor-akto",
+        "mentions": [
+          "AKTO",
+          "AKTO"
+        ],
+        "basis": "Doublon textuel exact dans deux sections du prompt."
+      }
+    ],
+    "manual_review_queue": [
+      {
+        "actor_ids": [
+          "actor-mission-locale",
+          "actor-mission-locale-guadeloupe"
+        ],
+        "reason": "Noms proches mais aucun SIRET ni identifiant interne."
+      },
+      {
+        "actor_ids": [
+          "actor-france-travail",
+          "actor-france-travail-guadeloupe-iles-du-nord"
+        ],
+        "reason": "Le classeur nomme l'acteur national/générique; le prompt nomme une implantation territoriale."
+      },
+      {
+        "actor_ids": [
+          "actor-plie",
+          "actor-plie-cap-excellence"
+        ],
+        "reason": "Le sigle générique ne permet pas de confirmer l'implantation."
+      },
+      {
+        "actor_ids": [
+          "actor-geiq-guadeloupe",
+          "actor-geiq-archipel-guadeloupe"
+        ],
+        "reason": "Noms proches sans identifiant légal."
+      },
+      {
+        "actor_ids": [
+          "actor-umih-971",
+          "actor-umih-guadeloupe"
+        ],
+        "reason": "Alias probable mais non fusionné sans identifiant légal ou validation humaine nominative."
+      },
+      {
+        "actor_ids": [
+          "actor-admr",
+          "actor-admr-guadeloupe"
+        ],
+        "reason": "La mention générique ADMR ne permet pas de confirmer l'entité territoriale."
+      }
+    ]
+  },
+  "actors": [
+    {
+      "id": "actor-la-creole-beach-hotel-spa",
+      "legal_name": null,
+      "display_name": "La Créole Beach Hotel & Spa",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "La Créole Beach Hotel & Spa"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-mission-locale",
+      "legal_name": null,
+      "display_name": "Mission Locale",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "financement/excel/Cofinancements_Partenaires_AAP.xlsx",
+        "sheet": "Partenaires",
+        "row_or_section": "row 2",
+        "excerpt": "Mission Locale — rôle attendu; lettre d'intention à obtenir"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-la-toubana-hotel-spa",
+      "legal_name": null,
+      "display_name": "La Toubana Hotel & Spa",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "La Toubana Hotel & Spa"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-greta-cfa",
+      "legal_name": null,
+      "display_name": "Greta-CFA",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Greta-CFA"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-plie",
+      "legal_name": null,
+      "display_name": "PLIE",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "PLIE"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-club-med-la-caravelle",
+      "legal_name": null,
+      "display_name": "Club Med La Caravelle",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Club Med La Caravelle"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-airliseformation",
+      "legal_name": null,
+      "display_name": "airliseformation",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "airliseformation"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-france-travail",
+      "legal_name": null,
+      "display_name": "France Travail",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "financement/excel/Cofinancements_Partenaires_AAP.xlsx",
+        "sheet": "Partenaires",
+        "row_or_section": "row 3",
+        "excerpt": "France Travail — rôle attendu; rendez-vous et courrier de soutien à obtenir"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-jardin-malanga",
+      "legal_name": null,
+      "display_name": "Jardin Malanga",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Jardin Malanga"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-vatel-guadeloupe",
+      "legal_name": null,
+      "display_name": "Vatel Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Vatel Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-region-guadeloupe",
+      "legal_name": null,
+      "display_name": "Région Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "Région Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-centre-plongee-reserve-cousteau",
+      "legal_name": null,
+      "display_name": "Centre de plongée réserve Cousteau",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Centre de plongée réserve cousteau (Tous les acteurs du tourisme)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-ecole-internationale-tunon-guadeloupe",
+      "legal_name": null,
+      "display_name": "École Internationale Tunon Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Ecole Internationale Tunon Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-conseil-departemental-dsia",
+      "legal_name": null,
+      "display_name": "Conseil Départemental (DSIA)",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Conseil Départemental (DSIA)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-geiq-guadeloupe",
+      "legal_name": null,
+      "display_name": "GEIQ Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "GEIQ Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-nuevo-cfa",
+      "legal_name": null,
+      "display_name": "Nuevo CFA",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Nuevo CFA"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-ctig",
+      "legal_name": null,
+      "display_name": "Comité du Tourisme des Îles de Guadeloupe (CTIG)",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Comité du Tourisme des Iles de Guadeloupe (CTIG)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-hotel-fleur-epee",
+      "legal_name": null,
+      "display_name": "Hotel Fleur d'Epée",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Hotel Fleur d'Epée"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-fore-alternance",
+      "legal_name": null,
+      "display_name": "Fore Alternance",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Fore Alternance"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-carl",
+      "legal_name": null,
+      "display_name": "CARL",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "CARL"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-le-relais-du-moulin",
+      "legal_name": null,
+      "display_name": "Le Relais du Moulin",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Le Relais du Moulin"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-cfa-cci-iles-guadeloupe",
+      "legal_name": null,
+      "display_name": "Le CFA de la CCI des Îles de Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Le CFA de la CCI des Îles de Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-langley-resort-fort-royal",
+      "legal_name": null,
+      "display_name": "Langley Resort Fort Royal",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Langley Resort Fort Royal"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-afpa-guadeloupe",
+      "legal_name": null,
+      "display_name": "AFPA Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "AFPA Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-umih-971",
+      "legal_name": null,
+      "display_name": "L'Union des Métiers et des Industries de l'Hotellerie (L'UMIH 971)",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "l'Union des Métiers et des Industries de l'Hotellerie (L'UMIH 971)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-ge-sat",
+      "legal_name": null,
+      "display_name": "Groupement d'Employeurs Emploi Sport Animation Tourisme (GE-S.A.T)",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Groupement d'Employeurs Emploi Sport Animation Tourisme (GE-S.A.T)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-admr-guadeloupe",
+      "legal_name": null,
+      "display_name": "L'ADMR de Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "l'ADMR de Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-assad",
+      "legal_name": null,
+      "display_name": "L'association ASSAD",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "l'association ASSAD"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-o2-care-services-guadeloupe",
+      "legal_name": null,
+      "display_name": "O2 Care Services Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "O2 Care Services Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-onet-guadeloupe",
+      "legal_name": null,
+      "display_name": "Onet Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Onet Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-sygma",
+      "legal_name": null,
+      "display_name": "Sygma",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Sygma"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-vitalliance",
+      "legal_name": null,
+      "display_name": "Vitalliance",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Vitalliance"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-admr",
+      "legal_name": null,
+      "display_name": "L'ADMR",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "l'ADMR"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-umih-guadeloupe",
+      "legal_name": null,
+      "display_name": "UMIH Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "UMIH Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-gbh-direction-destreland",
+      "legal_name": null,
+      "display_name": "GBH/Direction de Destreland",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "GBH/Direction de Destreland (ecole des métiers en Guadeloupe + Job dating alternants)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-ude-medef",
+      "legal_name": null,
+      "display_name": "UDE-MEDEF",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "UDE-MEDEF (Rallye de l'Alternance 2026)"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-office-tourisme-rivviera-levant",
+      "legal_name": null,
+      "display_name": "Office de tourisme de la Rivviera du levant",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "Office de tourisme de la Rivviera du levant"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-rsma",
+      "legal_name": null,
+      "display_name": "RSMA",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "<liste_acteurs_non_exhaustive>",
+        "excerpt": "RSMA"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-akto",
+      "legal_name": null,
+      "display_name": "AKTO",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "AKTO"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-france-travail-guadeloupe-iles-du-nord",
+      "legal_name": null,
+      "display_name": "France Travail Guadeloupe & Îles du Nord",
+      "actor_types": [],
+      "territory": "Guadeloupe & Îles du Nord",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "France Travail Guadeloupe & Îles du Nord"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-mission-locale-guadeloupe",
+      "legal_name": null,
+      "display_name": "Mission Locale Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "Mission Locale Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-plie-cap-excellence",
+      "legal_name": null,
+      "display_name": "PLIE Cap Excellence",
+      "actor_types": [],
+      "territory": "Cap Excellence",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "PLIE Cap Excellence"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-cap-emploi-971",
+      "legal_name": null,
+      "display_name": "Cap emploi 971",
+      "actor_types": [],
+      "territory": null,
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "Cap emploi 971"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-deets-guadeloupe",
+      "legal_name": null,
+      "display_name": "DEETS Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "DEETS Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-cci-iles-guadeloupe",
+      "legal_name": null,
+      "display_name": "CCI des Îles de Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "CCI des Îles de Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-campus-guadeloupeen-apprentissage",
+      "legal_name": null,
+      "display_name": "Campus Guadeloupéen de l'Apprentissage",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "Campus Guadeloupéen de l’Apprentissage"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    },
+    {
+      "id": "actor-geiq-archipel-guadeloupe",
+      "legal_name": null,
+      "display_name": "GEIQ Archipel Guadeloupe",
+      "actor_types": [],
+      "territory": "Guadeloupe",
+      "employment_basin": null,
+      "addresses": [],
+      "contacts": [],
+      "capabilities": [],
+      "service_offers": [],
+      "source_ref": {
+        "file": "user-provided prompt",
+        "sheet": null,
+        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "excerpt": "GEIQ Archipel Guadeloupe"
+      },
+      "verification_status": "needs_verification",
+      "last_verified_at": null,
+      "verification_owner": null,
+      "active": true
+    }
+  ]
+}

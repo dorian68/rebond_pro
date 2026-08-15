@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/admin/centres", label: "Centres", icon: "building" },
   { href: "/admin/formateurs", label: "Formateurs", icon: "presentation" },
   { href: "/admin/beneficiaires", label: "Bénéficiaires", icon: "smile" },
+  { href: "/admin/orchestration", label: "Orchestration", icon: "zap" },
   { href: "/admin/documents", label: "Bibliothèque docs", icon: "file-text" },
   { href: "/admin/roadmap", label: "Roadmap", icon: "target" },
   { href: "/admin/roadmap-2", label: "Roadmap 2", icon: "layers" },
