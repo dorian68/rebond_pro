@@ -10,6 +10,7 @@ import {
   createOutcomeMilestones,
   createSarahDemoSnapshot,
   demoOccupations,
+  ecosystemActors,
   findActorsByCapability,
   generatePathwayDraft,
   recordOutcomeMilestone,
@@ -145,14 +146,39 @@ async function main() {
     const actors = [actor("actor-verified", "VERIFIED"), actor("actor-unverified", "NEEDS_VERIFICATION")];
     const matches = findActorsByCapability(actors, "SUPPORT_MOBILITY", { territory: "Guadeloupe" });
     assert.equal(matches.length, 2);
-    assert.equal(snapshot.actors.filter((candidate) => !candidate.demo).length, 47);
+    const sourceBackedActors = snapshot.actors.filter((candidate) => !candidate.demo);
+    const actorIds = new Set(sourceBackedActors.map((candidate) => candidate.id));
+    assert.ok(sourceBackedActors.length >= ecosystemActors.length);
+    for (const candidate of ecosystemActors) assert.ok(actorIds.has(candidate.id), `Acteur initial perdu : ${candidate.id}`);
+    for (const pair of [
+      ["actor-mission-locale", "actor-mission-locale-guadeloupe"],
+      ["actor-france-travail", "actor-france-travail-guadeloupe-iles-du-nord"],
+      ["actor-plie", "actor-plie-cap-excellence"],
+      ["actor-geiq-guadeloupe", "actor-geiq-archipel-guadeloupe"],
+      ["actor-umih-971", "actor-umih-guadeloupe"],
+      ["actor-admr", "actor-admr-guadeloupe"],
+    ] as const) {
+      assert.ok(pair.every((id) => actorIds.has(id)), `Fusion floue détectée : ${pair.join(" / ")}`);
+    }
   });
 
   await runStep("04_verified_actor_filter", () => {
     const actors = [actor("actor-verified", "VERIFIED"), actor("actor-unverified", "NEEDS_VERIFICATION")];
     const matches = findActorsByCapability(actors, "SUPPORT_MOBILITY", { verifiedOnly: true });
     assert.deepEqual(matches.map((candidate) => candidate.id), ["actor-verified"]);
-    assert.equal(findActorsByCapability(snapshot.actors, "SUPPORT_MOBILITY", { verifiedOnly: true }).length, 0);
+    const verifiedRegistryMatches = findActorsByCapability(snapshot.actors, "SUPPORT_MOBILITY", { verifiedOnly: true });
+    assert.ok(verifiedRegistryMatches.length > 0, "Le registre officiel doit exposer au moins un support mobilité vérifié.");
+    assert.equal(
+      verifiedRegistryMatches.every(
+        (candidate) =>
+          candidate.verificationStatus === "VERIFIED" &&
+          candidate.capabilities.some(
+            (capability) => capability.capability === "SUPPORT_MOBILITY" && capability.verificationStatus === "VERIFIED",
+          ),
+      ),
+      true,
+    );
+    assert.equal(verifiedRegistryMatches.some((candidate) => candidate.id === "demo-actor-hotel-partenaire-a"), false);
   });
 
   let generated = generatePathwayDraft({

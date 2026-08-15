@@ -11,7 +11,7 @@ Preuves examinées : implémentation finale, seed et note de provenance, smoke m
 
 En moins de 30 secondes, un coordinateur comprend ce que le produit orchestre, voit les urgences, identifie Sarah et sait ouvrir son parcours. Le prototype matérialise réellement la différence entre un annuaire de partenaires et un moteur de parcours : état participant + objectif + besoins + acteurs + étapes + boucle de retour + coûts + maintien de la sortie.
 
-**NO-GO pour une mise en production ou un achat SaaS autonome en l’état.** Les mutations restent dans le navigateur, les orientations sont simulées et les 47 acteurs issus des sources sont encore tous à vérifier, sans capacité, service, contact ni opportunité confirmés. Un acheteur institutionnel paierait donc pour un pilote/co-design instrumenté, pas encore pour un déploiement opérationnel multi-acteurs.
+**NO-GO pour une mise en production ou un achat SaaS autonome en l’état.** Les mutations restent dans le navigateur et les orientations sont simulées. Le snapshot conserve les 47 pistes initiales, enrichit douze acteurs avec 26 capacités précisément sourcées et expose trois services ; ses trois offres restent explicitement `UNKNOWN` et à rafraîchir. Capacité courante, disponibilité, places, partenariat, éligibilité et décision restent à confirmer. Un acheteur institutionnel paierait donc pour un pilote/co-design instrumenté, pas encore pour un déploiement opérationnel multi-acteurs.
 
 ## Test des 30 premières secondes
 
@@ -53,7 +53,7 @@ Les scores de readiness commerciale et de rétention sont volontairement plus ba
 ## Trois forces décisives
 
 1. **Une différenciation produit immédiatement visible.** Le graphe montre des dépendances, du parallélisme et une branche Plan B ; il ne se réduit ni à une fiche bénéficiaire ni à une liste de partenaires.
-2. **Une confiance rarement aussi explicite dans un prototype.** Les acteurs sourcés restent « À vérifier », les acteurs de scénario sont marqués synthétiques, l’absence de donnée n’est jamais transformée en conclusion négative et le coût inconnu reste « Non renseigné ». Lorsqu’une vérification humaine locale est enregistrée, son statut est propagé à la carte, au Référentiel et aux sélecteurs opérationnels.
+2. **Une confiance rarement aussi explicite dans un prototype.** Le produit distingue une assertion officielle vérifiée d'une capacité opérationnelle encore inconnue, maintient les acteurs de scénario comme synthétiques, ne transforme jamais une absence de donnée en conclusion négative et conserve le coût inconnu comme « Non renseigné ». BMO reste un contexte de marché, un dispositif reste distinct d'une allocation et une offre volatile reste à rafraîchir.
 3. **Un workflow réellement actionnable.** La validation remonte les responsables, échéances et preuves manquants ; l’orientation expose son cycle de réponse ; le refus exige un motif ; le Plan B s’active séparément ; chaque suivi J+7/J+30/J+60/J+90 exige date et preuve.
 
 ## Parcours Sarah — lecture métier
@@ -87,7 +87,7 @@ Les scores de readiness commerciale et de rétention sont volontairement plus ba
 
 ## Bloquants P0 avant production
 
-1. **Qualifier le registre local.** Les 47 acteurs sourcés sont tous `needs_verification` ; aucun type, capacité, service, contact, SLA, disponibilité ou opportunité n’est confirmé. La source ne permet donc pas encore un matching opérationnel vérifié.
+1. **Qualifier le registre local au niveau opérationnel.** Les 47 pistes du seed initial restent `needs_verification`. Les nouvelles sources officielles confirment des assertions précises mais ni capacité courante, ni contact opérationnel, ni SLA, ni partenariat, ni éligibilité individuelle. Le corpus ne permet donc pas encore un matching activable sans contrôle humain.
 2. **Remplacer le stockage navigateur par une persistance serveur auditée.** Il faut tenant/workspace, contrôle d’accès objet, journal des versions, concurrence multi-utilisateur, sauvegarde et restauration.
 3. **Fermer la vraie boucle multi-acteurs.** Les referrals, relances et réponses doivent être reliés à un canal traçable ou à un Partner Portal ; aucune simulation locale ne doit être confondue avec une prise en charge réelle.
 4. **Appliquer les vues minimisées côté serveur.** Les aperçus employeur/CFA/prescripteur démontrent le principe, mais consentements, finalités, révocation, exports et accès doivent être opposables et audités.
@@ -95,11 +95,11 @@ Les scores de readiness commerciale et de rétention sont volontairement plus ba
 
 ## Données restant à vérifier
 
-- 47 organisations candidates : 0 vérifiée, 0 typée, 0 capacité confirmée, 0 service, 0 contact, 0 opportunité et 0 responsable de vérification dans le seed initial.
+- 47 organisations candidates dans le seed initial : aucune capacité opérationnelle, disponibilité, opportunité ou relation partenariale confirmée par ce seed. Le registre officiel séparé qualifie certains faits documentaires, sans modifier cette limite.
 - Territoire : 18 valeurs seulement déduites littéralement des noms, 29 non renseignées.
 - Files de rapprochement manuel : Mission Locale, France Travail, PLIE, GEIQ, UMIH et ADMR ; aucune fusion silencieuse ne doit être faite.
 - Noms ambigus ou incomplets, notamment CARL, Sygma, RSMA, Conseil Départemental/DSIA et Office de tourisme de la Riviera du Levant.
-- Acteur mobilité, centre/CFA, employeur, places, capacités, disponibilités, financements et coûts du scénario Sarah.
+- Acteur mobilité effectivement disponible, centre/CFA admissible, employeur accueillant, places, capacités, disponibilités, financements accordés et coûts du scénario Sarah.
 - Les deux acteurs ajoutés pour raconter la démonstration restent explicitement synthétiques et ne constituent pas des partenaires confirmés.
 
 ## Verdict d’achat par persona

@@ -26,7 +26,7 @@ Le prototype ne se présente pas comme une intégration opérationnelle : ses mu
 1. **Domaine canonique** — types TypeScript et schémas Zod dans `src/features/orchestration`. Les objets utilisent la composition (`Actor + capabilities + serviceOffers`) et partagent les mêmes compétences entre Passeport, métier et opportunité.
 2. **Pathway Engine** — règles déterministes pour gaps, Needs, Capability, recherche d'acteurs, brouillons A/B, transitions Referral, activation du Plan B, coûts, couverture et jalons de sortie. Chaque proposition conserve explication, données utilisées, inconnues et validation humaine obligatoire.
 3. **Repository isolé** — repository en mémoire avec validation runtime, contrôle de version optimiste, archivage des versions et mutations métier gardées. Il constitue le contrat de la future implémentation PostgreSQL.
-4. **Fixtures et provenance** — scénario Sarah typé, 15 étapes Plan A, 5 étapes Plan B, acteurs synthétiques séparés et seed Guadeloupe normalisé.
+4. **Fixtures et provenance** — scénario Sarah typé, 15 étapes Plan A, 5 étapes Plan B, acteurs synthétiques séparés, seed Guadeloupe normalisé et corpus officiel qualifié assertion par assertion.
 5. **Adaptateur de vue** — transformation explicite du snapshot canonique vers des modèles UI. Aucun JSON métier géant n'est embarqué dans le composant.
 6. **Studio admin** — Server Component protégé, Client Component interactif, React Flow pour le graphe, six vues, drawers et persistance `localStorage` clairement annoncée comme locale.
 
@@ -72,6 +72,20 @@ Le seed conserve 47 organisations candidates :
 
 Le Bon Rebond et « Hôtel partenaire A » sont des acteurs de scénario séparés, marqués « Démo synthétique ». Ils ne constituent pas des partenaires réels.
 
+Un second travail documentaire daté du 15 août 2026 qualifie des assertions atomiques depuis des sources publiques primaires : identité et rôle général de prescripteurs, existence de mécanismes, sessions de formation datées, ROME, BMO 2026 et trois offres France Travail volatiles. Cette qualification ne remplace pas le seed initial et ne rend pas les acteurs opérationnels :
+
+- `VERIFIED` s'applique à l'assertion et à sa provenance, jamais à toutes les propriétés d'un acteur ;
+- une statistique BMO ne devient jamais une opportunité ;
+- un dispositif, plafond ou forfait ne crée aucune allocation de financement ;
+- disponibilité, capacité, places, prix, partenariat, éligibilité et décision restent inconnus tant qu'ils ne sont pas prouvés ;
+- les offres datées exigent une nouvelle vérification avant activation.
+
+La matrice, ses URLs directes, dates et règles de fraîcheur sont consignées dans `reports/2026-08-15_orchestration-sources.md`.
+
+Le registre documentaire contient, au moment du contrôle, 26 références : 20 sources `VERIFIED`, trois offres volatiles et trois fichiers internes en `NEEDS_VERIFICATION`. Il expose aussi neuf signaux de marché, quatre mécanismes, trois scénarios budgétaires internes et huit exigences de preuve. Douze acteurs portent 26 revendications de capacité sourcées et trois services sont matérialisés uniquement dans les limites documentées ; capacité courante, places et coûts restent inconnus. Trois opportunités France Travail sont conservées en `NEEDS_VERIFICATION` avec statut `UNKNOWN`, fournisseur opérationnel non résolu et rafraîchissement requis sous 24 heures.
+
+La fusion runtime est exacte et non floue : les 47 candidats initiaux sont conservés ; onze IDs identiques reçoivent leur enrichissement officiel, Mobil'Izy est ajouté comme acteur distinct et les deux acteurs `demo-` restent séparés. Le snapshot final comporte donc 50 acteurs, dont douze officiels vérifiés et deux synthétiques.
+
 ## Fonctionnalités du vertical slice
 
 - barre de pilotage et inbox « À traiter maintenant » dérivées de l'état ;
@@ -89,6 +103,7 @@ Le Bon Rebond et « Hôtel partenaire A » sont des acteurs de scénario sépar�
 ## Fichiers créés
 
 - `data/guadeloupe-ecosystem.seed.json`
+- `data/guadeloupe-orchestration.sources.json`
 - `data/README-orchestration-sources.md`
 - `src/features/orchestration/constants.ts`
 - `src/features/orchestration/schemas.ts`
@@ -96,6 +111,7 @@ Le Bon Rebond et « Hôtel partenaire A » sont des acteurs de scénario sépar�
 - `src/features/orchestration/engine.ts`
 - `src/features/orchestration/fixtures.ts`
 - `src/features/orchestration/repository.ts`
+- `src/features/orchestration/source-registry.ts`
 - `src/features/orchestration/index.ts`
 - `src/app/admin/orchestration/page.tsx`
 - `src/app/admin/orchestration/orchestration-client.tsx`
@@ -104,9 +120,11 @@ Le Bon Rebond et « Hôtel partenaire A » sont des acteurs de scénario sépar�
 - `src/app/admin/orchestration/orchestration.module.css`
 - `src/app/admin/orchestration/ui-types.ts`
 - `scripts/smoke-orchestration.ts`
+- `scripts/smoke-orchestration-sources.ts`
 - `scripts/capture-orchestration.mjs`
 - `reports/2026-08-15_technical-rl_orchestration.md`
 - `reports/2026-08-15_business-client_orchestration.md`
+- `reports/2026-08-15_orchestration-sources.md`
 
 ## Fichiers modifiés
 
@@ -122,10 +140,11 @@ Le worktree contenait déjà de nombreuses modifications hors périmètre ; elle
 
 ## Données restant à vérifier
 
-- raison sociale, SIRET, type, territoire/bassin, adresse et contacts des 47 acteurs ;
-- capacités, services, éligibilité, prérequis, livrables, SLA, disponibilité et règles de partage ;
+- raison sociale, SIRET, type, territoire/bassin, adresse et contacts des pistes qui ne disposent pas d'une assertion officielle suffisante ;
+- capacités opérationnelles, services activables, éligibilité, prérequis, livrables, SLA, disponibilité et règles de partage, y compris lorsque l'identité de l'acteur est officiellement établie ;
 - acteur mobilité, CFA/centre, employeur et opportunités réellement mobilisables pour Sarah ;
-- places, dates, coûts, financeurs, dispositifs et décisions ;
+- places, coûts, financeurs applicables et décisions individuelles ;
+- disponibilité actuelle des offres France Travail datées et identité de l'hôtel d'accueil non nommé ;
 - doublons Mission Locale, France Travail, PLIE, GEIQ, UMIH et ADMR ;
 - libellés ambigus CARL, Sygma, RSMA, Conseil Départemental/DSIA et Office de tourisme de la Riviera du Levant.
 
@@ -134,14 +153,15 @@ Le worktree contenait déjà de nombreuses modifications hors périmètre ; elle
 | Contrôle | Résultat |
 | --- | --- |
 | `npm run smoke:orchestration` | **PASS 13/13** — les 12 invariants demandés + garde d'approbation humaine |
+| `npm run smoke:orchestration-sources` | **PASS 8/8** — provenance officielle, séparation BMO/opportunités, mécanismes sans allocation, Sarah sans montants réels/accordés, offres volatiles, IDs exacts et inconnus `null` |
 | ESLint ciblé sur domaine, route, navigation et scripts | **PASS**, 0 erreur, 0 warning |
 | `npx tsc --noEmit --pretty false` | **PASS** |
 | `npm run build` | **PASS**, route dynamique `/admin/orchestration` produite |
-| Adaptateur runtime | **PASS** — 49 acteurs dont 47 sourcés et 2 synthétiques, 0 vérifié, 20 étapes, 3 coûts inconnus, 0 sortie active |
+| Adaptateur runtime | **PASS** — 50 acteurs dont 12 officiels vérifiés et 2 synthétiques, 26 capacités vérifiées, 3 services, 4 opportunités dont 3 volatiles, 20 étapes, 3 coûts inconnus, 0 financement alloué et 0 sortie active |
 | Inspection visuelle manuelle | **PASS**, six captures authentifiées |
 | Client Mystère | **PASS démo**, 4,5/5 et 89/100 |
 
-Conformément à la contrainte : aucune suite Playwright/Cypress E2E, aucun test de charge et aucun audit de sécurité complet n'ont été exécutés. `smoke:all` n'a pas été lancé. Le script Playwright de capture n'effectue qu'une navigation courte et six captures ; il ne constitue pas une suite E2E.
+Conformément à la contrainte : aucune suite Playwright/Cypress E2E, aucun test de charge et aucun audit de sécurité complet n'ont été exécutés. `smoke:all` n'a pas été lancé. Le nouveau contrôle de provenance est entièrement headless et sans mutation externe. Le script Playwright de capture n'effectue qu'une navigation courte et six captures ; il ne constitue pas une suite E2E.
 
 ## Captures
 

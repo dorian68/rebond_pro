@@ -37,7 +37,7 @@ export const referralStatusSchema = z.enum(REFERRAL_STATUSES);
 
 export const sourceRefSchema = z
   .object({
-    kind: z.enum(["SOURCE_FILE", "EXISTING_RECORD", "MISSION_BRIEF", "SYNTHETIC_DEMO", "MANUAL"]),
+    kind: z.enum(["SOURCE_FILE", "PUBLIC_OFFICIAL", "EXISTING_RECORD", "MISSION_BRIEF", "SYNTHETIC_DEMO", "MANUAL"]),
     label: shortTextSchema,
     file: nullableShortTextSchema.optional(),
     sheet: nullableShortTextSchema.optional(),

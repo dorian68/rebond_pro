@@ -56,6 +56,7 @@
     "smoke:document-intake": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-document-intake.ts",
     "smoke:admin-agents": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-admin-agents-sandbox.ts",
     "smoke:orchestration": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-orchestration.ts",
+    "smoke:orchestration-sources": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-orchestration-sources.ts",
     "smoke:roadmap": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap.ts",
     "smoke:roadmap-2": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2.ts",
     "smoke:roadmap-2:drive": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-roadmap-2-drive.ts",

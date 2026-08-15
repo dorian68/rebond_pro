@@ -3,6 +3,87 @@ export type OrchestrationView = "overview" | "cohorts" | "pathway" | "ecosystem"
 export type VerificationStatus = "VERIFIED" | "NEEDS_VERIFICATION";
 export type PlanType = "A" | "B";
 
+export type UiSource = {
+  id: string;
+  title: string;
+  publisher: string;
+  url: string | null;
+  kind: string;
+  checkedAt: string;
+  publishedAt: string | null;
+  verificationStatus: VerificationStatus;
+  freshness: string;
+  caveats: string[];
+};
+
+export type UiMarketSignal = {
+  id: string;
+  label: string;
+  value: number;
+  unit: string;
+  scope: string;
+  period: string;
+  sourceId: string;
+  caveat: string;
+};
+
+export type UiFundingMechanism = {
+  id: string;
+  name: string;
+  funderActorId: string | null;
+  funderName: string | null;
+  purpose: string;
+  eligiblePublic: string[];
+  conditions: string[];
+  coveredCosts: string[];
+  amountRule: string | null;
+  decisionRequired: true;
+  sourceId: string;
+  verificationStatus: VerificationStatus;
+};
+
+export type UiBudgetScenario = {
+  id: string;
+  name: string;
+  participants: number;
+  durationMonths: number;
+  totalCents: number;
+  targetFundingCents: number;
+  targetCofundingCents: number;
+  status: "INTERNAL_SCENARIO";
+  sourceId: string;
+  caveat: string;
+};
+
+export type UiEvidenceRequirement = {
+  id: string;
+  label: string;
+  appliesTo: string;
+  requiredEvidence: string[];
+  sourceId: string;
+  verificationStatus: VerificationStatus;
+};
+
+export type UiSourceRegistry = {
+  sources: UiSource[];
+  marketSignals: UiMarketSignal[];
+  fundingMechanisms: UiFundingMechanism[];
+  budgetScenarios: UiBudgetScenario[];
+  evidenceRequirements: UiEvidenceRequirement[];
+  missingSources: string[];
+  latestCheckedAt: string | null;
+};
+
+export type UiCapabilityClaim = {
+  capability: string;
+  verificationStatus: VerificationStatus;
+  sourceLabel: string;
+  sourceUrl: string | null;
+  lastVerifiedAt: string | null;
+  notes: string | null;
+  localDraft?: boolean;
+};
+
 export type UiActor = {
   id: string;
   name: string;
@@ -11,11 +92,14 @@ export type UiActor = {
   territory: string;
   employmentBasin?: string | null;
   capabilities: string[];
+  capabilityClaims: UiCapabilityClaim[];
+  sectors: string[];
   services: string[];
   opportunities: string[];
   contacts: string[];
   sourceLabel: string;
   sourceLocation?: string | null;
+  sourceUrl?: string | null;
   verificationSource?: string | null;
   verificationStatus: VerificationStatus;
   lastVerifiedAt?: string | null;
@@ -161,6 +245,18 @@ export type UiOccupation = {
   preferredSkills: string[];
   constraints: string[];
   verificationStatus: VerificationStatus;
+  sourceLabel: string;
+  sourceUrl: string | null;
+  sourceKind: string;
+};
+
+export type UiReferenceSkill = {
+  id: string;
+  label: string;
+  usedByOccupations: string[];
+  participantConfidence: string | null;
+  sourceLabels: string[];
+  verificationStatus: VerificationStatus;
 };
 
 export type UiService = {
@@ -174,6 +270,9 @@ export type UiService = {
   places: string | null;
   cost: number | null;
   verificationStatus: VerificationStatus;
+  sourceLabel: string;
+  sourceUrl: string | null;
+  caveats: string[];
 };
 
 export type UiOpportunity = {
@@ -185,6 +284,10 @@ export type UiOpportunity = {
   vacancies: string;
   status: string;
   verificationStatus: VerificationStatus;
+  sourceLabel: string;
+  sourceUrl: string | null;
+  caveats: string[];
+  synthetic: boolean;
 };
 
 export type OrchestrationUiModel = {
@@ -192,6 +295,8 @@ export type OrchestrationUiModel = {
   cohort: UiCohort;
   passport: UiPassport;
   occupation: UiOccupation;
+  occupations: UiOccupation[];
+  referenceSkills: UiReferenceSkill[];
   actors: UiActor[];
   services: UiService[];
   opportunities: UiOpportunity[];
@@ -203,4 +308,5 @@ export type OrchestrationUiModel = {
   pathwayVersion: number;
   pathwayStatus: string;
   planBActive: boolean;
+  sourceRegistry: UiSourceRegistry;
 };

@@ -1,5 +1,14 @@
-import type { OrchestrationSnapshot } from "@/features/orchestration";
-import type { OrchestrationUiModel, UiActor, UiCostItem, UiOutcome, UiStep } from "./ui-types";
+import { sourceRegistry, type OrchestrationSnapshot } from "@/features/orchestration";
+import type {
+  OrchestrationUiModel,
+  UiActor,
+  UiCostItem,
+  UiOccupation,
+  UiOutcome,
+  UiReferenceSkill,
+  UiSourceRegistry,
+  UiStep,
+} from "./ui-types";
 
 const COST_LABELS: Record<string, string> = {
   LBR_ACCOMPANIMENT: "Accompagnement Le Bon Rebond",
@@ -32,9 +41,107 @@ function sourceLocation(source: { file?: string | null; sheet?: string | null; p
   return details.length ? details.join(" · ") : null;
 }
 
+function occupationView(occupation: OrchestrationSnapshot["occupations"][number]): UiOccupation {
+  return {
+    id: occupation.id,
+    label: occupation.label,
+    code: occupation.romeCode,
+    sector: occupation.sector,
+    requiredSkills: occupation.requiredSkills.map((skill) => skill.skillLabel),
+    preferredSkills: occupation.preferredSkills.map((skill) => skill.skillLabel),
+    constraints: occupation.constraints,
+    verificationStatus: occupation.verificationStatus,
+    sourceLabel: occupation.sourceRef.label,
+    sourceUrl: occupation.sourceRef.uri ?? null,
+    sourceKind: occupation.sourceRef.kind,
+  };
+}
+
+function referenceSkillsView(snapshot: OrchestrationSnapshot): UiReferenceSkill[] {
+  const claims = snapshot.passports.flatMap((passport) => passport.skillClaims);
+  const skills = new Map<string, {
+    id: string;
+    label: string;
+    occupations: Set<string>;
+    sources: Set<string>;
+    statuses: Set<"VERIFIED" | "NEEDS_VERIFICATION">;
+  }>();
+
+  for (const occupation of snapshot.occupations) {
+    for (const requirement of [...occupation.requiredSkills, ...occupation.preferredSkills]) {
+      const key = requirement.skillId ?? requirement.skillLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
+      const current = skills.get(key) ?? {
+        id: requirement.skillId ?? `skill-${key.replace(/[^a-z0-9]+/g, "-")}`,
+        label: requirement.skillLabel,
+        occupations: new Set<string>(),
+        sources: new Set<string>(),
+        statuses: new Set<"VERIFIED" | "NEEDS_VERIFICATION">(),
+      };
+      current.occupations.add(occupation.label);
+      current.sources.add(requirement.sourceRef.label);
+      current.statuses.add(requirement.verificationStatus);
+      skills.set(key, current);
+    }
+  }
+
+  for (const claim of claims) {
+    const key = claim.skillId ?? claim.skillLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
+    if (!skills.has(key)) {
+      skills.set(key, {
+        id: claim.skillId ?? `skill-${key.replace(/[^a-z0-9]+/g, "-")}`,
+        label: claim.skillLabel,
+        occupations: new Set<string>(),
+        sources: new Set([claim.sourceRef.label]),
+        statuses: new Set(["NEEDS_VERIFICATION"]),
+      });
+    }
+  }
+
+  return Array.from(skills.values()).map((skill) => {
+    const claim = claims.find((candidate) => candidate.skillId === skill.id || candidate.skillLabel.toLocaleLowerCase("fr-FR") === skill.label.toLocaleLowerCase("fr-FR"));
+    return {
+      id: skill.id,
+      label: skill.label,
+      usedByOccupations: Array.from(skill.occupations),
+      participantConfidence: claim?.confidence ?? null,
+      sourceLabels: Array.from(skill.sources),
+      verificationStatus: skill.statuses.size === 1 && skill.statuses.has("VERIFIED") ? "VERIFIED" : "NEEDS_VERIFICATION",
+    };
+  });
+}
+
+function sourceRegistryView(snapshot: OrchestrationSnapshot): UiSourceRegistry {
+  const actorsById = new Map(snapshot.actors.map((actor) => [actor.id, actor.displayName]));
+  const sources = sourceRegistry.sources.map((source) => ({ ...source, caveats: [...source.caveats] }));
+  const checkedDates = sources.map((source) => source.checkedAt).filter((value) => !Number.isNaN(Date.parse(value)));
+  return {
+    sources,
+    marketSignals: sourceRegistry.marketSignals.map((signal) => ({ ...signal })),
+    fundingMechanisms: sourceRegistry.fundingMechanisms.map((mechanism) => ({
+      ...mechanism,
+      eligiblePublic: [...mechanism.eligiblePublic],
+      conditions: [...mechanism.conditions],
+      coveredCosts: [...mechanism.coveredCosts],
+      funderName: mechanism.funderActorId ? actorsById.get(mechanism.funderActorId) ?? null : null,
+    })),
+    budgetScenarios: sourceRegistry.budgetScenarios.map((scenario) => ({ ...scenario })),
+    evidenceRequirements: sourceRegistry.evidenceRequirements.map((requirement) => ({
+      ...requirement,
+      requiredEvidence: [...requirement.requiredEvidence],
+    })),
+    missingSources: [...sourceRegistry.meta.missingSources],
+    latestCheckedAt: checkedDates.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null,
+  };
+}
+
 function actorView(actor: OrchestrationSnapshot["actors"][number], snapshot: OrchestrationSnapshot, usedActorIds: Set<string>): UiActor {
   const offers = snapshot.serviceOffers.filter((offer) => offer.actorId === actor.id);
   const opportunities = snapshot.opportunities.filter((opportunity) => opportunity.providerActorId === actor.id);
+  const occupationsById = new Map(snapshot.occupations.map((occupation) => [occupation.id, occupation]));
+  const sectors = Array.from(new Set(opportunities.flatMap((opportunity) => {
+    const occupation = opportunity.occupationId ? occupationsById.get(opportunity.occupationId) : null;
+    return occupation ? [occupation.sector] : [];
+  })));
   const contacts = actor.contacts.flatMap((contact) => [
     [contact.name, contact.role].filter(Boolean).join(" · "),
     contact.email,
@@ -49,11 +156,21 @@ function actorView(actor: OrchestrationSnapshot["actors"][number], snapshot: Orc
     territory: actor.territory.join(", ") || "Territoire non renseigné",
     employmentBasin: actor.employmentBasin.join(", ") || null,
     capabilities: actor.capabilities.map((entry) => entry.capability),
+    capabilityClaims: actor.capabilities.map((entry) => ({
+      capability: entry.capability,
+      verificationStatus: entry.verificationStatus,
+      sourceLabel: entry.sourceRef.label,
+      sourceUrl: entry.sourceRef.uri ?? null,
+      lastVerifiedAt: entry.lastVerifiedAt,
+      notes: entry.notes,
+    })),
+    sectors,
     services: offers.map((offer) => offer.name),
     opportunities: opportunities.map((opportunity) => opportunity.title),
     contacts,
     sourceLabel: actor.sourceRef.label,
     sourceLocation: sourceLocation(actor.sourceRef),
+    sourceUrl: actor.sourceRef.uri ?? null,
     verificationSource: null,
     verificationStatus: actor.verificationStatus,
     lastVerifiedAt: actor.lastVerifiedAt,
@@ -114,23 +231,25 @@ function emptyOutcome(pathwayId: string): UiOutcome {
 }
 
 export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): OrchestrationUiModel {
-  const passport = snapshot.passports[0];
-  const cohort = snapshot.cohorts[0];
-  const occupation = snapshot.occupations.find((candidate) => candidate.id === passport.planA.occupationId) ?? snapshot.occupations[0];
-  const planA = snapshot.pathways.find((pathway) => pathway.participantId === passport.participantId && pathway.planType === "A") ?? snapshot.pathways[0];
-  const planB = snapshot.pathways.find((pathway) => pathway.participantId === passport.participantId && pathway.planType === "B");
+  const data = snapshot;
+  const passport = data.passports[0];
+  const cohort = data.cohorts[0];
+  const occupation = data.occupations.find((candidate) => candidate.id === passport.planA.occupationId) ?? data.occupations[0];
+  const planA = data.pathways.find((pathway) => pathway.participantId === passport.participantId && pathway.planType === "A") ?? data.pathways[0];
+  const planB = data.pathways.find((pathway) => pathway.participantId === passport.participantId && pathway.planType === "B");
   const allCanonicalSteps = [...planA.steps, ...(planB?.steps ?? [])];
-  const actorsById = new Map(snapshot.actors.map((actor) => [actor.id, actor]));
+  const actorsById = new Map(data.actors.map((actor) => [actor.id, actor]));
   const usedActorIds = new Set(allCanonicalSteps.flatMap((step) => step.assignedActorId ? [step.assignedActorId] : []));
-  const actors = snapshot.actors.map((actor) => actorView(actor, snapshot, usedActorIds));
+  const actors = data.actors.map((actor) => actorView(actor, data, usedActorIds));
+  const occupations = data.occupations.map(occupationView);
   const steps = [
     ...planA.steps.map((step, index) => stepView(step, "A", index, actorsById)),
     ...(planB?.steps.map((step, index) => stepView(step, "B", index, actorsById)) ?? []),
   ];
-  const needs = snapshot.needs.filter((need) => need.participantId === passport.participantId);
-  const fundingByCostId = new Map(snapshot.fundingAllocations.map((allocation) => [allocation.costItemId, allocation]));
+  const needs = data.needs.filter((need) => need.participantId === passport.participantId);
+  const fundingByCostId = new Map(data.fundingAllocations.map((allocation) => [allocation.costItemId, allocation]));
   const stepById = new Map(steps.map((step) => [step.id, step]));
-  const costs: UiCostItem[] = snapshot.costItems
+  const costs: UiCostItem[] = data.costItems
     .filter((item) => item.participantId === passport.participantId)
     .map((item) => {
       const funding = fundingByCostId.get(item.id);
@@ -150,7 +269,7 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
         verificationStatus: item.verificationStatus,
       };
     });
-  const canonicalOutcome = snapshot.outcomes.find((candidate) => candidate.participantId === passport.participantId);
+  const canonicalOutcome = data.outcomes.find((candidate) => candidate.participantId === passport.participantId);
   const outcome: UiOutcome = canonicalOutcome ? {
     id: canonicalOutcome.id,
     type: canonicalOutcome.type,
@@ -165,7 +284,7 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
   } : emptyOutcome(planA.id);
 
   return {
-    demoLabel: snapshot.meta.label,
+    demoLabel: data.meta.label,
     cohort: {
       id: cohort.id,
       name: cohort.name,
@@ -175,7 +294,7 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
       buyer: cohort.buyerActorId ? actorsById.get(cohort.buyerActorId)?.displayName ?? "À vérifier" : "Non renseigné",
       participants: cohort.participantIds.length,
       opportunities: cohort.opportunityIds.length,
-      outcomes: snapshot.outcomes.filter((candidate) => cohort.participantIds.includes(candidate.participantId) && ["ACTIVE", "MAINTAINED_J90"].includes(candidate.finalStatus) && candidate.type !== "PATHWAY_CONTINUES" && candidate.type !== "NO_ACTIVE_OUTCOME").length,
+      outcomes: data.outcomes.filter((candidate) => cohort.participantIds.includes(candidate.participantId) && ["ACTIVE", "MAINTAINED_J90"].includes(candidate.finalStatus) && candidate.type !== "PATHWAY_CONTINUES" && candidate.type !== "NO_ACTIVE_OUTCOME").length,
       status: cohort.status,
       owner: cohort.owner,
     },
@@ -211,18 +330,11 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
       })),
       lastReviewedAt: passport.lastReviewedAt,
     },
-    occupation: {
-      id: occupation.id,
-      label: occupation.label,
-      code: occupation.romeCode,
-      sector: occupation.sector,
-      requiredSkills: occupation.requiredSkills.map((skill) => skill.skillLabel),
-      preferredSkills: occupation.preferredSkills.map((skill) => skill.skillLabel),
-      constraints: occupation.constraints,
-      verificationStatus: occupation.verificationStatus,
-    },
+    occupation: occupationView(occupation),
+    occupations,
+    referenceSkills: referenceSkillsView(data),
     actors,
-    services: snapshot.serviceOffers.map((offer) => ({
+    services: data.serviceOffers.map((offer) => ({
       id: offer.id,
       actorId: offer.actorId,
       actorName: actorsById.get(offer.actorId)?.displayName ?? "Acteur à vérifier",
@@ -233,8 +345,16 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
       places: offer.places === null ? null : String(offer.places),
       cost: offer.costCents,
       verificationStatus: offer.verificationStatus,
+      sourceLabel: offer.sourceRef.label,
+      sourceUrl: offer.sourceRef.uri ?? null,
+      caveats: [
+        ...(offer.verificationStatus !== "VERIFIED" ? ["Offre à vérifier avant mobilisation."] : []),
+        ...(offer.dates.length === 0 ? ["Dates non renseignées."] : []),
+        ...(offer.places === null ? ["Places non renseignées."] : []),
+        ...(offer.costCents === null ? ["Coût non renseigné."] : []),
+      ],
     })),
-    opportunities: snapshot.opportunities.map((opportunity) => ({
+    opportunities: data.opportunities.map((opportunity) => ({
       id: opportunity.id,
       providerName: actorsById.get(opportunity.providerActorId)?.displayName ?? "Acteur à vérifier",
       type: opportunity.type,
@@ -243,9 +363,18 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
       vacancies: opportunity.vacancies === null ? "Non renseigné" : String(opportunity.vacancies),
       status: opportunity.status,
       verificationStatus: opportunity.verificationStatus,
+      sourceLabel: opportunity.sourceRef.label,
+      sourceUrl: opportunity.sourceRef.uri ?? null,
+      caveats: [
+        ...(opportunity.verificationStatus !== "VERIFIED" ? ["Opportunité à vérifier avant mobilisation."] : []),
+        ...(opportunity.startDate === null ? ["Date de début non renseignée."] : []),
+        ...(opportunity.vacancies === null ? ["Nombre de places non renseigné."] : []),
+        ...(opportunity.responseDeadline === null ? ["Échéance de réponse non renseignée."] : []),
+      ],
+      synthetic: opportunity.demo,
     })),
     steps,
-    referrals: snapshot.referrals
+    referrals: data.referrals
       .filter((referral) => referral.participantId === passport.participantId)
       .map((referral) => ({
         id: referral.id,
@@ -273,5 +402,6 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
     pathwayVersion: planA.version,
     pathwayStatus: planA.status,
     planBActive: planB?.status === "ACTIVE" || canonicalOutcome?.planBActivated === true,
+    sourceRegistry: sourceRegistryView(data),
   };
 }

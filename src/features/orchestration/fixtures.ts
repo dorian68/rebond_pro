@@ -3,7 +3,8 @@ import { z } from "zod";
 import rawEcosystemSeed from "../../../data/guadeloupe-ecosystem.seed.json";
 import { NEED_CAPABILITY_MAP } from "./constants";
 import { createOutcomeMilestones } from "./engine";
-import { actorSchema, orchestrationSnapshotSchema } from "./schemas";
+import { sourceRegistry } from "./source-registry";
+import { actorSchema, opportunitySchema, orchestrationSnapshotSchema, serviceOfferSchema } from "./schemas";
 import type {
   Actor,
   CostItem,
@@ -78,6 +79,24 @@ const seedActorSchema = z.object({
 
 const seedSchema = z.object({ actors: z.array(seedActorSchema) });
 
+const registrySourcesById = new Map(sourceRegistry.sources.map((source) => [source.id, source]));
+
+function registrySourceRef(sourceId: string): SourceRef {
+  const source = registrySourcesById.get(sourceId);
+  if (!source) throw new Error(`Source Orchestration introuvable : ${sourceId}`);
+  return {
+    kind: source.kind === "PUBLIC_OFFICIAL" ? "PUBLIC_OFFICIAL" : "SOURCE_FILE",
+    label: `${source.publisher} — ${source.title}`,
+    file: null,
+    sheet: null,
+    page: null,
+    line: null,
+    section: source.freshness,
+    recordId: source.id,
+    uri: source.url,
+  };
+}
+
 function mapSeedActor(raw: z.infer<typeof seedActorSchema>): Actor {
   return actorSchema.parse({
     id: raw.id,
@@ -118,8 +137,77 @@ function mapSeedActor(raw: z.infer<typeof seedActorSchema>): Actor {
   });
 }
 
-/** 47 source-backed registry candidates. Empty capabilities are evidence, not missing fixture work. */
-export const ecosystemActors: Actor[] = seedSchema.parse(rawEcosystemSeed).actors.map(mapSeedActor);
+const candidateActors = seedSchema.parse(rawEcosystemSeed).actors.map(mapSeedActor);
+
+const verifiedOfficialActors: Actor[] = sourceRegistry.officialActors.map((raw) => actorSchema.parse({
+  id: raw.id,
+  workspaceId: WORKSPACE_ID,
+  existingOrganizationId: null,
+  legalName: raw.legalName,
+  displayName: raw.displayName,
+  actorTypes: raw.actorTypes,
+  territory: raw.territory,
+  employmentBasin: raw.employmentBasin,
+  addresses: raw.addresses,
+  contacts: raw.contacts,
+  capabilities: raw.capabilities.map((claim) => ({
+    capability: claim.capability,
+    verificationStatus: claim.verificationStatus,
+    sourceRef: registrySourceRef(claim.sourceId),
+    lastVerifiedAt: raw.lastVerifiedAt,
+    notes: claim.notes,
+  })),
+  eligibilityRules: raw.eligibilityRules,
+  requiredInputs: [],
+  producedOutputs: [],
+  responseSlaHours: null,
+  currentCapacity: { status: "UNKNOWN", places: null, asOf: null },
+  costModel: null,
+  dataSharingPolicy: null,
+  sourceRef: registrySourceRef(raw.sourceId),
+  verificationStatus: raw.verificationStatus,
+  lastVerifiedAt: raw.lastVerifiedAt,
+  verificationOwner: raw.verificationOwner,
+  active: true,
+  demo: false,
+}));
+
+const officialActorsById = new Map(verifiedOfficialActors.map((actor) => [actor.id, actor]));
+const candidateActorIds = new Set(candidateActors.map((actor) => actor.id));
+
+/** Candidate identities stay untouched unless an exact stable ID has an official assertion. No fuzzy merge occurs. */
+export const ecosystemActors: Actor[] = [
+  ...candidateActors.map((actor) => officialActorsById.get(actor.id) ?? actor),
+  ...verifiedOfficialActors.filter((actor) => !candidateActorIds.has(actor.id)),
+];
+
+export const officialServiceOffers = sourceRegistry.officialServiceOffers.map((offer) => {
+  const { sourceId, ...canonicalOffer } = offer;
+  return serviceOfferSchema.parse({
+    ...canonicalOffer,
+    sourceRef: registrySourceRef(sourceId),
+  });
+});
+
+export const officialOpportunities = sourceRegistry.officialOpportunities.map((opportunity) => {
+  const { sourceId, ...canonicalOpportunity } = opportunity;
+  const sourceRef = registrySourceRef(sourceId);
+  return opportunitySchema.parse({
+    ...canonicalOpportunity,
+    requiredSkills: opportunity.requiredSkills.map((skill) => ({
+      ...skill,
+      sourceRef,
+      verificationStatus: opportunity.verificationStatus,
+    })),
+    preferredSkills: opportunity.preferredSkills.map((skill) => ({
+      ...skill,
+      sourceRef,
+      verificationStatus: opportunity.verificationStatus,
+    })),
+    sourceRef,
+    demo: false,
+  });
+});
 
 function syntheticCapability(capability: Actor["capabilities"][number]["capability"], notes: string) {
   return {
@@ -197,36 +285,44 @@ export const demoSyntheticActors: Actor[] = [
   }),
 ];
 
-function skillRequirement(skillId: string, skillLabel: string, minimumLevelRank: number | null = null) {
+function skillRequirement(
+  skillId: string,
+  skillLabel: string,
+  minimumLevelRank: number | null = null,
+  sourceRef: SourceRef = missionBriefSource,
+  verificationStatus: "VERIFIED" | "NEEDS_VERIFICATION" = "NEEDS_VERIFICATION",
+) {
   return {
     skillId,
     skillLabel,
     minimumLevel: minimumLevelRank === null ? null : "Niveau attendu à confirmer",
     minimumLevelRank,
-    sourceRef: missionBriefSource,
-    verificationStatus: "NEEDS_VERIFICATION" as const,
+    sourceRef,
+    verificationStatus,
   };
 }
+
+const currentRomeSource = registrySourceRef("source-rome-current");
 
 export const demoOccupations: Occupation[] = [
   {
     id: OCCUPATION_A_ID,
     label: "Réceptionniste en hôtellerie",
-    romeCode: null,
+    romeCode: "G1703",
     sector: "Hôtellerie–Tourisme",
     requiredSkills: [
-      skillRequirement("skill-accueil-client", "Accueil client"),
-      skillRequirement("skill-communication", "Communication"),
-      skillRequirement("skill-organisation", "Organisation"),
-      skillRequirement("skill-bureautique", "Bureautique"),
-      skillRequirement("skill-anglais-pro", "Anglais professionnel", 3),
+      skillRequirement("skill-accueil-client", "Accueil client", null, currentRomeSource),
+      skillRequirement("skill-communication", "Communication", null, currentRomeSource),
+      skillRequirement("skill-organisation", "Organisation", null, currentRomeSource),
+      skillRequirement("skill-bureautique", "Bureautique", null, currentRomeSource),
+      skillRequirement("skill-anglais-pro", "Anglais professionnel", 3, currentRomeSource),
     ],
     preferredSkills: [],
-    prerequisites: [],
-    constraints: ["Horaires potentiellement décalés — à confirmer pour chaque opportunité"],
-    typicalSchedules: [],
+    prerequisites: ["Prérequis détaillés de la fiche ROME à revalider avant ingestion canonique"],
+    constraints: ["Travail de nuit, le week-end et les jours fériés possible selon la fiche détaillée 2021 — à revalider et confirmer pour chaque offre"],
+    typicalSchedules: ["Horaires variables selon établissement — à confirmer offre par offre"],
     relatedOccupationIds: [OCCUPATION_B_ID],
-    sourceRef: missionBriefSource,
+    sourceRef: currentRomeSource,
     verificationStatus: "NEEDS_VERIFICATION",
   },
   {
@@ -530,27 +626,31 @@ export const sarahPlanA: Pathway = {
       evidence: ["Plan A/B de démonstration validé."],
     }),
     demoStep(PLAN_A_ID, a4, "TRAINING", "Module anglais métier", [a3], {
+      assignedActorId: "actor-cci-iles-guadeloupe",
+      serviceOfferId: "service-cci-anglais-collectif",
       status: "READY",
       dueDate: "2026-08-28T16:00:00.000Z",
       expectedOutputs: ["Évaluation d'anglais professionnel"],
-      sourceReason: "Sarah vise un métier présenté dans le scénario comme nécessitant un anglais professionnel; aucune offre vérifiée n'est disponible.",
+      sourceReason: "Sarah vise un métier nécessitant l'anglais. La CCI publie un cours collectif d'anglais, mais l'adéquation au contexte hôtelier, les dates, les places et le tarif doivent être confirmés par le CIP.",
       suggestion: {
         humanValidationRequired: true,
-        confidence: "LOW",
-        dataUsed: ["SkillClaim anglais auto-déclaré", "Exigence métier de démonstration"],
-        unknowns: ["Centre, offre, dates, places, coût et financement non renseignés."],
+        confidence: "MEDIUM",
+        dataUsed: ["SkillClaim anglais auto-déclaré", "Métier cible G1703", "Catalogue officiel CCI Formation"],
+        unknowns: ["Adéquation hôtellerie, dates, places, coût, éligibilité et financement non renseignés."],
       },
     }),
     demoStep(PLAN_A_ID, a5, "MOBILITY", "Sécuriser la mobilité horaires décalés", [a3], {
+      assignedActorId: "actor-mobilizy",
+      serviceOfferId: "service-mobilizy-location-sociale",
       status: "BLOCKED",
       dueDate: "2026-08-22T16:00:00.000Z",
       failureTransition: "ACTIVATE_PLAN_B",
-      sourceReason: "Aucun acteur mobilité vérifié n'a été trouvé dans les fichiers disponibles; recherche manuelle nécessaire.",
+      sourceReason: "Mobil'Izy publie une solution de location sociale en Guadeloupe. Cette piste est proposée pour revue humaine ; son éligibilité, sa flotte, son prix et sa disponibilité pour les horaires de Sarah sont inconnus.",
       suggestion: {
         humanValidationRequired: true,
-        confidence: "LOW",
-        dataUsed: ["Absence de véhicule déclarée", "Besoin horaires décalés"],
-        unknowns: ["Acteur mobilité, trajet, disponibilité, coût et financement non renseignés."],
+        confidence: "MEDIUM",
+        dataUsed: ["Absence de véhicule déclarée", "Besoin horaires décalés", "Service public Mobil'Izy"],
+        unknowns: ["Éligibilité, trajet, flotte disponible, coût et financement non renseignés."],
       },
     }),
     demoStep(PLAN_A_ID, a6, "LBR_ACTION", "CV ciblé réception", [a3], {
@@ -779,8 +879,8 @@ export function createSarahDemoSnapshot(): OrchestrationSnapshot {
     occupations: demoOccupations,
     needs: sarahDemoNeeds,
     actors: [...ecosystemActors, ...demoSyntheticActors],
-    serviceOffers: [],
-    opportunities: [demoOpportunity],
+    serviceOffers: officialServiceOffers,
+    opportunities: [...officialOpportunities, demoOpportunity],
     pathways: [sarahPlanA, sarahPlanB],
     pathwayVersions: [],
     referrals: [sarahDemoReferral],
