@@ -33,6 +33,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:documents-engine` | Vérifie le catalogue documentaire, le préflight et les moteurs de génération PDF/DOCX. Nettoyage. |
 | `npm run smoke:document-intake` | Vérifie les routes, schémas et brouillons de formulaires issus de documents, sans écriture implicite. |
 | `npm run smoke:admin-agents` | Vérifie l'accès admin, la lecture seule et les garde-fous du bac à sable des agents internes. |
+| `npm run smoke:orchestration` | Vérifie sans navigateur le Pathway Engine du prototype : gaps, besoins, acteurs par capacité, plans A/B, referrals, coûts/financements avec inconnues conservées, activation du Plan B, suivis J+7/J+30/J+60/J+90 et garde d'approbation humaine. N'effectue aucune mutation externe. |
 | `npm run smoke:roadmap` | Vérifie la persistance, les mutations gardées et l'intégration admin de la roadmap. |
 | `npm run smoke:roadmap-2:agentic-gmail` | Vérifie le contexte serveur Roadmap 2, les approbations signées et non transférables, le corps Gmail exact, le registre d'envoi et les contraintes anti-double envoi. |
 | `npm run smoke:roadmap-2:drive` | Vérifie le cycle Drive simulé : OAuth, épinglage persistant du compte sain malgré les doublons actifs et les redémarrages, arborescence, ressources de nœuds, upload, aperçu privé R2, permissions obligatoires et protections IDOR. |
