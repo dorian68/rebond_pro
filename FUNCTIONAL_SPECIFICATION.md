@@ -27,6 +27,19 @@ Rôles tenant (enum `Role`) : `OWNER`, `ADMIN`, `ASSISTANT`, `COMMERCIAL`, `TRAI
 
 Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orientation, marketplace cross-centres, pages centres/formateurs/formations, auth et tenant, espace partenaires, dashboard, formations, sessions, planning, formateurs, apprenants, CRM, documents, IA, qualité, espace bénéficiaire, portail formateur, admin plateforme, flux financiers et paramètres.
 
+### Orchestration des parcours — prototype admin
+
+- Route protégée : `/admin/orchestration`, derrière `requirePlatformAdmin()`.
+- Domaines : Passeport Rebond, métier, besoin, acteur/capacité/service, opportunité, parcours versionné, orientation, coûts/financements et outcome J+7/J+30/J+60/J+90.
+- BMO 2026 Guadeloupe : import déterministe des 508 observations officielles, 180 métiers FAP 2021 et 5 bassins ; les cellules `*` sont `null` avec statut `suppressed`.
+- Un métier absent d’un bassin conserve un agrégat incomplet et une borne basse. Les 25 métiers dont toutes les cellules projet sont masquées sont « Non calculable » et exclus des tranches numériques.
+- `BmoOccupationSignal` reste séparé de `Occupation` et `Opportunity`. Une cible L0 peut générer un brouillon d’ingénierie, mais aucun ROME, compétence, acteur, coût, financement ou emploi n’est inventé.
+- Couverture : L0 Signal, L1 Mappé, L2 Modélisé, L3 Écosystème, L4 Activable, L5 Éprouvé. L2 rend le brouillon documenté ; L3 est le seuil de validation opérationnelle ; L4 exige une opportunité vérifiée ouverte avec capacité ; L5 exige une sortie J+90 prouvée et un coût réel vérifié.
+- Chaque draft reçoit automatiquement son contexte BMO lorsque le FAP est explicitement relié. Le lien FAP/ROME porte une relation (`EXACT`, `BROADER`, `RELATED`, `UNMAPPED`) et un statut de vérification.
+- `occupationCoverage` est obligatoire et son `occupationId` doit égaler exactement le métier cible. Un mapping FAP/ROME non vérifié ne peut pas dépasser L1, même si des acteurs ou opportunités sont renseignés.
+- Le catalogue admin permet recherche, filtres famille/bassin/qualité/volume, pagination et détail des cinq bassins. L’ordre statistique n’est jamais présenté comme une recommandation personnalisée.
+- L’éditeur de cible propose les métiers canoniques et les 180 cibles BMO référencées. Un changement remplace l’identifiant cible et la couverture, recrée un brouillon d’ingénierie, retire étapes/orientations/coûts devenus obsolètes, conserve uniquement les freins transversaux et exige une nouvelle validation.
+
 ## 6. Detailed feature list
 
 - Lots 0 à 4 : fondations, CRUD, planning, documents/emails et IA opérationnelle.
@@ -79,6 +92,9 @@ Les server actions protégées appellent `requireTenant()` et vérifient les rô
 - Toute transaction financière est persistée (`Transaction`) avec sa commission ; le CA affiché provient du ledger, jamais d'une heuristique. La commission n'existe que sur les achats de formation.
 - Le bénéficiaire entre par invitation (rôle LEARNER dans le tenant du centre opérateur) ; pas d'auto-inscription publique au bilan.
 - L'accès god-mode exige `User.platformAdmin` (configuré via `PLATFORM_ADMIN_EMAILS`) ; il ne permet aucune écriture cross-tenant.
+- Une intention BMO ne devient jamais une `Opportunity`, une place ou une offre. Une valeur masquée ou une ligne absente ne devient jamais zéro.
+- Aucun taux difficulté/saisonnalité n'est recalculé sur un dénominateur incomplet ; les conflits entre publications officielles restent visibles.
+- Un draft métier sous L2 reçoit une étape obligatoire d'ingénierie métier. Un parcours généré avec une couverture inférieure à L3 ne peut pas être approuvé opérationnellement.
 
 ## 12. Error states
 
@@ -99,6 +115,8 @@ Auth.js credentials + Google OAuth, session JWT et membership tenant. Un compte 
 ## 16. CLI-testability requirements
 
 `npm run smoke:health`, `smoke:lot5`, `smoke:auth`, `smoke:google-oauth`, `smoke:registration`, `smoke:crud`, `smoke:agent`, `smoke:marketplace`, `smoke:tenant`, `smoke:password-reset`, `smoke:dedup`, `smoke:billing`, `smoke:quota`, `smoke:trainer-portal`, `smoke:beneficiary`, `smoke:platform`, `smoke:persona`, `smoke:connectors`, `smoke:finance`, `smoke:business`, `smoke:business-marketplace`, `smoke:business-google-oauth`, `smoke:all`, `npm run lint`, `npm run build`, `npm run smoke:production`. Voir `CLI_TESTABILITY_CONTRACT.md`.
+
+Pour Orchestration : `npm run smoke:orchestration`, `npm run smoke:orchestration-sources` et `npm run smoke:orchestration-bmo`.
 
 ## 17. Acceptance criteria
 
@@ -161,6 +179,18 @@ Auth.js credentials + Google OAuth, session JWT et membership tenant. Un compte 
 - Une formation avec modules n'est proposée par l'optimisateur que si chaque module a au moins un formateur disponible sur la plage.
 - Le parcours est couvert par `npm run smoke:formation-modules-planning`.
 
+### Orchestration BMO 2026
+
+- L’import reproductible contient exactement 508 observations, 180 métiers FAP 2021 et 5 bassins guadeloupéens.
+- Une cellule `*` reste `null`; une ligne de bassin absente rend l’agrégat incomplet; un métier entièrement masqué reste non calculable.
+- Chaque métier BMO peut produire un brouillon L0 comprenant une étape obligatoire d’ingénierie, sans créer de ROME, compétence, acteur, financement ou `Opportunity` fictif.
+- Un parcours sans couverture, avec une couverture d’un autre métier, avec un mapping non vérifié à partir de L2 ou sous le seuil L3 ne peut pas être validé opérationnellement.
+- L4 exige une opportunité `VERIFIED` et `OPEN`, un nombre de places positif et un acteur vérifié dont la capacité courante est disponible.
+- Le sélecteur de cible remplace le métier et la trajectoire ensemble ; il ne peut pas conserver silencieusement les écarts ou étapes du métier précédent.
+- Les contrats sont couverts par `npm run smoke:orchestration-bmo`, `npm run smoke:orchestration` et `npm run smoke:orchestration-sources`.
+
 ## 18. Production readiness criteria
 
 Build reproductible, migrations appliquées, secrets hors dépôt, auth et autorisations vérifiées, logs sans secrets, tests CLI passants, emails et stockage configurés, observabilité et sauvegardes documentées.
+
+Le prototype Orchestration reste en repository mémoire et données de démonstration. Son passage en cohorte réelle exige persistance serveur, audit append-only, contrôle fin des vues du Passeport, réservations/capacités, portail partenaire et revue sécurité/IDOR dédiée.

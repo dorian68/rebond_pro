@@ -8,6 +8,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 
 | Command | Contract |
 |---|---|
+| `npm run import:bmo-2026` | Régénère le seed BMO Guadeloupe depuis les fichiers officiels locaux après contrôle strict de leurs SHA-256, du schéma XLSX, des cardinalités et sous-totaux connus. Échoue sans écrire si une source dérive. |
 | `npm run dev:local` | Démarre Next.js sur le port 3100 avec la `DATABASE_URL` locale de `.env`, même si `.env.local` pointe vers Supabase. Refuse une URL non locale. |
 | `npm run db:diagnose` | Diagnostique sans afficher de secret la configuration DB, l'ouverture TCP puis trois vraies requêtes Prisma. Distingue un port ouvert d'un handshake/session PostgreSQL inutilisable. |
 | `npm run smoke:health` | Vérifie la connectivité base (SELECT 1). Miroir CLI de l'endpoint `/api/health` (liveness + readiness DB). |
@@ -34,6 +35,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:document-intake` | Vérifie les routes, schémas et brouillons de formulaires issus de documents, sans écriture implicite. |
 | `npm run smoke:admin-agents` | Vérifie l'accès admin, la lecture seule et les garde-fous du bac à sable des agents internes. |
 | `npm run smoke:orchestration` | Vérifie sans navigateur le Pathway Engine du prototype : gaps, besoins, acteurs par capacité, plans A/B, referrals, coûts/financements avec inconnues conservées, activation du Plan B, suivis J+7/J+30/J+60/J+90 et garde d'approbation humaine. N'effectue aucune mutation externe. |
+| `npm run smoke:orchestration-bmo` | Vérifie sans navigateur l’import officiel BMO Guadeloupe (508 lignes, 180 métiers, 5 bassins), `*` en `null`, bassin absent en borne basse, métiers entièrement masqués non calculables, niveaux L0–L5, couverture obligatoire et liée au métier cible, mapping vérifié dès L2, seuil d’approbation L3, contexte automatique et génération sûre d’un brouillon pour chacun des 180 métiers sans créer d’`Opportunity`. N’effectue aucune mutation externe. |
 | `npm run smoke:orchestration-sources` | Vérifie sans navigateur les invariants de provenance du registre Orchestration : toute assertion `VERIFIED` possède une source officielle, BMO reste hors des opportunités, les mécanismes ne créent aucune allocation, Sarah ne reçoit aucun coût réel ou montant approuvé, les offres volatiles restent à vérifier, les identifiants sont uniques et les inconnues restent `null`. N'effectue aucune mutation externe. |
 | `npm run smoke:roadmap` | Vérifie la persistance, les mutations gardées et l'intégration admin de la roadmap. |
 | `npm run smoke:roadmap-2:agentic-gmail` | Vérifie le contexte serveur Roadmap 2, les approbations signées et non transférables, le corps Gmail exact, le registre d'envoi et les contraintes anti-double envoi. |
@@ -53,7 +55,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:business` | Vérifie les éléments de compréhension/activation/conversion (promesse landing, marketplace, onboarding, CTA public, dashboard honnête). |
 | `npm run smoke:business-marketplace` | Vérifie la valeur perçue de la marketplace (catalogue cross-centres, fiches, visibilité formateurs). |
 | `npm run smoke:business-google-oauth` | Vérifie côté client mystère que le login Google est visible quand configuré, que la création centre reste explicite, et que les garde-fous de confiance (CGU, nom du centre, email vérifié, pas de création silencieuse) existent. |
-| `npm run smoke:all` | Enchaîne les smoke tests headless déclarés dans `scripts/smoke-all.mjs` avec l'environnement courant, dont `smoke:roadmap-2:agentic-gmail`. |
+| `npm run smoke:all` | Enchaîne les smoke tests headless déclarés dans `scripts/smoke-all.mjs` avec l'environnement courant, dont `smoke:orchestration-bmo` et `smoke:roadmap-2:agentic-gmail`. |
 | `npm run smoke:all:local` | Lit exclusivement la `DATABASE_URL` locale de `.env`, refuse tout hôte distant, neutralise Stripe/Resend/Composio et exécute toutes les suites. |
 | `npm run smoke:ui` | Intégration HTTP (serveur requis) : login/reset, effet réseau marketplace, fiches centre/formateur, onglet abonnement, santé. `SMOKE_BASE_URL` si port ≠ 3000. |
 | `npm run smoke:agui-e2e` | AG-UI end-to-end (serveur + clé LLM) : l'agent appelle un outil, exécution réelle (création + suppression) via `/api/ag-ui/run`, vérifiée en base. |

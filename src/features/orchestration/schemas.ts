@@ -7,6 +7,7 @@ import {
   FUNDING_STATUSES,
   MILESTONE_STATUSES,
   NEED_TYPES,
+  OCCUPATION_COVERAGE_LEVELS,
   OPPORTUNITY_TYPES,
   OUTCOME_MILESTONES,
   OUTCOME_TYPES,
@@ -191,6 +192,15 @@ export const occupationSchema = z
     id: identifierSchema,
     label: shortTextSchema,
     romeCode: nullableShortTextSchema,
+    /** FAP2021/BMO code when an explicit mapping exists. */
+    fapCode: nullableShortTextSchema.optional().default(null),
+    /** Explicit, reviewable relationship between a broad FAP group and the canonical métier. */
+    fapMapping: z.object({
+      relation: z.enum(["EXACT", "BROADER", "RELATED", "UNMAPPED"]),
+      verificationStatus: verificationStatusSchema,
+      sourceRef: sourceRefSchema,
+      notes: nullableLongTextSchema,
+    }).strict().nullable().optional().default(null),
     sector: shortTextSchema,
     requiredSkills: z.array(skillRequirementSchema).max(200),
     preferredSkills: z.array(skillRequirementSchema).max(200),
@@ -200,6 +210,60 @@ export const occupationSchema = z
     relatedOccupationIds: z.array(identifierSchema).max(100),
     sourceRef: sourceRefSchema,
     verificationStatus: verificationStatusSchema,
+  })
+  .strict();
+
+export const occupationCoverageSchema = z
+  .object({
+    occupationId: identifierSchema,
+    level: z.enum(OCCUPATION_COVERAGE_LEVELS),
+    mappingVerified: z.boolean(),
+    reliableForDraft: z.boolean(),
+    activatable: z.boolean(),
+    evidence: z.array(shortTextSchema).max(100),
+    blockers: z.array(shortTextSchema).max(100),
+    assessedAt: isoDateTimeSchema,
+  })
+  .strict()
+  .superRefine((coverage, context) => {
+    const rank = OCCUPATION_COVERAGE_LEVELS.indexOf(coverage.level);
+    const modeledRank = OCCUPATION_COVERAGE_LEVELS.indexOf("L2_MODELED");
+    const activatableRank = OCCUPATION_COVERAGE_LEVELS.indexOf("L4_ACTIVATABLE");
+    if (rank >= modeledRank && !coverage.mappingVerified) {
+      context.addIssue({
+        code: "custom",
+        path: ["mappingVerified"],
+        message: "Une couverture L2 ou supérieure exige un rapprochement FAP/ROME vérifié.",
+      });
+    }
+    if (coverage.reliableForDraft !== (rank >= modeledRank)) {
+      context.addIssue({
+        code: "custom",
+        path: ["reliableForDraft"],
+        message: "La fiabilité du brouillon doit être cohérente avec le niveau de couverture.",
+      });
+    }
+    if (coverage.activatable !== (rank >= activatableRank)) {
+      context.addIssue({
+        code: "custom",
+        path: ["activatable"],
+        message: "Le statut activable doit être cohérent avec le niveau de couverture.",
+      });
+    }
+  });
+
+export const occupationMarketContextSchema = z
+  .object({
+    fapCode: shortTextSchema,
+    label: shortTextSchema,
+    familyCode: shortTextSchema,
+    familyLabel: shortTextSchema,
+    territory: shortTextSchema,
+    projectsKnown: z.number().int().nonnegative(),
+    hasSuppressedProjects: z.boolean(),
+    basinCount: z.number().int().nonnegative(),
+    sourceRef: sourceRefSchema,
+    warning: longTextSchema,
   })
   .strict();
 
@@ -391,8 +455,21 @@ export const pathwaySchema = z
     approvedAt: nullableIsoDateTimeSchema,
     activatedAt: nullableIsoDateTimeSchema,
     activationReason: nullableLongTextSchema,
+    /** Required and bound to the target: an operational draft must fail closed. */
+    occupationCoverage: occupationCoverageSchema,
+    /** BMO context is a market signal, never an Opportunity. */
+    marketContext: occupationMarketContextSchema.nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((pathway, context) => {
+    if (pathway.occupationCoverage.occupationId !== pathway.targetState.occupationId) {
+      context.addIssue({
+        code: "custom",
+        path: ["occupationCoverage", "occupationId"],
+        message: "La couverture métier doit concerner exactement le métier cible du parcours.",
+      });
+    }
+  });
 
 export const pathwayVersionSchema = z
   .object({

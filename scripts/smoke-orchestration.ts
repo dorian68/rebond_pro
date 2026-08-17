@@ -496,6 +496,7 @@ async function main() {
   await runStep("15_human_approval_guardrails", () => {
     const blockedRepository = createInMemoryOrchestrationRepository(snapshot);
     const initialIssues = blockedRepository.getPathwayApprovalIssues("demo-pathway-sarah-plan-a");
+    assert.ok(initialIssues.some((issue) => issue.code === "INSUFFICIENT_OCCUPATION_COVERAGE"));
     assert.ok(initialIssues.some((issue) => issue.code === "MISSING_OWNER"));
     assert.ok(initialIssues.some((issue) => issue.code === "BLOCKED_WITHOUT_RELAUNCH"));
     assert.throws(
@@ -514,11 +515,22 @@ async function main() {
     const planAIndex = readySnapshot.pathways.findIndex((pathway) => pathway.id === "demo-pathway-sarah-plan-a");
     readySnapshot.pathways[planAIndex] = {
       ...readySnapshot.pathways[planAIndex],
+      occupationCoverage: {
+        occupationId: readySnapshot.pathways[planAIndex].targetState.occupationId,
+        level: "L3_ECOSYSTEM",
+        mappingVerified: true,
+        reliableForDraft: true,
+        activatable: false,
+        evidence: ["Métier et écosystème vérifiés pour le smoke d'approbation."],
+        blockers: ["Opportunité actuelle encore à confirmer."],
+        assessedAt: at,
+      },
       steps: readySnapshot.pathways[planAIndex].steps.map((step) => ({
         ...step,
         status: step.status === "BLOCKED" ? "READY" : step.status,
         assignedActorId: step.assignedActorId ?? "demo-actor-le-bon-rebond",
         dueDate: step.dueDate ?? (step.dueOffsetDays === null ? "2026-12-31T17:00:00.000Z" : null),
+        evidence: step.requiredInputs.length > 0 && step.evidence.length === 0 ? ["Preuve smoke des entrées requises."] : step.evidence,
       })),
     };
     const readyRepository = createInMemoryOrchestrationRepository(readySnapshot);

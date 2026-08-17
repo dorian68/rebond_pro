@@ -183,6 +183,39 @@ export const OUTCOME_MILESTONES = ["J7", "J30", "J60", "J90"] as const;
 
 export const MILESTONE_STATUSES = ["NOT_DUE", "PENDING", "ACTIVE", "INACTIVE", "UNKNOWN"] as const;
 
+/**
+ * Progressive evidence level for a target occupation.
+ *
+ * A BMO signal starts at L0. It only becomes operational once the métier,
+ * local ecosystem, live capacity and observed outcomes have been documented.
+ */
+export const OCCUPATION_COVERAGE_LEVELS = [
+  "L0_SIGNAL",
+  "L1_MAPPED",
+  "L2_MODELED",
+  "L3_ECOSYSTEM",
+  "L4_ACTIVATABLE",
+  "L5_PROVEN",
+] as const;
+
+export const OCCUPATION_COVERAGE_LABELS: Record<(typeof OCCUPATION_COVERAGE_LEVELS)[number], string> = {
+  L0_SIGNAL: "L0 — Signal",
+  L1_MAPPED: "L1 — Mappé",
+  L2_MODELED: "L2 — Modélisé",
+  L3_ECOSYSTEM: "L3 — Écosystème",
+  L4_ACTIVATABLE: "L4 — Activable",
+  L5_PROVEN: "L5 — Éprouvé",
+};
+
+export const OCCUPATION_COVERAGE_RANK: Record<(typeof OCCUPATION_COVERAGE_LEVELS)[number], number> = {
+  L0_SIGNAL: 0,
+  L1_MAPPED: 1,
+  L2_MODELED: 2,
+  L3_ECOSYSTEM: 3,
+  L4_ACTIVATABLE: 4,
+  L5_PROVEN: 5,
+};
+
 export const NEED_CAPABILITY_MAP = {
   SKILL_GAP: "DELIVER_TRAINING",
   LANGUAGE: "DELIVER_TRAINING",

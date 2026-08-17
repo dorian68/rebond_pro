@@ -274,3 +274,49 @@ Aucun E2E, Playwright/Cypress, test de charge, `smoke:all` ou audit de sécurit�
 ### Gate de sortie recommandé
 
 **Aucun bloqueur ne reste pour le lot prototype démontrable.** Le prototype peut être présenté sous la mention **« démonstration synthétique — solutions à instruire »**. Toute mise en production opérationnelle exige au minimum : correction des P0, dates de disponibilité et preuves sur un noyau d’acteurs, repository serveur protégé, puis tests ciblés d’IDOR/XSS, de concurrence, de transitions et de restauration. La double Definition of Done est satisfaite pour la **démo/pilote encadré** puisque les verdicts Technical RL et Business Client Mystère sont PASS sur ce périmètre ; elle ne l’est pas pour la production autonome.
+
+## Itération BMO 2026 exhaustive — 2026-08-15
+
+### Contexte et critères
+
+Objectif : importer l’intégralité du jeu BMO 2026 Guadeloupe, permettre à chacune des 180 familles métier d’ouvrir un brouillon d’ingénierie et empêcher qu’un signal statistique soit présenté comme une solution faisable.
+
+Critères : import déterministe 508/180/5, conservation des inconnues, provenance officielle, aucune `Opportunity` issue de BMO, couverture L0–L5 cumulative, approbation fermée sous L3, mapping vérifié dès L2, sélection de cible réellement liée à l’identifiant métier et tests CLI reproductibles.
+
+### Patch
+
+- `scripts/import-bmo-2026.mjs` contrôle les SHA-256 des sources, la structure XLSX, les cardinalités et les sous-totaux, puis génère `data/bmo-2026-guadeloupe.json`.
+- `bmo-registry.ts` valide les 508 observations et expose 180 cibles L0 sans ROME, compétence, prérequis, contrainte ou opportunité inventés.
+- `coverage.ts` calcule L0–L5. La couverture est obligatoire, liée exactement à `targetState.occupationId`, et un mapping non vérifié reste au plus L1.
+- L4 exige une opportunité vérifiée et ouverte, des vacances positives et un acteur vérifié avec capacité et places disponibles.
+- Le catalogue admin distingue ligne numérique, valeur masquée et bassin absent. Un bassin absent produit une borne basse ; 25 métiers entièrement masqués restent non calculables et hors tranches numériques.
+- Le sélecteur de cible expose toutes les familles BMO. Changer de cible remplace l’identifiant et la couverture, retire les écarts métier/étapes/orientations/coûts obsolètes, conserve les freins transversaux et recrée un brouillon soumis à validation.
+- `smoke:orchestration-bmo` est inclus dans `smoke:all`.
+
+### Tests finaux
+
+| Contrôle | Résultat |
+| --- | --- |
+| Import reproductible deux fois | **PASS** — SHA-256 seed `e9335d0d878759f33f474c5e4b55f8a55edbe1987c763582040eb129a8ab13ff` |
+| `npm run smoke:orchestration-bmo` | **PASS 9/9** |
+| `npm run smoke:orchestration` | **PASS 15/15** |
+| `npm run smoke:orchestration-sources` | **PASS 11/11** |
+| `npx tsc --noEmit` | **PASS** |
+| ESLint ciblé | **PASS** |
+| `npm run build` | **PASS** — route `/admin/orchestration` produite |
+| `git diff --check` | **PASS** |
+| Inspection courte et captures authentifiées | **PASS** — catalogue, sélecteur et recalcul d’une cible BMO contrôlés |
+
+Aucune suite E2E, aucun test de charge et aucun audit de sécurité complet n’a été lancé. Le script de capture réalise seulement une inspection courte autorisée par le cahier des charges.
+
+### Verdict
+
+**Technical RL : PASS pour le prototype local BMO. NO-GO production/cohorte réelle.**
+
+Risques avant production : recalculer la couverture au moment de l’approbation avec durée de validité ; persistance serveur, journal append-only, permissions fines, boucle partenaire et réservations ; récupération documentée des sources officielles dans un clone neuf.
+
+Captures ajoutées :
+
+- `.run/orchestration-captures/07-bmo-2026.png` ;
+- `.run/orchestration-captures/08-selecteur-metiers-bmo.png` ;
+- `.run/orchestration-captures/09-parcours-cible-bmo-recalculee.png`.

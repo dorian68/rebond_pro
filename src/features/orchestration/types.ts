@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import type { CAPABILITIES, NEED_TYPES, OUTCOME_MILESTONES } from "./constants";
+import type { CAPABILITIES, NEED_TYPES, OCCUPATION_COVERAGE_LEVELS, OUTCOME_MILESTONES } from "./constants";
 import type {
   actorCapabilitySchema,
   actorSchema,
@@ -11,6 +11,8 @@ import type {
   fundingAllocationSchema,
   needSchema,
   occupationSchema,
+  occupationCoverageSchema,
+  occupationMarketContextSchema,
   opportunitySchema,
   orchestrationSnapshotSchema,
   outcomeMilestoneSchema,
@@ -33,6 +35,7 @@ import type {
 export type Capability = (typeof CAPABILITIES)[number];
 export type NeedType = (typeof NEED_TYPES)[number];
 export type OutcomeMilestoneName = (typeof OUTCOME_MILESTONES)[number];
+export type OccupationCoverageLevel = (typeof OCCUPATION_COVERAGE_LEVELS)[number];
 
 export type SourceRef = z.infer<typeof sourceRefSchema>;
 export type Verification = z.infer<typeof verificationSchema>;
@@ -41,6 +44,8 @@ export type SkillRequirement = z.infer<typeof skillRequirementSchema>;
 export type ConsentGrant = z.infer<typeof consentGrantSchema>;
 export type ParticipantPassport = z.infer<typeof participantPassportSchema>;
 export type Occupation = z.infer<typeof occupationSchema>;
+export type OccupationCoverage = z.infer<typeof occupationCoverageSchema>;
+export type OccupationMarketContext = z.infer<typeof occupationMarketContextSchema>;
 export type ActorCapability = z.infer<typeof actorCapabilitySchema>;
 export type Actor = z.infer<typeof actorSchema>;
 export type ActorSearchFilters = z.input<typeof actorSearchFiltersSchema>;
@@ -103,6 +108,8 @@ export type PathwayMatchSuggestion = {
 export type PathwayDraftResult = {
   planA: Pathway;
   planB: Pathway;
+  coverageAssessments: { A: OccupationCoverage; B: OccupationCoverage };
+  marketContexts: { A: OccupationMarketContext | null; B: OccupationMarketContext | null };
   needs: Need[];
   matchSuggestions: PathwayMatchSuggestion[];
   explanations: string[];
@@ -111,7 +118,13 @@ export type PathwayDraftResult = {
 };
 
 export type PathwayApprovalIssue = {
-  code: "INVALID_STATUS" | "MISSING_OWNER" | "MISSING_DEADLINE" | "BLOCKED_WITHOUT_RELAUNCH" | "MISSING_CRITICAL_INPUT_EVIDENCE";
+  code:
+    | "INVALID_STATUS"
+    | "INSUFFICIENT_OCCUPATION_COVERAGE"
+    | "MISSING_OWNER"
+    | "MISSING_DEADLINE"
+    | "BLOCKED_WITHOUT_RELAUNCH"
+    | "MISSING_CRITICAL_INPUT_EVIDENCE";
   stepId: string | null;
   message: string;
 };

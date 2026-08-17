@@ -1,4 +1,6 @@
-import { NEED_CAPABILITY_MAP, OUTCOME_MILESTONES } from "./constants";
+import { NEED_CAPABILITY_MAP, OCCUPATION_COVERAGE_RANK, OUTCOME_MILESTONES } from "./constants";
+import { getBmoMarketContextForOccupation } from "./bmo-registry";
+import { evaluateOccupationCoverage } from "./coverage";
 import {
   actorSearchFiltersSchema,
   costItemSchema,
@@ -25,6 +27,8 @@ import type {
   Need,
   NeedType,
   Occupation,
+  OccupationCoverage,
+  OccupationMarketContext,
   Opportunity,
   Outcome,
   OutcomeMilestoneUpdate,
@@ -499,6 +503,8 @@ function draftPathway(input: {
   verifiedOnly: boolean;
   now: string;
   sourceFreshnessById?: SourceFreshnessById;
+  occupationCoverage: OccupationCoverage;
+  marketContext: OccupationMarketContext | null;
 }): { pathway: Pathway; matchSuggestions: PathwayDraftResult["matchSuggestions"]; explanations: string[]; unknowns: string[] } {
   const pathwayId = stableId("pathway", input.passport.participantId, `plan-${input.planType}`, input.occupation.id);
   const diagnosticId = stableId(pathwayId, "diagnostic");
@@ -575,6 +581,50 @@ function draftPathway(input: {
   ];
 
   let precedingIds = [projectId];
+  if (OCCUPATION_COVERAGE_RANK[input.occupationCoverage.level] < OCCUPATION_COVERAGE_RANK.L2_MODELED) {
+    const engineeringStepId = stableId(pathwayId, "ingenierie-metier");
+    const sourceReason = input.marketContext
+      ? `Le métier apparaît dans la BMO 2026 (FAP ${input.marketContext.fapCode}), mais le signal de marché ne décrit ni les compétences, ni les prérequis, ni une opportunité réelle. Le modèle métier doit être documenté et validé avant de présenter ce parcours comme fiable.`
+      : "Le modèle métier ne dispose pas encore d'un niveau de preuve suffisant. Une ingénierie métier manuelle est obligatoire avant toute activation.";
+    steps.push({
+      id: engineeringStepId,
+      pathwayId,
+      type: "PROJECT_VALIDATION",
+      title: "Compléter l’ingénierie du métier",
+      description: "Valider le crosswalk ROME/FAP, les tâches, compétences, prérequis, contraintes et passerelles avant de rechercher des solutions locales.",
+      assignedActorId: null,
+      serviceOfferId: null,
+      opportunityId: null,
+      status: "DRAFT",
+      dependencies: [projectId],
+      plannedStart: null,
+      dueDate: null,
+      dueOffsetDays: null,
+      completedAt: null,
+      requiredInputs: ["Source métier officielle", "Validation du crosswalk ROME/FAP", "Exigences réelles d'au moins une cible employeur"],
+      expectedOutputs: ["Métier couvert au niveau L2 — Modélisé"],
+      evidence: [],
+      expectedCostCents: null,
+      actualCostCents: null,
+      payerActorId: null,
+      fundingStatus: "UNKNOWN",
+      successTransition: null,
+      failureTransition: input.planType === "A" ? "ACTIVATE_PLAN_B" : null,
+      sourceReason,
+      suggestion: {
+        humanValidationRequired: true,
+        confidence: "HIGH",
+        dataUsed: [
+          `Couverture ${input.occupationCoverage.level}`,
+          ...(input.marketContext ? [`BMO 2026 · FAP ${input.marketContext.fapCode}`] : []),
+        ],
+        unknowns: input.occupationCoverage.blockers,
+      },
+    });
+    explanations.push(sourceReason);
+    unknowns.push(...input.occupationCoverage.blockers);
+    precedingIds = [engineeringStepId];
+  }
   for (const need of input.needs.filter((candidate) => candidate.status !== "RESOLVED")) {
     const matches = findActorMatchesForNeed({
       need,
@@ -748,6 +798,8 @@ function draftPathway(input: {
     approvedAt: null,
     activatedAt: null,
     activationReason: null,
+    occupationCoverage: input.occupationCoverage,
+    marketContext: input.marketContext,
   });
   return { pathway, matchSuggestions, explanations, unknowns };
 }
@@ -764,17 +816,41 @@ export function generatePathwayDraft(input: {
   verifiedSolutionsOnly?: boolean;
   now?: string;
   sourceFreshnessById?: SourceFreshnessById;
+  planAMarketContext?: OccupationMarketContext | null;
+  planBMarketContext?: OccupationMarketContext | null;
 }): PathwayDraftResult {
   const passport = participantPassportSchema.parse(input.passport);
   const planAOccupation = occupationSchema.parse(input.planAOccupation);
   const planBOccupation = occupationSchema.parse(input.planBOccupation);
   const now = input.now ?? new Date().toISOString();
   const verifiedOnly = input.verifiedSolutionsOnly ?? true;
+  const planAMarketContext = input.planAMarketContext === undefined
+    ? getBmoMarketContextForOccupation(planAOccupation)
+    : input.planAMarketContext;
+  const planBMarketContext = input.planBMarketContext === undefined
+    ? getBmoMarketContextForOccupation(planBOccupation)
+    : input.planBMarketContext;
   const barriers = passport.barriers.map((barrier) => barrierToNeed(passport, barrier, now));
   const planAGaps = calculateSkillGaps(passport, planAOccupation).map((gap) => skillGapToNeed(gap, { createdAt: now }));
   const planBGaps = calculateSkillGaps(passport, planBOccupation).map((gap) => skillGapToNeed(gap, { createdAt: now }));
   const planANeeds = uniqueNeeds([...barriers, ...planAGaps]);
   const planBNeeds = uniqueNeeds([...barriers, ...planBGaps]);
+  const planACoverage = evaluateOccupationCoverage({
+    occupation: planAOccupation,
+    marketContext: planAMarketContext,
+    actors: input.actors,
+    serviceOffers: input.serviceOffers,
+    opportunities: input.opportunities,
+    assessedAt: now,
+  });
+  const planBCoverage = evaluateOccupationCoverage({
+    occupation: planBOccupation,
+    marketContext: planBMarketContext,
+    actors: input.actors,
+    serviceOffers: input.serviceOffers,
+    opportunities: input.opportunities,
+    assessedAt: now,
+  });
   const common = {
     passport,
     cohortId: input.cohortId,
@@ -786,12 +862,28 @@ export function generatePathwayDraft(input: {
     now,
     sourceFreshnessById: input.sourceFreshnessById,
   };
-  const planA = draftPathway({ ...common, occupation: planAOccupation, planType: "A", needs: planANeeds });
-  const planB = draftPathway({ ...common, occupation: planBOccupation, planType: "B", needs: planBNeeds });
+  const planA = draftPathway({
+    ...common,
+    occupation: planAOccupation,
+    planType: "A",
+    needs: planANeeds,
+    occupationCoverage: planACoverage,
+    marketContext: planAMarketContext,
+  });
+  const planB = draftPathway({
+    ...common,
+    occupation: planBOccupation,
+    planType: "B",
+    needs: planBNeeds,
+    occupationCoverage: planBCoverage,
+    marketContext: planBMarketContext,
+  });
 
   return {
     planA: planA.pathway,
     planB: planB.pathway,
+    coverageAssessments: { A: planACoverage, B: planBCoverage },
+    marketContexts: { A: planAMarketContext, B: planBMarketContext },
     needs: uniqueNeeds([...planANeeds, ...planBNeeds]),
     matchSuggestions: [...planA.matchSuggestions, ...planB.matchSuggestions],
     explanations: [...planA.explanations, ...planB.explanations],
@@ -807,6 +899,13 @@ export function getPathwayApprovalIssues(pathwayInput: Pathway, referralsInput: 
   const issues: PathwayApprovalIssue[] = [];
   if (!["DRAFT", "AWAITING_HUMAN_APPROVAL"].includes(pathway.status)) {
     issues.push({ code: "INVALID_STATUS", stepId: null, message: "Seul un brouillon en attente peut être validé." });
+  }
+  if (OCCUPATION_COVERAGE_RANK[pathway.occupationCoverage.level] < OCCUPATION_COVERAGE_RANK.L3_ECOSYSTEM) {
+    issues.push({
+      code: "INSUFFICIENT_OCCUPATION_COVERAGE",
+      stepId: null,
+      message: `Le métier est couvert au niveau ${pathway.occupationCoverage.level}; le niveau L3 — Écosystème est requis avant validation opérationnelle.`,
+    });
   }
 
   const inputEvidenceStatuses = new Set(["READY", "ASSIGNED", "SENT", "ACKNOWLEDGED", "ACCEPTED", "IN_PROGRESS", "COMPLETED"]);

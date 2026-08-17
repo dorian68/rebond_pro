@@ -1,14 +1,21 @@
 import {
+  bmo2026Registry,
+  bmoSignalToOccupation,
+  evaluateOccupationCoverage,
   evaluateSourceFreshness,
   findActorMatchesForNeed,
+  getBmoMarketContextForOccupation,
+  OCCUPATION_COVERAGE_LABELS,
   sourceRegistry,
   type OrchestrationSnapshot,
 } from "@/features/orchestration";
 import type {
   OrchestrationUiModel,
   UiActor,
+  UiBmoRegistry,
   UiCostItem,
   UiOccupation,
+  UiOccupationCoverage,
   UiOutcome,
   UiReferenceSkill,
   UiSourceRegistry,
@@ -51,6 +58,9 @@ function occupationView(occupation: OrchestrationSnapshot["occupations"][number]
     id: occupation.id,
     label: occupation.label,
     code: occupation.romeCode,
+    fapCode: occupation.fapCode,
+    fapRelation: occupation.fapMapping?.relation ?? null,
+    fapMappingVerificationStatus: occupation.fapMapping?.verificationStatus ?? null,
     sector: occupation.sector,
     requiredSkills: occupation.requiredSkills.map((skill) => skill.skillLabel),
     preferredSkills: occupation.preferredSkills.map((skill) => skill.skillLabel),
@@ -59,6 +69,114 @@ function occupationView(occupation: OrchestrationSnapshot["occupations"][number]
     sourceLabel: occupation.sourceRef.label,
     sourceUrl: occupation.sourceRef.uri ?? null,
     sourceKind: occupation.sourceRef.kind,
+  };
+}
+
+function occupationCoverageView(
+  coverage: ReturnType<typeof evaluateOccupationCoverage>,
+): UiOccupationCoverage {
+  return {
+    level: coverage.level,
+    label: OCCUPATION_COVERAGE_LABELS[coverage.level],
+    reliableForDraft: coverage.reliableForDraft,
+    activatable: coverage.activatable,
+    evidence: coverage.evidence,
+    blockers: coverage.blockers,
+  };
+}
+
+function bmoRegistryView(snapshot: OrchestrationSnapshot, assessedAt: string): UiBmoRegistry {
+  const region = bmo2026Registry.aggregates.region;
+  const sourceUrl = bmo2026Registry.meta.provenance.workbook.datasetPageUrl;
+  const occupations = bmo2026Registry.occupations.map((signal) => {
+    const canonicalCandidates = snapshot.occupations.filter((occupation) => occupation.fapCode === signal.code);
+    const exactVerifiedCandidates = canonicalCandidates.filter((occupation) =>
+      occupation.fapMapping?.relation === "EXACT" && occupation.fapMapping.verificationStatus === "VERIFIED",
+    );
+    const canonicalTarget = exactVerifiedCandidates.length === 1
+      ? exactVerifiedCandidates[0]
+      : canonicalCandidates.length === 1
+        ? canonicalCandidates[0]
+        : null;
+    // Never take the first of several métier mappings: ambiguity stays explicit.
+    const engineeringTarget = canonicalTarget ?? bmoSignalToOccupation(signal);
+    const marketContext = getBmoMarketContextForOccupation(engineeringTarget);
+    const coverage = evaluateOccupationCoverage({
+      occupation: engineeringTarget,
+      marketContext,
+      actors: snapshot.actors,
+      serviceOffers: snapshot.serviceOffers,
+      opportunities: snapshot.opportunities,
+      pathways: snapshot.pathways,
+      outcomes: snapshot.outcomes,
+      costItems: snapshot.costItems,
+      assessedAt,
+    });
+    const completeness: UiBmoRegistry["occupations"][number]["completeness"] = signal.projects.complete
+      ? "COMPLETE"
+      : signal.projects.publishedCellCount === 0 && signal.projects.suppressedCellCount > 0
+        ? "ONLY_SUPPRESSED"
+        : signal.projects.publishedCellCount === 0
+          ? "NO_PUBLISHED_VALUE"
+          : "LOWER_BOUND";
+    const reliabilityLabel = completeness === "COMPLETE"
+      ? "Toutes les lignes publiées sont numériques."
+      : completeness === "LOWER_BOUND"
+        ? `Borne basse : ≥ ${signal.projects.knownSubtotal} projet(s) connu(s) + ${signal.projects.suppressedCellCount} cellule(s) masquée(s).`
+        : completeness === "ONLY_SUPPRESSED"
+          ? "Valeurs masquées par la source : ce n’est pas zéro."
+          : "Aucune valeur numérique publiée : ne pas conclure à zéro.";
+    const records = new Map(
+      bmo2026Registry.records
+        .filter((record) => record.occupation.code === signal.code)
+        .map((record) => [record.basin.code, record]),
+    );
+    return {
+      code: signal.code,
+      label: signal.label,
+      familyCode: signal.familyCode,
+      familyLabel: signal.familyLabel,
+      projectsKnown: signal.projects.knownSubtotal,
+      difficultProjectsKnown: signal.difficultProjects.knownSubtotal,
+      seasonalProjectsKnown: signal.seasonalProjects.knownSubtotal,
+      projectsSuppressedCount: signal.projects.suppressedCellCount,
+      difficultSuppressedCount: signal.difficultProjects.suppressedCellCount,
+      seasonalSuppressedCount: signal.seasonalProjects.suppressedCellCount,
+      publishedBasinCount: signal.observedBasinCount,
+      completeness,
+      reliabilityLabel,
+      coverage: occupationCoverageView(coverage),
+      basins: bmo2026Registry.basins.map((basin) => {
+        const record = records.get(basin.code);
+        return {
+          code: basin.code,
+          label: basin.label.replace(/^BASSIN\s+/i, ""),
+          hasRecord: Boolean(record),
+          projects: record?.projects.value ?? null,
+          projectsSuppressed: record?.projects.status === "suppressed",
+          difficultProjects: record?.difficultProjects.value ?? null,
+          difficultProjectsSuppressed: record?.difficultProjects.status === "suppressed",
+          seasonalProjects: record?.seasonalProjects.value ?? null,
+          seasonalProjectsSuppressed: record?.seasonalProjects.status === "suppressed",
+        };
+      }),
+    };
+  });
+  return {
+    surveyYear: bmo2026Registry.meta.surveyYear,
+    territory: bmo2026Registry.meta.territory.regionLabel,
+    officialTotalProjects: region.officialPdfReferences.headline.projects,
+    knownProjectsSubtotal: region.projects.knownSubtotal,
+    occupationCount: bmo2026Registry.meta.counts.occupations,
+    recordCount: bmo2026Registry.meta.counts.records,
+    basinCount: bmo2026Registry.meta.counts.basins,
+    suppressedProjectCells: region.projects.suppressedCellCount,
+    difficultSharePercent: region.officialPdfReferences.headline.difficultSharePercent,
+    seasonalSharePercent: region.officialPdfReferences.headline.seasonalSharePercent,
+    sourceUrl,
+    sourceLabel: "France Travail · BMO 2026 · open data Guadeloupe",
+    warning: "Les 13 205 projets numériques connus forment une borne basse face aux 13 588 projets publiés. Les valeurs masquées restent inconnues. Le PDF publie 46 % difficiles / 28 % saisonniers en page 6, mais 47 % / 25 % en page 22 ; les deux versions sont conservées sans réconciliation silencieuse.",
+    occupations,
   };
 }
 
@@ -257,6 +375,17 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
   const passport = data.passports[0];
   const cohort = data.cohorts[0];
   const occupation = data.occupations.find((candidate) => candidate.id === passport.planA.occupationId) ?? data.occupations[0];
+  const occupationCoverage = evaluateOccupationCoverage({
+    occupation,
+    marketContext: getBmoMarketContextForOccupation(occupation),
+    actors: data.actors,
+    serviceOffers: data.serviceOffers,
+    opportunities: data.opportunities,
+    pathways: data.pathways,
+    outcomes: data.outcomes,
+    costItems: data.costItems,
+    assessedAt: sourceEvaluationNow,
+  });
   const planA = data.pathways.find((pathway) => pathway.participantId === passport.participantId && pathway.planType === "A") ?? data.pathways[0];
   const planB = data.pathways.find((pathway) => pathway.participantId === passport.participantId && pathway.planType === "B");
   const allCanonicalSteps = [...planA.steps, ...(planB?.steps ?? [])];
@@ -377,6 +506,8 @@ export function createOrchestrationUiModel(snapshot: OrchestrationSnapshot): Orc
     },
     occupation: occupationView(occupation),
     occupations,
+    occupationCoverage: occupationCoverageView(occupationCoverage),
+    bmoRegistry: bmoRegistryView(data, sourceEvaluationNow),
     referenceSkills: referenceSkillsView(data),
     actors,
     services: data.serviceOffers.map((offer) => {

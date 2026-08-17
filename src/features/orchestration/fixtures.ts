@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 import rawEcosystemSeed from "../../../data/guadeloupe-ecosystem.seed.json";
+import { getBmoMarketContextForOccupation } from "./bmo-registry";
 import { NEED_CAPABILITY_MAP } from "./constants";
+import { evaluateOccupationCoverage } from "./coverage";
 import { createOutcomeMilestones } from "./engine";
 import { sourceRegistry } from "./source-registry";
 import { actorSchema, opportunitySchema, orchestrationSnapshotSchema, serviceOfferSchema } from "./schemas";
@@ -309,6 +311,13 @@ export const demoOccupations: Occupation[] = [
     id: OCCUPATION_A_ID,
     label: "Réceptionniste en hôtellerie",
     romeCode: "G1703",
+    fapCode: "S2X60",
+    fapMapping: {
+      relation: "BROADER",
+      verificationStatus: "NEEDS_VERIFICATION",
+      sourceRef: missionBriefSource,
+      notes: "Le groupe FAP « Employés de l’hôtellerie » est plus large que le métier ROME G1703 ; rapprochement manuel à valider.",
+    },
     sector: "Hôtellerie–Tourisme",
     requiredSkills: [
       skillRequirement("skill-accueil-client", "Accueil client", null, currentRomeSource),
@@ -329,6 +338,8 @@ export const demoOccupations: Occupation[] = [
     id: OCCUPATION_B_ID,
     label: "Employée polyvalente en hôtellerie ou service client",
     romeCode: null,
+    fapCode: null,
+    fapMapping: null,
     sector: "Hôtellerie–Services",
     requiredSkills: [
       skillRequirement("skill-accueil-client", "Accueil client"),
@@ -582,6 +593,7 @@ function demoStep(
 const a1 = "demo-step-a-01-intake";
 const a2 = "demo-step-a-02-diagnostic";
 const a3 = "demo-step-a-03-project";
+const a3b = "demo-step-a-03b-occupation-engineering";
 const a4 = "demo-step-a-04-english";
 const a5 = "demo-step-a-05-mobility";
 const a6 = "demo-step-a-06-cv";
@@ -625,7 +637,21 @@ export const sarahPlanA: Pathway = {
       completedAt: "2026-08-13T09:00:00.000Z",
       evidence: ["Plan A/B de démonstration validé."],
     }),
-    demoStep(PLAN_A_ID, a4, "TRAINING", "Module anglais métier", [a3], {
+    demoStep(PLAN_A_ID, a3b, "PROJECT_VALIDATION", "Compléter l’ingénierie du métier", [a3], {
+      assignedActorId: "demo-actor-le-bon-rebond",
+      status: "READY",
+      dueDate: "2026-08-18T16:00:00.000Z",
+      requiredInputs: ["Validation du rapprochement FAP S2X60 / ROME G1703", "Exigences réelles d’une cible employeur"],
+      expectedOutputs: ["Métier couvert au niveau L2 — Modélisé"],
+      sourceReason: "La BMO documente le groupe large « Employés de l’hôtellerie » ; elle ne suffit pas à prouver les exigences du métier de réceptionniste ni l’existence d’une offre.",
+      suggestion: {
+        humanValidationRequired: true,
+        confidence: "HIGH",
+        dataUsed: ["BMO 2026 · FAP S2X60", "ROME G1703", "Rapprochement BROADER à vérifier"],
+        unknowns: ["Crosswalk à valider", "Tâches, prérequis et exigences employeur à confirmer"],
+      },
+    }),
+    demoStep(PLAN_A_ID, a4, "TRAINING", "Module anglais métier", [a3b], {
       assignedActorId: "actor-cci-iles-guadeloupe",
       serviceOfferId: "service-cci-anglais-collectif",
       status: "READY",
@@ -639,7 +665,7 @@ export const sarahPlanA: Pathway = {
         unknowns: ["Adéquation hôtellerie, dates, places, coût, éligibilité et financement non renseignés."],
       },
     }),
-    demoStep(PLAN_A_ID, a5, "MOBILITY", "Sécuriser la mobilité horaires décalés", [a3], {
+    demoStep(PLAN_A_ID, a5, "MOBILITY", "Sécuriser la mobilité horaires décalés", [a3b], {
       assignedActorId: "actor-mobilizy",
       serviceOfferId: "service-mobilizy-location-sociale",
       status: "BLOCKED",
@@ -653,7 +679,7 @@ export const sarahPlanA: Pathway = {
         unknowns: ["Éligibilité, trajet, flotte disponible, coût et financement non renseignés."],
       },
     }),
-    demoStep(PLAN_A_ID, a6, "LBR_ACTION", "CV ciblé réception", [a3], {
+    demoStep(PLAN_A_ID, a6, "LBR_ACTION", "CV ciblé réception", [a3b], {
       assignedActorId: "demo-actor-le-bon-rebond",
       status: "IN_PROGRESS",
       dueDate: "2026-08-20T16:00:00.000Z",
@@ -698,10 +724,17 @@ export const sarahPlanA: Pathway = {
   approvedAt: null,
   activatedAt: null,
   activationReason: null,
+  occupationCoverage: evaluateOccupationCoverage({
+    occupation: demoOccupations[0],
+    marketContext: getBmoMarketContextForOccupation(demoOccupations[0]),
+    assessedAt: DEMO_NOW,
+  }),
+  marketContext: getBmoMarketContextForOccupation(demoOccupations[0]),
 };
 
 const b1 = "demo-step-b-01-reassess";
 const b2 = "demo-step-b-02-target";
+const b2b = "demo-step-b-02b-occupation-engineering";
 const b3 = "demo-step-b-03-alternative";
 const b4 = "demo-step-b-04-training";
 const b5 = "demo-step-b-05-outcome";
@@ -716,10 +749,14 @@ export const sarahPlanB: Pathway = {
   steps: [
     demoStep(PLAN_B_ID, b1, "DIAGNOSTIC", "Réévaluer les freins et acquis", []),
     demoStep(PLAN_B_ID, b2, "PROJECT_VALIDATION", "Valider le Plan B avec Sarah", [b1]),
-    demoStep(PLAN_B_ID, b3, "OPPORTUNITY", "Rechercher un autre employeur", [b2], {
+    demoStep(PLAN_B_ID, b2b, "PROJECT_VALIDATION", "Préciser le métier cible du Plan B", [b2], {
+      sourceReason: "Le libellé Plan B regroupe plusieurs métiers. Une cible ROME/FAP explicite doit être choisie avec Sarah avant génération d’un parcours fiable.",
+      expectedOutputs: ["Métier Plan B relié à un référentiel et accepté par Sarah"],
+    }),
+    demoStep(PLAN_B_ID, b3, "OPPORTUNITY", "Rechercher un autre employeur", [b2b], {
       sourceReason: "Aucune opportunité alternative vérifiée n'est disponible; recherche manuelle requise.",
     }),
-    demoStep(PLAN_B_ID, b4, "TRAINING", "Explorer alternance ou formation adaptée", [b2], {
+    demoStep(PLAN_B_ID, b4, "TRAINING", "Explorer alternance ou formation adaptée", [b2b], {
       sourceReason: "Aucune offre, place, date, coût ni financement n'est confirmé dans les sources disponibles.",
     }),
     demoStep(PLAN_B_ID, b5, "OUTCOME", "Enregistrer la sortie Plan B", [b3, b4], { requiredInputs: ["Preuve de sortie"] }),
@@ -737,6 +774,12 @@ export const sarahPlanB: Pathway = {
   approvedAt: null,
   activatedAt: null,
   activationReason: null,
+  occupationCoverage: evaluateOccupationCoverage({
+    occupation: demoOccupations[1],
+    marketContext: null,
+    assessedAt: DEMO_NOW,
+  }),
+  marketContext: null,
 };
 
 export const demoOpportunity: Opportunity = {

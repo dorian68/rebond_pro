@@ -1,6 +1,6 @@
 # Production Readiness
 
-Dernière mise à jour : 14 août 2026. Périmètre évalué : site public, marketplace modérée, cockpit multi-tenant, parcours de contact, Roadmap 2 agentique et gestion des super-admins déployées. Les paiements publics restent volontairement désactivés.
+Dernière mise à jour : 15 août 2026. Périmètre évalué : site public, marketplace modérée, cockpit multi-tenant, parcours de contact, Roadmap 2 agentique et gestion des super-admins déployées. Les paiements publics restent volontairement désactivés. Le lot BMO complet d’Orchestration est validé localement mais n’est pas inclus dans le déploiement de production décrit ci-dessous.
 
 | Domaine | Verdict | Preuve / condition |
 |---|---|---|
@@ -21,6 +21,7 @@ Dernière mise à jour : 14 août 2026. Périmètre évalué : site public, mark
 | Build | PASS production | ESLint local PASS ; compilation Next.js et TypeScript PASS dans l’image Linux. La campagne précédente `smoke:all` reste à 39/39 et le nouveau smoke `platform-admin-access` passe séparément contre la base de production avec fixtures nettoyées. |
 | Observabilité | PASS socle | Logs JSON, endpoint readiness DB, health-check de déploiement, rollback automatique, Caddy actif et sauvegardes quotidiennes. Un APM externe reste une amélioration non bloquante. |
 | Déploiement | PASS | Commit `27d0c75` publié sur `origin/main`, image `rebondpro-app:27d0c75` active, health HTTPS et DB `up`. L'image `cf13dd4` reste disponible pour rollback. Runbook : `DEPLOYMENT.md`. |
+| Orchestration BMO 2026 | PASS Technical RL + PASS Client Mystère / NON DÉPLOYÉ | Import officiel reproductible 508/180/5, inconnues conservées, 180 cibles d’ingénierie, couverture L0–L5 fermée sous L3 et 35 invariants ciblés PASS. Scores business : clarté 4,6/5, confiance 4,8/5, adoption 4,2/5, global 4,5/5. Repository mémoire, données Sarah synthétiques et absence de portail partenaire : NO-GO cohorte réelle sans chantier P0. |
 
 ## Verdict
 
@@ -34,6 +35,8 @@ Dernière mise à jour : 14 août 2026. Périmètre évalué : site public, mark
 2. médiateur de la consommation et parcours de rétractation documentés si applicables ;
 3. NDA du prestataire de bilan renseigné et conformité de l'offre vérifiée ;
 4. test de paiement puis remboursement réalisé en environnement contrôlé.
+
+**GO démonstration locale pour l’import BMO 2026 dans Orchestration : double verdict Technical RL et Client Mystère PASS. NO-GO production/cohorte réelle pour ce nouveau lot tant qu’il n’est pas déployé et que la persistance, l’audit, les permissions de données, les capacités datées et les interactions partenaires ne sont pas livrés.**
 
 ## Evidence CLI
 

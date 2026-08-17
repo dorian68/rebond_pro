@@ -215,3 +215,36 @@ Le classement est utile et prudent. Pour Sarah, le cours d’anglais CCI arrive 
 **Acheteur institutionnel : finance un pilote encadré.** Les rôles territoriaux, la provenance et la discipline sur les inconnues sont suffisamment différenciants pour tester le produit avec une équipe CIP. Il demandera comme critères de sortie du pilote : un noyau d’acteurs avec disponibilité datée, un taux de besoins couverts par une offre concrète, un délai moyen de qualification, des orientations réellement tracées et une preuve de résultat.
 
 **Acheteur production : refuse en l’état.** La persistance navigateur, l’absence de boucle partenaire réelle, l’absence de solution mobilisable et la couverture opérationnelle incomplète empêchent encore un engagement SaaS de production.
+
+## Contre-évaluation Client Mystère — import BMO 2026 exhaustif
+
+### Verdict
+
+**PASS pour la démonstration et le pilote encadré.** Les trois défauts de confiance constatés au premier passage ont été corrigés.
+
+| Critère | Score | Seuil |
+| --- | ---: | ---: |
+| Clarté | **4,6/5** | 4,5 |
+| Confiance | **4,8/5** | 4,7 |
+| Adoption | **4,2/5** | 4,0 |
+| Global | **4,5/5** | 4,4 |
+
+### Parcours contrôlé
+
+- Les 180 familles BMO sont représentées dans un sélecteur de cible référencé par `occupationId`; l’objectif n’est plus un texte libre dissocié du moteur.
+- Le recalcul vers `A1X41 — Jardiniers des espaces verts et naturels` remplace les anciens écarts et étapes métier, retire orientations et coûts, conserve le frein mobilité transversal et remet le parcours en validation humaine.
+- La statistique est présentée comme borne basse `≥ 320` avec 4/5 bassins, jamais comme un total exact.
+- Les 25 métiers entièrement masqués affichent « Non calculable », sont exclus des tranches numériques et disposent d’un filtre dédié.
+- Aucun signal BMO ne devient une opportunité, une place ou une promesse d’activabilité.
+- Le bouton Réinitialiser restaure recherche, filtres, sélection et pagination.
+
+Preuves visuelles : `07-bmo-2026.png`, `08-selecteur-metiers-bmo.png` et `09-parcours-cible-bmo-recalculee.png`.
+
+### Limites non bloquantes
+
+- Remplacer la microcopie `+ 0 cellule masquée` par `1 bassin sans ligne publiée` lorsqu’un bassin est absent.
+- Remplacer à terme le sélecteur natif par une recherche groupée par famille.
+- Soumettre la conservation du type transversal générique `OTHER` à une confirmation humaine explicite.
+- Ajouter un smoke dédié à la remise à zéro des orientations et coûts lors d’un changement de cible ; le comportement est actuellement vérifié par lecture du code et capture courte.
+
+**Definition of Done Business : PASS pour le prototype. NO-GO production autonome inchangé.**

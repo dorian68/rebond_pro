@@ -7,7 +7,11 @@ import type {
   OrchestrationUiModel,
   OrchestrationView,
   UiActor,
+  UiBmoOccupation,
+  UiBmoRegistry,
   UiCostItem,
+  UiOccupation,
+  UiOccupationCoverage,
   UiOutcome,
   UiReferral,
   UiService,
@@ -16,7 +20,7 @@ import type {
 } from "./ui-types";
 import styles from "./orchestration.module.css";
 
-const STORAGE_KEY = "le-bon-rebond:orchestration:mixed-sources:v3";
+const STORAGE_KEY = "le-bon-rebond:orchestration:mixed-sources:v4";
 const DEMO_NOW_MS = Date.parse("2026-08-15T12:00:00.000Z");
 
 const VIEWS: { id: OrchestrationView; label: string; icon: string }[] = [
@@ -144,6 +148,7 @@ const CAPABILITY_LABELS: Record<string, string> = {
 
 const REFERRAL_CYCLE = ["SENT", "ACKNOWLEDGED", "ACCEPTED", "IN_PROGRESS", "COMPLETED"];
 const STEP_STATUSES = ["DRAFT", "READY", "ASSIGNED", "SENT", "ACKNOWLEDGED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "REJECTED", "BLOCKED", "NO_RESPONSE", "CANCELLED"];
+const PORTABLE_NEED_TYPES = new Set(["MOBILITY", "CHILDCARE", "HOUSING", "DISABILITY", "SOCIAL_SUPPORT", "EQUIPMENT", "AVAILABILITY", "OTHER"]);
 
 const MATCH_LEVEL_LABELS: Record<string, string> = {
   ACTIVATABLE: "Mobilisable",
@@ -154,19 +159,140 @@ const MATCH_LEVEL_LABELS: Record<string, string> = {
   TO_VERIFY: "À vérifier",
 };
 
+const FAP_RELATION_LABELS: Record<string, string> = {
+  EXACT: "équivalence validée",
+  BROADER: "regroupement FAP plus large",
+  RELATED: "métier connexe",
+  UNMAPPED: "non rapproché",
+};
+
 type PersistedDemo = {
   steps: UiStep[];
   referrals: UiReferral[];
   costs: UiCostItem[];
   outcome: UiOutcome;
   actors: UiActor[];
-  passportGoals: { planA: string; planB: string };
+  passportGoals: PassportGoals;
   planBActive: boolean;
   pathwayStatus: string;
   pathwayVersion: number;
   draftVersionCreated: boolean;
   planBReason: string;
 };
+
+type PassportGoals = {
+  planAOccupationId: string;
+  planA: string;
+  planBOccupationId: string;
+  planB: string;
+};
+
+type TargetChoice = {
+  occupation: UiOccupation;
+  coverage: UiOccupationCoverage;
+  source: "CANONICAL" | "BMO_ENGINEERING";
+};
+
+const L0_COVERAGE: UiOccupationCoverage = {
+  level: "L0_SIGNAL",
+  label: "L0 — Signal",
+  reliableForDraft: false,
+  activatable: false,
+  evidence: [],
+  blockers: ["Métier à rapprocher, modéliser et relier à un écosystème local vérifié."],
+};
+
+function bmoTargetChoice(signal: UiBmoOccupation): TargetChoice {
+  return {
+    source: "BMO_ENGINEERING",
+    occupation: {
+      id: `bmo-2026-${signal.code.toLocaleLowerCase("fr-FR")}`,
+      label: signal.label,
+      code: null,
+      fapCode: signal.code,
+      fapRelation: null,
+      fapMappingVerificationStatus: null,
+      sector: `Famille FAP · ${signal.familyLabel}`,
+      requiredSkills: [],
+      preferredSkills: [],
+      constraints: [],
+      verificationStatus: "NEEDS_VERIFICATION",
+      sourceLabel: "France Travail · BMO 2026",
+      sourceUrl: "https://www.data.gouv.fr/datasets/enquete-besoins-en-main-doeuvre-bmo",
+      sourceKind: "PUBLIC_OFFICIAL",
+    },
+    coverage: signal.coverage,
+  };
+}
+
+function buildTargetChoices(model: OrchestrationUiModel): TargetChoice[] {
+  const canonicalFapCodes = new Set(model.occupations.flatMap((occupation) => occupation.fapCode ? [occupation.fapCode] : []));
+  const canonical = model.occupations.map((occupation): TargetChoice => ({
+    occupation,
+    source: "CANONICAL",
+    coverage: occupation.id === model.occupation.id
+      ? model.occupationCoverage
+      : model.bmoRegistry.occupations.find((candidate) => candidate.code === occupation.fapCode)?.coverage ?? L0_COVERAGE,
+  }));
+  const bmo = model.bmoRegistry.occupations
+    .filter((signal) => !canonicalFapCodes.has(signal.code))
+    .map(bmoTargetChoice);
+  return [...canonical, ...bmo];
+}
+
+function targetEngineeringSteps(planA: TargetChoice, planB: TargetChoice): UiStep[] {
+  const nonce = Date.now();
+  const create = (planType: "A" | "B", target: TargetChoice, offset: number): UiStep[] => {
+    const targetId = `draft-${nonce}-${planType.toLocaleLowerCase()}-target`;
+    const engineeringId = `draft-${nonce}-${planType.toLocaleLowerCase()}-engineering`;
+    const fap = target.occupation.fapCode ? `FAP ${target.occupation.fapCode}` : "FAP à rapprocher";
+    return [
+      {
+        id: targetId,
+        title: `Valider la cible · ${target.occupation.label}`,
+        description: "Décision à confirmer avec la personne avant toute activation.",
+        type: "PROJECT_VALIDATION",
+        status: "DRAFT",
+        planType,
+        assignedActorId: "demo-actor-le-bon-rebond",
+        assignedActorName: "Le Bon Rebond",
+        dependencies: [],
+        plannedStart: null,
+        dueDate: null,
+        completedAt: null,
+        expectedCost: null,
+        actualCost: null,
+        sourceReason: `Cible sélectionnée dans le référentiel (${fap}). Elle ne constitue ni une offre ni une décision automatique.`,
+        evidence: [],
+        draft: true,
+        x: 0,
+        y: offset,
+      },
+      {
+        id: engineeringId,
+        title: "Compléter l’ingénierie du métier",
+        description: "Rapprocher ROME/FAP, documenter exigences et contraintes, puis identifier des acteurs et capacités réelles.",
+        type: "PROJECT_VALIDATION",
+        status: "DRAFT",
+        planType,
+        assignedActorId: "demo-actor-le-bon-rebond",
+        assignedActorName: "Le Bon Rebond",
+        dependencies: [targetId],
+        plannedStart: null,
+        dueDate: null,
+        completedAt: null,
+        expectedCost: null,
+        actualCost: null,
+        sourceReason: `Couverture actuelle ${target.coverage.label}. Le niveau L3 — Écosystème est requis avant validation opérationnelle.`,
+        evidence: [],
+        draft: true,
+        x: 275,
+        y: offset,
+      },
+    ];
+  };
+  return [...create("A", planA, 0), ...create("B", planB, 575)];
+}
 
 function euro(cents: number | null) {
   if (cents === null) return "Non renseigné";
@@ -267,13 +393,22 @@ function SectionHeader({ kicker, title, description, actions }: { kicker: string
 }
 
 export function OrchestrationClient({ initialModel }: { initialModel: OrchestrationUiModel }) {
+  const targetChoices = useMemo(() => buildTargetChoices(initialModel), [initialModel]);
+  const initialPlanBTarget = targetChoices.find((choice) => choice.occupation.label === initialModel.passport.planB)
+    ?? targetChoices.find((choice) => choice.occupation.id !== initialModel.occupation.id)
+    ?? targetChoices[0]!;
   const [view, setView] = useState<OrchestrationView>("overview");
   const [steps, setSteps] = useState(initialModel.steps);
   const [referrals, setReferrals] = useState(initialModel.referrals);
   const [costs, setCosts] = useState(initialModel.costs);
   const [outcome, setOutcome] = useState(initialModel.outcome);
   const [actors, setActors] = useState(initialModel.actors);
-  const [passportGoals, setPassportGoals] = useState({ planA: initialModel.passport.planA, planB: initialModel.passport.planB });
+  const [passportGoals, setPassportGoals] = useState<PassportGoals>({
+    planAOccupationId: initialModel.occupation.id,
+    planA: initialModel.occupation.label,
+    planBOccupationId: initialPlanBTarget.occupation.id,
+    planB: initialPlanBTarget.occupation.label,
+  });
   const [planBActive, setPlanBActive] = useState(initialModel.planBActive);
   const [pathwayStatus, setPathwayStatus] = useState(initialModel.pathwayStatus);
   const [pathwayVersion, setPathwayVersion] = useState(initialModel.pathwayVersion);
@@ -303,7 +438,15 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
             followupCheckedAt: { ...initialModel.outcome.followupCheckedAt, ...stored.outcome.followupCheckedAt },
           });
           if (Array.isArray(stored.actors)) setActors(stored.actors);
-          if (stored.passportGoals && typeof stored.passportGoals.planA === "string" && typeof stored.passportGoals.planB === "string") setPassportGoals(stored.passportGoals);
+          if (
+            stored.passportGoals
+            && typeof stored.passportGoals.planAOccupationId === "string"
+            && typeof stored.passportGoals.planBOccupationId === "string"
+            && typeof stored.passportGoals.planA === "string"
+            && typeof stored.passportGoals.planB === "string"
+            && targetChoices.some((choice) => choice.occupation.id === stored.passportGoals!.planAOccupationId)
+            && targetChoices.some((choice) => choice.occupation.id === stored.passportGoals!.planBOccupationId)
+          ) setPassportGoals(stored.passportGoals);
           if (typeof stored.planBActive === "boolean") setPlanBActive(stored.planBActive);
           if (typeof stored.pathwayStatus === "string") setPathwayStatus(stored.pathwayStatus);
           if (typeof stored.pathwayVersion === "number") setPathwayVersion(stored.pathwayVersion);
@@ -316,7 +459,7 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [initialModel.outcome]);
+  }, [initialModel.outcome, targetChoices]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -324,10 +467,28 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
   }, [hydrated, steps, referrals, costs, outcome, actors, passportGoals, planBActive, pathwayStatus, pathwayVersion, draftVersionCreated, planBReason]);
 
+  const selectedPlanATarget = targetChoices.find((choice) => choice.occupation.id === passportGoals.planAOccupationId)
+    ?? targetChoices[0]!;
+  const targetChanged = passportGoals.planAOccupationId !== initialModel.occupation.id;
   const model = useMemo<OrchestrationUiModel>(() => ({
     ...initialModel,
     actors,
-    passport: { ...initialModel.passport, planA: passportGoals.planA, planB: passportGoals.planB },
+    passport: {
+      ...initialModel.passport,
+      planA: passportGoals.planA,
+      planB: passportGoals.planB,
+      needs: targetChanged
+        ? initialModel.passport.needs.filter((need) => PORTABLE_NEED_TYPES.has(need.type))
+        : initialModel.passport.needs,
+    },
+    occupation: selectedPlanATarget.occupation,
+    occupationCoverage: selectedPlanATarget.coverage,
+    needSolutions: targetChanged
+      ? initialModel.needSolutions.filter((solution) => {
+        const need = initialModel.passport.needs.find((candidate) => candidate.id === solution.needId);
+        return need ? PORTABLE_NEED_TYPES.has(need.type) : false;
+      })
+      : initialModel.needSolutions,
     cohort: {
       ...initialModel.cohort,
       outcomes: ["ACTIVE", "MAINTAINED_J90"].includes(outcome.finalStatus) && !["PATHWAY_CONTINUES", "NO_ACTIVE_OUTCOME"].includes(outcome.type) ? 1 : 0,
@@ -335,7 +496,7 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
     pathwayVersion,
     pathwayStatus,
     planBActive,
-  }), [actors, initialModel, outcome.finalStatus, outcome.type, passportGoals, pathwayStatus, pathwayVersion, planBActive]);
+  }), [actors, initialModel, outcome.finalStatus, outcome.type, passportGoals, pathwayStatus, pathwayVersion, planBActive, selectedPlanATarget, targetChanged]);
 
   const selectedStep = steps.find((step) => step.id === selectedStepId) ?? null;
   const selectedActor = actors.find((actor) => actor.id === selectedActorId) ?? null;
@@ -353,9 +514,29 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
     setSteps(next);
   }
 
-  function updateGoals(next: { planA: string; planB: string }) {
-    markPathwayChanged();
-    setPassportGoals(next);
+  function updateGoals(next: { planAOccupationId: string; planBOccupationId: string }) {
+    const planA = targetChoices.find((choice) => choice.occupation.id === next.planAOccupationId);
+    const planB = targetChoices.find((choice) => choice.occupation.id === next.planBOccupationId);
+    if (!planA || !planB) return;
+    const changed = planA.occupation.id !== passportGoals.planAOccupationId || planB.occupation.id !== passportGoals.planBOccupationId;
+    if (!changed) return;
+    setPassportGoals({
+      planAOccupationId: planA.occupation.id,
+      planA: planA.occupation.label,
+      planBOccupationId: planB.occupation.id,
+      planB: planB.occupation.label,
+    });
+    setSteps(targetEngineeringSteps(planA, planB));
+    setReferrals([]);
+    setCosts([]);
+    setOutcome(initialModel.outcome);
+    setPlanBActive(false);
+    setPlanBReason("");
+    setSelectedStepId(null);
+    setPathwayStatus("AWAITING_HUMAN_APPROVAL");
+    setPathwayVersion((current) => current + 1);
+    setDraftVersionCreated(true);
+    setAnnouncement(`Cible Plan A remplacée par « ${planA.occupation.label} ». Les anciens écarts métier, étapes, orientations et coûts ont été retirés du brouillon ; les freins transversaux restent visibles et l’ingénierie doit être recalculée puis validée.`);
   }
 
   function activatePlanB(reason: string) {
@@ -374,7 +555,12 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
     setCosts(initialModel.costs);
     setOutcome(initialModel.outcome);
     setActors(initialModel.actors);
-    setPassportGoals({ planA: initialModel.passport.planA, planB: initialModel.passport.planB });
+    setPassportGoals({
+      planAOccupationId: initialModel.occupation.id,
+      planA: initialModel.occupation.label,
+      planBOccupationId: initialPlanBTarget.occupation.id,
+      planB: initialPlanBTarget.occupation.label,
+    });
     setPlanBActive(initialModel.planBActive);
     setPathwayStatus(initialModel.pathwayStatus);
     setPathwayVersion(initialModel.pathwayVersion);
@@ -442,6 +628,8 @@ export function OrchestrationClient({ initialModel }: { initialModel: Orchestrat
             }}
             onShare={() => setShareOpen(true)}
             onGoals={updateGoals}
+            targetChoices={targetChoices}
+            currentGoals={passportGoals}
             onOpenActor={setSelectedActorId}
           />
         )}
@@ -617,7 +805,7 @@ function Cohorts({ model, onOpenSarah }: { model: OrchestrationUiModel; onOpenSa
   );
 }
 
-function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActive, planBReason, pathwayStatus, pathwayVersion, selectedStep, onSelectStep, onSteps, onActivatePlanB, onValidate, onShare, onGoals, onOpenActor }: {
+function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActive, planBReason, pathwayStatus, pathwayVersion, selectedStep, onSelectStep, onSteps, onActivatePlanB, onValidate, onShare, onGoals, targetChoices, currentGoals, onOpenActor }: {
   model: OrchestrationUiModel;
   steps: UiStep[];
   referrals: UiReferral[];
@@ -633,7 +821,9 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
   onActivatePlanB: (reason: string) => void;
   onValidate: () => void;
   onShare: () => void;
-  onGoals: (goals: { planA: string; planB: string }) => void;
+  onGoals: (goals: { planAOccupationId: string; planBOccupationId: string }) => void;
+  targetChoices: TargetChoice[];
+  currentGoals: PassportGoals;
   onOpenActor: (actorId: string) => void;
 }) {
   const [canvasMode, setCanvasMode] = useState<"graph" | "timeline">("graph");
@@ -649,11 +839,15 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
   const ownerIssues = relevantSteps.filter((step) => !step.assignedActorId && !["CANCELLED"].includes(step.status));
   const deadlineIssues = relevantSteps.filter((step) => !step.dueDate && !["CANCELLED"].includes(step.status));
   const evidenceIssues = relevantSteps.filter((step) => ["BLOCKED", "COMPLETED"].includes(step.status) && step.evidence.length === 0);
-  const validationIssueCount = ownerIssues.length + deadlineIssues.length + evidenceIssues.length;
+  const coverageOperational = ["L3_ECOSYSTEM", "L4_ACTIVATABLE", "L5_PROVEN"].includes(model.occupationCoverage.level);
+  const validationIssueCount = ownerIssues.length + deadlineIssues.length + evidenceIssues.length + (coverageOperational ? 0 : 1);
   const canValidate = validationIssueCount === 0 && pathwayStatus !== "ACTIVE";
   const romeSource = model.sourceRegistry.sources.find((source) => source.title.includes("ROME")) ?? null;
   const needCandidates = model.needSolutions.flatMap((solution) => solution.candidates);
   const activatableCount = needCandidates.filter((candidate) => candidate.readiness === "ACTIVATABLE").length;
+  const targetMarket = model.occupation.fapCode
+    ? model.bmoRegistry.occupations.find((candidate) => candidate.code === model.occupation.fapCode) ?? null
+    : null;
 
   const moveStep = useCallback((stepId: string, x: number, y: number) => {
     onSteps(steps.map((step) => step.id === stepId ? { ...step, x, y } : step));
@@ -707,6 +901,11 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
           <div className={styles.sourceLine}><Icon name="file-text" size={10} /><DirectSourceLink url={model.occupation.sourceUrl} label={model.occupation.sourceLabel} /></div>
           {romeSource && <div className={styles.romeReference}><SourceLink source={romeSource} label="Référentiel ROME consulté" /><small>{model.occupation.code ? "Code relié au métier cible dans le référentiel." : "Le référentiel est officiel, mais aucun code ROME n’est encore attribué à ce métier dans le Passeport."}</small></div>}
         </article>
+        <article className={styles.pathwayMarketContext}>
+          <div className={styles.spread}><span className={styles.sourceBadge}><Icon name="chart" size={11} /> Contexte BMO 2026</span><span className={`${styles.statusPill} ${coverageOperational ? styles.statusDone : styles.statusWaiting}`}>{model.occupationCoverage.label}</span></div>
+          {targetMarket ? <><h3>{targetMarket.label} · FAP {targetMarket.code}</h3><p><strong>{targetMarket.completeness === "COMPLETE" ? targetMarket.projectsKnown : `≥ ${targetMarket.projectsKnown}`}</strong> projet(s) de recrutement publié(s) · {targetMarket.reliabilityLabel}</p>{model.occupation.fapRelation && <small>Rapprochement avec ROME {model.occupation.code ?? "non renseigné"} : {FAP_RELATION_LABELS[model.occupation.fapRelation] ?? model.occupation.fapRelation} · {model.occupation.fapMappingVerificationStatus === "VERIFIED" ? "vérifié" : "à valider humainement"}.</small>}<small>{targetMarket.coverage.blockers[0] ?? "Contexte marché documenté ; activation à confirmer avec les acteurs locaux."}</small></> : <><h3>Rapprochement FAP à confirmer</h3><p>Le métier cible ne dispose pas encore d’un contexte BMO rattaché et contrôlé.</p><small>Une absence de rapprochement n’est jamais interprétée comme une absence de besoin.</small></>}
+          <div className={styles.marketWarning}><Icon name="shield" size={11} /> Intentions déclarées et redressées : ni offre, ni poste disponible, ni place réservée.</div>
+        </article>
         <article className={styles.pathwaySolutions}>
           <div className={styles.spread}><div><div className={styles.sourceBadge}><Icon name="globe" size={11} /> Pathway Engine · explicable</div><h3>Solutions classées par besoin</h3></div><span className={`${styles.statusPill} ${activatableCount ? styles.statusDone : styles.statusWaiting}`}>{activatableCount} mobilisable(s)</span></div>
           {model.needSolutions.length ? <div className={styles.solutionList}>
@@ -719,7 +918,7 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
         </article>
       </section>
       <div className={styles.pathwayLayout}>
-        <PassportPanel model={model} onShare={onShare} onGoals={onGoals} />
+        <PassportPanel model={model} onShare={onShare} onGoals={onGoals} targetChoices={targetChoices} currentGoals={currentGoals} />
         <section className={styles.graphPanel} aria-label="Graphe du parcours">
           <div className={styles.graphToolbar}>
             <div className={styles.graphToolbarLeft}>
@@ -739,7 +938,7 @@ function PathwayStudio({ model, steps, referrals, onReferrals, costs, planBActiv
         </section>
         <aside className={styles.pilotPanel} aria-label="Pilotage du parcours">
           <div className={styles.columnTitle}><strong>Pilotage</strong><Icon name="gauge" size={15} /></div>
-          <div className={styles.pilotSection}><h4>Checklist de validation</h4><div className={styles.miniList}><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={ownerIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Responsables</strong><small>{ownerIssues.length ? `${ownerIssues.length} étape(s) sans acteur` : "Chaque action a un responsable"}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={deadlineIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Échéances</strong><small>{deadlineIssues.length ? `${deadlineIssues.length} échéance(s) manquante(s)` : "Chaque responsable a une échéance"}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={evidenceIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Preuves</strong><small>{evidenceIssues.length ? `${evidenceIssues.length} blocage(s)/fin(s) sans preuve` : "Blocages et fins sont documentés"}</small></span></div></div></div>
+          <div className={styles.pilotSection}><h4>Checklist de validation</h4><div className={styles.miniList}><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={coverageOperational ? "check-circle" : "alert-circle"} size={12} /></span><span><strong>Couverture métier</strong><small>{coverageOperational ? `${model.occupationCoverage.label} · seuil opérationnel atteint` : `${model.occupationCoverage.label} · L3 requis avant activation`}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={ownerIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Responsables</strong><small>{ownerIssues.length ? `${ownerIssues.length} étape(s) sans acteur` : "Chaque action a un responsable"}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={deadlineIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Échéances</strong><small>{deadlineIssues.length ? `${deadlineIssues.length} échéance(s) manquante(s)` : "Chaque responsable a une échéance"}</small></span></div><div className={styles.miniRow}><span className={styles.miniRowIcon}><Icon name={evidenceIssues.length ? "alert-circle" : "check-circle"} size={12} /></span><span><strong>Preuves</strong><small>{evidenceIssues.length ? `${evidenceIssues.length} blocage(s)/fin(s) sans preuve` : "Blocages et fins sont documentés"}</small></span></div></div></div>
           <div className={styles.pilotSection}><h4>Prochaine meilleure action</h4><div className={styles.nextAction}><strong>{nextStep?.title ?? "Aucune action active"}</strong><p>{nextStep?.sourceReason ?? "Le CIP doit définir la prochaine action."}</p></div></div>
           <div className={styles.pilotSection}><h4>Solutions à instruire</h4><div className={styles.miniList}>{model.needSolutions.map((solution) => { const candidate = solution.candidates[0]; return <div className={styles.miniRow} key={solution.needId}><span className={styles.miniRowIcon}><Icon name={candidate?.readiness === "ACTIVATABLE" ? "check-circle" : candidate ? "search" : "alert-circle"} size={12} /></span><span><strong>{solution.needLabel}</strong><small>{candidate ? `${candidate.actorName}${candidate.serviceName ? ` · ${candidate.serviceName}` : " · référentiel"}` : "Recherche manuelle nécessaire"}</small></span><span className={`${styles.statusPill} ${matchLevelClass(candidate?.readiness ?? "DISCOVERY_ONLY")}`}>{candidate ? `${MATCH_LEVEL_LABELS[candidate.readiness]} · ${candidate.score}` : "Aucune piste"}</span></div>; })}</div></div>
           <div className={styles.pilotSection}><h4>Orientations en attente</h4><div className={styles.miniList}>{pendingReferrals.length ? pendingReferrals.slice(0, 3).map((referral) => <div className={styles.miniRow} key={referral.id}><span className={styles.miniRowIcon}><Icon name="send" size={12} /></span><span><strong>{referral.toActorName}</strong><small>{referral.title}</small></span><span className={`${styles.statusPill} ${statusClass(referral.status)}`}>{STATUS_LABELS[referral.status] ?? referral.status}</span></div>) : <small>Aucune orientation en attente.</small>}</div></div>
@@ -843,10 +1042,19 @@ function ReferralDesk({ actors, steps, referrals, onReferrals, onActivatePlanB }
   );
 }
 
-function PassportPanel({ model, onShare, onGoals }: { model: OrchestrationUiModel; onShare: () => void; onGoals: (goals: { planA: string; planB: string }) => void }) {
+function PassportPanel({ model, onShare, onGoals, targetChoices, currentGoals }: {
+  model: OrchestrationUiModel;
+  onShare: () => void;
+  onGoals: (goals: { planAOccupationId: string; planBOccupationId: string }) => void;
+  targetChoices: TargetChoice[];
+  currentGoals: PassportGoals;
+}) {
   const { passport } = model;
   const [editingGoals, setEditingGoals] = useState(false);
-  const [draftGoals, setDraftGoals] = useState({ planA: passport.planA, planB: passport.planB });
+  const [draftGoals, setDraftGoals] = useState({
+    planAOccupationId: currentGoals.planAOccupationId,
+    planBOccupationId: currentGoals.planBOccupationId,
+  });
   const confirmedSkillLabels = new Set(passport.skills.filter((skill) => skill.confidence === "CONFIRMED").map((skill) => skill.label.toLocaleLowerCase("fr")));
   const matchedRequirements = model.occupation.requiredSkills.filter((skill) => confirmedSkillLabels.has(skill.toLocaleLowerCase("fr")));
   const missingRequirements = model.occupation.requiredSkills.filter((skill) => !confirmedSkillLabels.has(skill.toLocaleLowerCase("fr")));
@@ -854,7 +1062,7 @@ function PassportPanel({ model, onShare, onGoals }: { model: OrchestrationUiMode
     <aside className={styles.passportPanel} aria-label="Passeport Rebond de Sarah">
       <div className={styles.columnTitle}><strong>Passeport Rebond</strong><span className={styles.demoBadge}>Démo</span></div>
       <div className={styles.passportHero}><h3>{passport.firstName}</h3><p>{passport.ageLabel} · {passport.currentSituation}<br />Source : {passport.sourceLabel}</p></div>
-      <div className={styles.passportSection}><div className={styles.spread}><h4><Icon name="target" size={12} /> Objectifs</h4><button type="button" className={styles.ghostButton} onClick={() => { setDraftGoals({ planA: passport.planA, planB: passport.planB }); setEditingGoals((current) => !current); }}><Icon name="edit" size={11} /> {editingGoals ? "Annuler" : "Modifier"}</button></div>{editingGoals ? <div className={styles.planBlock}><div className={styles.sourceBox}>Modifier l’objectif invalide la proposition actuelle : une nouvelle version brouillon devra être revue et validée humainement.</div><label className={styles.field}><span>Plan A</span><input value={draftGoals.planA} onChange={(event) => setDraftGoals((current) => ({ ...current, planA: event.target.value }))} /></label><label className={styles.field}><span>Plan B</span><input value={draftGoals.planB} onChange={(event) => setDraftGoals((current) => ({ ...current, planB: event.target.value }))} /></label><button type="button" className={styles.primaryButton} disabled={!draftGoals.planA.trim() || !draftGoals.planB.trim()} onClick={() => { onGoals(draftGoals); setEditingGoals(false); }}><Icon name="check" size={12} /> Créer une version à revoir</button></div> : <div className={styles.planBlock}><div className={styles.planRow}><span>Plan A</span><strong>{passport.planA}</strong></div><div className={styles.planRow}><span>Plan B</span><strong>{passport.planB}</strong></div></div>}</div>
+      <div className={styles.passportSection}><div className={styles.spread}><h4><Icon name="target" size={12} /> Objectifs</h4><button type="button" className={styles.ghostButton} onClick={() => { setDraftGoals({ planAOccupationId: currentGoals.planAOccupationId, planBOccupationId: currentGoals.planBOccupationId }); setEditingGoals((current) => !current); }}><Icon name="edit" size={11} /> {editingGoals ? "Annuler" : "Modifier"}</button></div>{editingGoals ? <div className={styles.planBlock}><div className={styles.sourceBox}>Choisir une autre cible remplace son identifiant métier, son contexte BMO et ses écarts. Les anciennes étapes, orientations et coûts sont retirés du brouillon ; une nouvelle validation humaine est obligatoire.</div><label className={styles.field}><span>Plan A · métier référencé</span><select value={draftGoals.planAOccupationId} onChange={(event) => setDraftGoals((current) => ({ ...current, planAOccupationId: event.target.value }))}>{targetChoices.map((choice) => <option value={choice.occupation.id} key={`a-${choice.occupation.id}`}>{choice.occupation.label} · {choice.occupation.code ? `ROME ${choice.occupation.code}` : choice.occupation.fapCode ? `FAP ${choice.occupation.fapCode}` : "à rapprocher"} · {choice.coverage.label}</option>)}</select></label><label className={styles.field}><span>Plan B · métier référencé</span><select value={draftGoals.planBOccupationId} onChange={(event) => setDraftGoals((current) => ({ ...current, planBOccupationId: event.target.value }))}>{targetChoices.map((choice) => <option value={choice.occupation.id} key={`b-${choice.occupation.id}`}>{choice.occupation.label} · {choice.occupation.code ? `ROME ${choice.occupation.code}` : choice.occupation.fapCode ? `FAP ${choice.occupation.fapCode}` : "à rapprocher"} · {choice.coverage.label}</option>)}</select></label><small>{targetChoices.length} cibles disponibles, dont les 180 familles métier BMO. Une cible L0 prépare seulement un brouillon d’ingénierie.</small><button type="button" className={styles.primaryButton} disabled={draftGoals.planAOccupationId === currentGoals.planAOccupationId && draftGoals.planBOccupationId === currentGoals.planBOccupationId} onClick={() => { onGoals(draftGoals); setEditingGoals(false); }}><Icon name="check" size={12} /> Recalculer en brouillon</button></div> : <div className={styles.planBlock}><div className={styles.planRow}><span>Plan A</span><strong>{passport.planA}</strong></div><div className={styles.planRow}><span>Plan B</span><strong>{passport.planB}</strong></div></div>}</div>
       <div className={styles.passportSection}><h4><Icon name="search" size={12} /> Écart avec le métier cible</h4><div className={styles.evidence}><strong>{matchedRequirements.length}/{model.occupation.requiredSkills.length}</strong> compétence(s) requise(s) confirmée(s) · comparaison explicable, sans décision automatique.</div><div className={styles.tagList} style={{ marginTop: 7 }}>{matchedRequirements.map((skill) => <span className={styles.skillTag} key={skill}><Icon name="check" size={9} /> {skill}</span>)}{missingRequirements.map((skill) => <span className={styles.barrierTag} key={skill}><Icon name="alert-circle" size={9} /> À combler : {skill}</span>)}</div></div>
       <div className={styles.passportSection}><h4><Icon name="check-circle" size={12} /> Compétences & preuves</h4><div className={styles.tagList}>{passport.skills.map((skill) => <span className={styles.skillTag} key={skill.id}><Icon name={skill.confidence === "CONFIRMED" ? "check" : "alert-circle"} size={9} /> {skill.label}</span>)}</div>{passport.skills.slice(0, 2).map((skill) => <div className={styles.evidence} key={`${skill.id}-evidence`}><strong>{skill.label}</strong> · {skill.evidence} · {STATUS_LABELS[skill.confidence] ?? skill.confidence.toLowerCase()}</div>)}</div>
       <div className={styles.passportSection}><h4><Icon name="alert-triangle" size={12} /> Freins & besoins</h4><div className={styles.tagList}>{passport.needs.map((need) => <span className={styles.barrierTag} key={need.id}><Icon name="alert-circle" size={9} /> {need.label}{need.blocking ? " · bloquant" : ""}</span>)}</div></div>
@@ -982,16 +1190,113 @@ function ActorDrawer({ actor, services, onChange, onClose }: { actor: UiActor; s
   );
 }
 
+function bmoValue(value: number | null, suppressed: boolean, hasRecord = true) {
+  if (!hasRecord) return "Aucune ligne publiée";
+  if (suppressed) return "Masqué · pas zéro";
+  return value === null ? "Non publié" : new Intl.NumberFormat("fr-FR").format(value);
+}
+
+function bmoKnownProjectsLabel(occupation: UiBmoOccupation) {
+  if (occupation.completeness === "ONLY_SUPPRESSED" || occupation.completeness === "NO_PUBLISHED_VALUE") {
+    return "Non calculable";
+  }
+  const prefix = occupation.completeness === "COMPLETE" ? "" : "≥ ";
+  return `${prefix}${new Intl.NumberFormat("fr-FR").format(occupation.projectsKnown)}`;
+}
+
+function BmoReference({ registry }: { registry: UiBmoRegistry }) {
+  const [query, setQuery] = useState("");
+  const [family, setFamily] = useState("ALL");
+  const [basin, setBasin] = useState("ALL");
+  const [quality, setQuality] = useState("ALL");
+  const [volume, setVolume] = useState("ALL");
+  const [sort, setSort] = useState<"PROJECTS" | "LABEL">("PROJECTS");
+  const [page, setPage] = useState(1);
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const pageSize = 20;
+  const families = useMemo(() => Array.from(new Map(registry.occupations.map((occupation) => [occupation.familyCode, occupation.familyLabel])).entries()).sort((left, right) => left[1].localeCompare(right[1], "fr")), [registry.occupations]);
+  const basins = useMemo(() => Array.from(new Map(registry.occupations.flatMap((occupation) => occupation.basins.map((candidate) => [candidate.code, candidate.label] as const))).entries()).sort((left, right) => left[1].localeCompare(right[1], "fr")), [registry.occupations]);
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("fr-FR");
+    const matches = registry.occupations.filter((occupation) => {
+      if (needle && !`${occupation.code} ${occupation.label}`.toLocaleLowerCase("fr-FR").includes(needle)) return false;
+      if (family !== "ALL" && occupation.familyCode !== family) return false;
+      if (basin !== "ALL" && !occupation.basins.some((candidate) => candidate.code === basin && candidate.hasRecord)) return false;
+      if (quality !== "ALL" && occupation.completeness !== quality) return false;
+      const calculable = occupation.completeness !== "ONLY_SUPPRESSED" && occupation.completeness !== "NO_PUBLISHED_VALUE";
+      if (volume === "NON_CALCULABLE" && calculable) return false;
+      if (volume === "LT25" && (!calculable || occupation.projectsKnown >= 25)) return false;
+      if (volume === "25_99" && (!calculable || occupation.projectsKnown < 25 || occupation.projectsKnown >= 100)) return false;
+      if (volume === "100_249" && (!calculable || occupation.projectsKnown < 100 || occupation.projectsKnown >= 250)) return false;
+      if (volume === "GTE250" && (!calculable || occupation.projectsKnown < 250)) return false;
+      return true;
+    });
+    return [...matches].sort((left, right) => sort === "LABEL"
+      ? left.label.localeCompare(right.label, "fr")
+      : right.projectsKnown - left.projectsKnown || left.label.localeCompare(right.label, "fr"));
+  }, [basin, family, quality, query, registry.occupations, sort, volume]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageItems = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const selected = filtered.find((occupation) => occupation.code === selectedCode)
+    ?? pageItems[0]
+    ?? null;
+
+  function resetPage() {
+    setPage(1);
+  }
+
+  return <div className={styles.bmoReference}>
+    <section className={styles.bmoHero}>
+      <div><span className={styles.sourceBadge}>France Travail · BMO {registry.surveyYear}</span><h3>Panorama complet · {registry.territory}</h3><p>Les intentions de recrutement servent à prioriser l’ingénierie métier. Elles ne créent jamais une offre, une place ou une recommandation personnalisée.</p></div>
+      <div className={styles.bmoMetrics}>
+        <div><strong>{new Intl.NumberFormat("fr-FR").format(registry.officialTotalProjects)}</strong><span>projets publiés</span></div>
+        <div><strong>{registry.occupationCount}</strong><span>métiers FAP 2021</span></div>
+        <div><strong>{registry.basinCount}</strong><span>bassins d’emploi</span></div>
+        <div><strong>{registry.suppressedProjectCells}</strong><span>volumes masqués</span></div>
+      </div>
+      <div className={styles.bmoWarning}><Icon name="alert-circle" size={13} /><span><strong>Lecture prudente.</strong> {registry.warning}</span></div>
+    </section>
+
+    <div className={styles.bmoFilters} aria-label="Filtres du catalogue BMO">
+      <label><span>Rechercher</span><input value={query} onChange={(event) => { setQuery(event.target.value); resetPage(); }} placeholder="Métier ou code FAP" /></label>
+      <label><span>Famille</span><select value={family} onChange={(event) => { setFamily(event.target.value); resetPage(); }}><option value="ALL">Toutes les familles</option>{families.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+      <label><span>Bassin</span><select value={basin} onChange={(event) => { setBasin(event.target.value); resetPage(); }}><option value="ALL">Tous les bassins</option>{basins.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+      <label><span>Qualité</span><select value={quality} onChange={(event) => { setQuality(event.target.value); resetPage(); }}><option value="ALL">Toutes</option><option value="COMPLETE">Complet</option><option value="LOWER_BOUND">Borne basse</option><option value="ONLY_SUPPRESSED">Uniquement masqué</option><option value="NO_PUBLISHED_VALUE">Non publié</option></select></label>
+      <label><span>Projets connus</span><select value={volume} onChange={(event) => { setVolume(event.target.value); resetPage(); }}><option value="ALL">Tous volumes</option><option value="LT25">Moins de 25</option><option value="25_99">25 à 99</option><option value="100_249">100 à 249</option><option value="GTE250">250 et plus</option><option value="NON_CALCULABLE">Non calculable</option></select></label>
+      <label><span>Tri</span><select value={sort} onChange={(event) => setSort(event.target.value as "PROJECTS" | "LABEL")}><option value="PROJECTS">Projets connus</option><option value="LABEL">Libellé</option></select></label>
+      <button type="button" className={styles.secondaryButton} onClick={() => { setQuery(""); setFamily("ALL"); setBasin("ALL"); setQuality("ALL"); setVolume("ALL"); setSort("PROJECTS"); setSelectedCode(null); setPage(1); }}><Icon name="refresh" size={12} /> Réinitialiser</button>
+    </div>
+    <div className={styles.bmoResultNote}><span>{filtered.length} métier(s) · page {safePage}/{pageCount}</span><small>Ordre statistique, jamais classement des personnes ni recommandation automatique.</small></div>
+
+    <div className={styles.bmoWorkspace}>
+      <div className={styles.bmoTableWrap}><table className={styles.referenceTable}><thead><tr><th>Métier FAP</th><th>Projets connus</th><th>Qualité</th><th>Couverture</th></tr></thead><tbody>{pageItems.map((occupation) => <tr key={occupation.code} className={selected?.code === occupation.code ? styles.bmoRowSelected : undefined}><td><button type="button" className={styles.bmoRowButton} onClick={() => setSelectedCode(occupation.code)}><strong>{occupation.label}</strong><small>{occupation.code} · {occupation.familyLabel}</small></button></td><td><strong>{bmoKnownProjectsLabel(occupation)}</strong><small>{occupation.publishedBasinCount}/{registry.basinCount} bassin(s) avec ligne</small></td><td><span className={`${styles.statusPill} ${occupation.completeness === "COMPLETE" ? styles.statusDone : styles.statusWaiting}`}>{occupation.completeness === "COMPLETE" ? "Complet" : occupation.completeness === "LOWER_BOUND" ? "Borne basse" : occupation.completeness === "ONLY_SUPPRESSED" ? "Masqué" : "Non publié"}</span><small>{occupation.reliabilityLabel}</small></td><td><span className={`${styles.statusPill} ${occupation.coverage.activatable ? styles.statusDone : styles.statusDraft}`}>{occupation.coverage.label}</span></td></tr>)}</tbody></table>{pageItems.length === 0 && <div className={styles.emptyState}><span><strong>Aucun métier trouvé</strong><p>Réinitialisez un filtre ; l’absence de résultat filtré n’indique pas une absence de besoin.</p></span></div>}</div>
+      <aside className={styles.bmoDetail}>{selected ? <>
+        <div className={styles.spread}><span className={styles.sourceBadge}>FAP {selected.code}</span><span className={`${styles.statusPill} ${selected.coverage.activatable ? styles.statusDone : styles.statusWaiting}`}>{selected.coverage.label}</span></div>
+        <h3>{selected.label}</h3><p>{selected.familyLabel}</p>
+        <div className={styles.bmoDetailMetric}><strong>{bmoKnownProjectsLabel(selected)}</strong><span>projets numériques connus</span></div>
+        <p>{selected.reliabilityLabel}</p>
+        <h4>Détail par bassin</h4>
+        <div className={styles.bmoBasinList}>{selected.basins.map((candidate) => <div key={candidate.code}><strong>{candidate.label}</strong><span>Projets · {bmoValue(candidate.projects, candidate.projectsSuppressed, candidate.hasRecord)}</span><small>Difficiles · {bmoValue(candidate.difficultProjects, candidate.difficultProjectsSuppressed, candidate.hasRecord)} · Saisonniers · {bmoValue(candidate.seasonalProjects, candidate.seasonalProjectsSuppressed, candidate.hasRecord)}</small></div>)}</div>
+        <div className={styles.bmoCoverageGate}><strong>Avant de générer un parcours fiable</strong><ul>{selected.coverage.blockers.slice(0, 4).map((blocker) => <li key={blocker}>{blocker}</li>)}</ul><small>Le moteur peut préparer un brouillon L0 avec une étape d’ingénierie obligatoire. La sélection d’une cible ROME et la validation CIP restent humaines.</small></div>
+        <DirectSourceLink url={registry.sourceUrl} label={registry.sourceLabel} />
+      </> : <div className={styles.emptyState}><span><strong>Aucun métier sélectionné</strong><p>Choisissez une ligne du catalogue.</p></span></div>}</aside>
+    </div>
+    <div className={styles.bmoPagination}><button type="button" className={styles.secondaryButton} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Précédent</button><span>{(safePage - 1) * pageSize + (pageItems.length ? 1 : 0)}–{(safePage - 1) * pageSize + pageItems.length} sur {filtered.length}</span><button type="button" className={styles.secondaryButton} disabled={safePage >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Suivant</button></div>
+  </div>;
+}
+
 function Reference({ model, onOpenActor }: { model: OrchestrationUiModel; onOpenActor: (id: string) => void }) {
-  const [tab, setTab] = useState<"occupations" | "skills" | "actors" | "services" | "opportunities" | "funding" | "sources">("occupations");
-  const tabs = [["occupations", "Métiers"], ["skills", "Compétences"], ["actors", "Acteurs"], ["services", "Services"], ["opportunities", "Opportunités"], ["funding", "Financements"], ["sources", "Sources & preuves"]] as const;
+  const [tab, setTab] = useState<"occupations" | "bmo" | "skills" | "actors" | "services" | "opportunities" | "funding" | "sources">("bmo");
+  const tabs = [["bmo", "BMO 2026"], ["occupations", "Métiers canoniques"], ["skills", "Compétences"], ["actors", "Acteurs"], ["services", "Services"], ["opportunities", "Opportunités"], ["funding", "Financements"], ["sources", "Sources & preuves"]] as const;
   const registry = model.sourceRegistry;
   return (
     <>
       <SectionHeader kicker="Objets canoniques" title="Référentiel" description="Des collections réellement sourcées, séparées des faits du Passeport Sarah. Chaque ligne conserve son niveau de vérification et sa source." />
       <div className={styles.referenceTabs} role="tablist" aria-label="Sous-vues du référentiel">{tabs.map(([id, label]) => <button type="button" role="tab" aria-selected={tab === id} className={`${styles.secondaryButton} ${tab === id ? styles.segmentedActive : ""}`} key={id} onClick={() => setTab(id)}>{label}</button>)}</div>
       <div className={styles.referenceTableWrap}>
-        {tab === "occupations" && <table className={styles.referenceTable}><thead><tr><th>Métier</th><th>Code ROME</th><th>Compétences requises</th><th>Contraintes</th><th>Source</th><th>Vérification</th></tr></thead><tbody>{model.occupations.map((occupation) => <tr key={occupation.id}><td><strong>{occupation.label}</strong><small>{occupation.sector}</small></td><td>{occupation.code ?? "Non renseigné"}</td><td>{occupation.requiredSkills.join(" · ") || "Non renseignées"}</td><td>{occupation.constraints.join(" · ") || "Non renseignées"}</td><td><DirectSourceLink url={occupation.sourceUrl} label={occupation.sourceLabel} /></td><td><VerificationPill status={occupation.verificationStatus} /></td></tr>)}</tbody></table>}
+        {tab === "bmo" && <BmoReference registry={model.bmoRegistry} />}
+        {tab === "occupations" && <table className={styles.referenceTable}><thead><tr><th>Métier</th><th>Codes</th><th>Compétences requises</th><th>Contraintes</th><th>Source</th><th>Vérification</th></tr></thead><tbody>{model.occupations.map((occupation) => <tr key={occupation.id}><td><strong>{occupation.label}</strong><small>{occupation.sector}</small></td><td>{occupation.code ? `ROME ${occupation.code}` : "ROME non renseigné"}<small>{occupation.fapCode ? `BMO ${occupation.fapCode} · ${occupation.fapRelation ? FAP_RELATION_LABELS[occupation.fapRelation] ?? occupation.fapRelation : "relation à qualifier"}` : "FAP non rapproché"}</small></td><td>{occupation.requiredSkills.join(" · ") || "Non renseignées"}</td><td>{occupation.constraints.join(" · ") || "Non renseignées"}</td><td><DirectSourceLink url={occupation.sourceUrl} label={occupation.sourceLabel} /></td><td><VerificationPill status={occupation.verificationStatus} />{occupation.fapMappingVerificationStatus && <small>Mapping FAP/ROME · {occupation.fapMappingVerificationStatus === "VERIFIED" ? "vérifié" : "à vérifier"}</small>}</td></tr>)}</tbody></table>}
         {tab === "skills" && <table className={styles.referenceTable}><thead><tr><th>Compétence</th><th>Métiers liés</th><th>État dans Sarah</th><th>Sources</th><th>Vérification</th></tr></thead><tbody>{model.referenceSkills.map((skill) => <tr key={skill.id}><td><strong>{skill.label}</strong></td><td>{skill.usedByOccupations.join(" · ") || "Aucun métier lié"}</td><td>{skill.participantConfidence ? STATUS_LABELS[skill.participantConfidence] ?? skill.participantConfidence : "Non revendiquée"}</td><td>{skill.sourceLabels.join(" · ") || "Non renseignées"}</td><td><VerificationPill status={skill.verificationStatus} /></td></tr>)}</tbody></table>}
         {tab === "actors" && <table className={styles.referenceTable}><thead><tr><th>Acteur</th><th>Catégories</th><th>Territoire</th><th>Claims de capacité</th><th>Source</th></tr></thead><tbody>{model.actors.map((actor) => <tr key={actor.id}><td><button type="button" className={styles.ghostButton} onClick={() => onOpenActor(actor.id)}>{actor.name}</button></td><td>{actorTypeLabel(actor)}</td><td>{actor.territory}</td><td>{actor.capabilityClaims.length ? actor.capabilityClaims.map((claim) => `${CAPABILITY_LABELS[claim.capability] ?? claim.capability} (${claim.verificationStatus === "VERIFIED" ? "vérifié" : "à vérifier"})`).join(" · ") : "Non documentées"}</td><td><DirectSourceLink url={actor.sourceUrl} label={actor.sourceLabel} /><small>{actorVerificationLabel(actor)}</small></td></tr>)}</tbody></table>}
         {tab === "services" && <table className={styles.referenceTable}><thead><tr><th>Service</th><th>Acteur</th><th>Rôle dans le parcours</th><th>Mobilisabilité</th><th>Places / coût</th><th>Source & réserves</th></tr></thead><tbody>{model.services.length ? model.services.map((service) => <tr key={service.id}><td><strong>{service.name}</strong><small>{service.duration ?? "Durée non renseignée"}</small></td><td>{service.actorName}</td><td>{service.needsResolved.join(" · ") || service.skills.join(" · ") || "Non relié"}<small>{service.expectedOutput ?? "Sortie attendue non renseignée"}</small></td><td><span className={`${styles.statusPill} ${matchLevelClass(service.mobilizationStatus)}`}>{MATCH_LEVEL_LABELS[service.mobilizationStatus]}</span><small>{service.prerequisites.join(" · ") || "Aucun prérequis publié"}</small></td><td>{service.places ?? "Places inconnues"}<small>{euro(service.cost)}</small></td><td><DirectSourceLink url={service.sourceUrl} label={service.sourceLabel} /><small>{service.caveats.join(" · ") || "Aucune réserve supplémentaire enregistrée."}</small><VerificationPill status={service.verificationStatus} /></td></tr>) : <tr><td colSpan={6}>Aucun service sourcé. Une recherche manuelle est nécessaire.</td></tr>}</tbody></table>}

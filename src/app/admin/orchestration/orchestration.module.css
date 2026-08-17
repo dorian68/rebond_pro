@@ -528,6 +528,48 @@
 .referenceTable td strong { color: var(--orch-green-dark); }
 .referenceTable td small { display: block; margin-top: 3px; color: var(--orch-muted); }
 
+.bmoReference { min-width: 880px; padding: 14px; background: #fbf8f2; }
+.bmoHero { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(460px, 1.35fr); gap: 14px 22px; border: 1px solid #c8d9d0; border-radius: 15px; padding: 17px; background: linear-gradient(128deg, #eff6f1, #fffdf8 62%, #fff3e9); }
+.bmoHero h3 { margin: 8px 0 0; color: var(--orch-green-dark); font-family: "Newsreader", Georgia, serif; font-size: 24px; }
+.bmoHero p { max-width: 580px; margin: 5px 0 0; color: var(--orch-muted); font-size: 11.5px; line-height: 1.5; }
+.bmoMetrics { display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; align-self: stretch; border: 1px solid rgba(32,92,79,.14); border-radius: 12px; background: rgba(255,255,255,.72); }
+.bmoMetrics div { padding: 12px; border-right: 1px solid rgba(32,92,79,.12); }
+.bmoMetrics div:last-child { border-right: 0; }
+.bmoMetrics strong { display: block; color: var(--orch-green-dark); font-family: "Newsreader", Georgia, serif; font-size: 21px; }
+.bmoMetrics span { display: block; margin-top: 3px; color: var(--orch-muted); font-size: 10px; line-height: 1.3; }
+.bmoWarning { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 7px; border-radius: 9px; padding: 9px 11px; background: var(--orch-amber-soft); color: #765018; font-size: 11px; line-height: 1.45; }
+.bmoFilters { display: grid; grid-template-columns: 1.3fr repeat(5, minmax(120px, 1fr)); gap: 8px; margin: 12px 0 8px; }
+.bmoFilters label { display: grid; gap: 4px; color: var(--orch-muted); font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.bmoFilters input,
+.bmoFilters select { width: 100%; min-height: 38px; border: 1px solid var(--orch-line); border-radius: 9px; padding: 7px 9px; background: white; color: var(--orch-ink); font-size: 11px; text-transform: none; }
+.bmoResultNote { display: flex; justify-content: space-between; gap: 12px; margin: 7px 2px; color: var(--orch-muted); font-size: 11px; }
+.bmoResultNote span { color: var(--orch-green-dark); font-weight: 780; }
+.bmoWorkspace { display: grid; grid-template-columns: minmax(560px, 1.45fr) minmax(290px, .72fr); gap: 10px; align-items: start; }
+.bmoTableWrap { overflow: hidden; border: 1px solid var(--orch-line); border-radius: 12px; background: white; }
+.bmoRowSelected { background: #eef5f0; }
+.bmoRowButton { display: block; width: 100%; border: 0; padding: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.bmoRowButton:hover strong { color: var(--orch-coral); }
+.bmoRowButton:focus-visible { border-radius: 4px; outline: 2px solid var(--orch-coral); outline-offset: 3px; }
+.bmoDetail { position: sticky; top: 112px; border: 1px solid #d6cec1; border-radius: 13px; padding: 14px; background: white; box-shadow: 0 10px 24px rgba(38,50,46,.05); }
+.bmoDetail h3 { margin: 10px 0 0; color: var(--orch-green-dark); font-family: "Newsreader", Georgia, serif; font-size: 21px; }
+.bmoDetail > p { margin: 4px 0 10px; color: var(--orch-muted); font-size: 11px; line-height: 1.45; }
+.bmoDetail h4 { margin: 14px 0 7px; color: var(--orch-green-dark); font-size: 11px; text-transform: uppercase; }
+.bmoDetailMetric { display: flex; align-items: baseline; gap: 8px; border-radius: 9px; padding: 9px 11px; background: var(--orch-green-soft); }
+.bmoDetailMetric strong { color: var(--orch-green-dark); font-family: "Newsreader", Georgia, serif; font-size: 23px; }
+.bmoDetailMetric span { color: var(--orch-muted); font-size: 10px; }
+.bmoBasinList { display: grid; gap: 6px; }
+.bmoBasinList > div { border-left: 2px solid #bdd1c5; padding: 5px 7px; background: #faf7f1; }
+.bmoBasinList strong,
+.bmoBasinList span,
+.bmoBasinList small { display: block; font-size: 10.5px; line-height: 1.4; }
+.bmoBasinList span,
+.bmoBasinList small { color: var(--orch-muted); }
+.bmoCoverageGate { margin: 12px 0; border-radius: 10px; padding: 10px; background: var(--orch-violet-soft); color: #624e80; }
+.bmoCoverageGate strong { font-size: 11px; }
+.bmoCoverageGate ul { margin: 6px 0; padding-left: 17px; font-size: 10.5px; line-height: 1.45; }
+.bmoCoverageGate small { font-size: 10.5px; line-height: 1.4; }
+.bmoPagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 11px; color: var(--orch-muted); font-size: 11px; }
+
 .costSummary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
 .costSummary article { border: 1px solid var(--orch-line); border-radius: 15px; padding: 15px; background: var(--orch-paper); }
 .costSummary span { display: block; color: var(--orch-muted); font-size: 11px; font-weight: 760; letter-spacing: .07em; text-transform: uppercase; }
@@ -631,13 +673,20 @@
 .fundingSplit span { display: block; color: var(--orch-muted); font-size: 11px; }
 .fundingSplit { display: grid; gap: 3px; border-left: 2px solid var(--orch-coral); padding-left: 8px; }
 
-.pathwaySources { display: grid; grid-template-columns: minmax(250px, .78fr) minmax(400px, 1.4fr); gap: 10px; margin-bottom: 10px; }
+.pathwaySources { display: grid; grid-template-columns: minmax(230px, .72fr) minmax(240px, .78fr) minmax(390px, 1.3fr); gap: 10px; margin-bottom: 10px; }
 .pathwaySourcePrimary,
+.pathwayMarketContext,
 .pathwaySolutions { border: 1px solid var(--orch-line); border-radius: 14px; padding: 13px; background: var(--orch-paper); }
 .pathwaySourcePrimary { border-color: #c5d9cf; background: linear-gradient(135deg, #edf5ef, #fffdf8); }
+.pathwayMarketContext { border-color: #dfcfbc; background: linear-gradient(145deg, #fffaf1, #fffdf9); }
 .pathwaySourcePrimary h3,
+.pathwayMarketContext h3,
 .pathwaySolutions h3 { margin: 8px 0 0; color: var(--orch-green-dark); font-size: 13px; }
 .pathwaySourcePrimary p { margin: 4px 0 8px; color: var(--orch-muted); font-size: 11px; line-height: 1.4; }
+.pathwayMarketContext p { margin: 6px 0; color: var(--orch-muted); font-size: 11px; line-height: 1.4; }
+.pathwayMarketContext p strong { color: var(--orch-coral); font-family: "Newsreader", Georgia, serif; font-size: 18px; }
+.pathwayMarketContext small { display: block; color: var(--orch-muted); font-size: 10.5px; line-height: 1.4; }
+.marketWarning { display: flex; align-items: flex-start; gap: 5px; margin-top: 8px; border-radius: 8px; padding: 7px 8px; background: var(--orch-amber-soft); color: #765018; font-size: 10.5px; line-height: 1.35; }
 .romeReference { display: grid; gap: 3px; margin-top: 8px; border-top: 1px solid rgba(32,92,79,.14); padding-top: 8px; }
 .romeReference small { color: var(--orch-muted); font-size: 11px; line-height: 1.35; }
 .solutionList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 9px; }
@@ -744,6 +793,11 @@
   .ecosystemMap { min-height: 620px; }
   .sourceHealth,
   .pathwaySources { grid-template-columns: 1fr; }
+  .bmoReference { min-width: 0; }
+  .bmoHero,
+  .bmoWorkspace { grid-template-columns: 1fr; }
+  .bmoFilters { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+  .bmoDetail { position: static; }
 }
 
 @media (max-width: 760px) {
@@ -785,6 +839,11 @@
   .sourceHealthMetrics div:nth-child(2) { border-right: 0; }
   .sourceHealthMetrics div:nth-child(-n + 2) { border-bottom: 1px solid rgba(32,92,79,.12); }
   .solutionList { grid-template-columns: 1fr; }
+  .bmoFilters { grid-template-columns: 1fr 1fr; }
+  .bmoMetrics { grid-template-columns: 1fr 1fr; }
+  .bmoMetrics div:nth-child(2) { border-right: 0; }
+  .bmoMetrics div:nth-child(-n + 2) { border-bottom: 1px solid rgba(32,92,79,.12); }
+  .bmoResultNote { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 480px) {
@@ -797,7 +856,8 @@
   .filterBar > :first-child { grid-column: auto; }
   .followups { grid-template-columns: 1fr; }
   .sourceHealthMetrics,
-  .scenarioNumbers { grid-template-columns: 1fr; }
+  .scenarioNumbers,
+  .bmoFilters { grid-template-columns: 1fr; }
   .sourceHealthMetrics div { border-right: 0; border-bottom: 1px solid rgba(32,92,79,.12); }
   .sourceHealthMetrics div:last-child { border-bottom: 0; }
 }

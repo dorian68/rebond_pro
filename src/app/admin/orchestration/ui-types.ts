@@ -246,6 +246,9 @@ export type UiOccupation = {
   id: string;
   label: string;
   code: string | null;
+  fapCode: string | null;
+  fapRelation: "EXACT" | "BROADER" | "RELATED" | "UNMAPPED" | null;
+  fapMappingVerificationStatus: VerificationStatus | null;
   sector: string;
   requiredSkills: string[];
   preferredSkills: string[];
@@ -254,6 +257,60 @@ export type UiOccupation = {
   sourceLabel: string;
   sourceUrl: string | null;
   sourceKind: string;
+};
+
+export type UiOccupationCoverage = {
+  level: "L0_SIGNAL" | "L1_MAPPED" | "L2_MODELED" | "L3_ECOSYSTEM" | "L4_ACTIVATABLE" | "L5_PROVEN";
+  label: string;
+  reliableForDraft: boolean;
+  activatable: boolean;
+  evidence: string[];
+  blockers: string[];
+};
+
+export type UiBmoOccupation = {
+  code: string;
+  label: string;
+  familyCode: string;
+  familyLabel: string;
+  projectsKnown: number;
+  difficultProjectsKnown: number;
+  seasonalProjectsKnown: number;
+  projectsSuppressedCount: number;
+  difficultSuppressedCount: number;
+  seasonalSuppressedCount: number;
+  publishedBasinCount: number;
+  completeness: "COMPLETE" | "LOWER_BOUND" | "ONLY_SUPPRESSED" | "NO_PUBLISHED_VALUE";
+  reliabilityLabel: string;
+  coverage: UiOccupationCoverage;
+  basins: Array<{
+    code: string;
+    label: string;
+    hasRecord: boolean;
+    projects: number | null;
+    projectsSuppressed: boolean;
+    difficultProjects: number | null;
+    difficultProjectsSuppressed: boolean;
+    seasonalProjects: number | null;
+    seasonalProjectsSuppressed: boolean;
+  }>;
+};
+
+export type UiBmoRegistry = {
+  surveyYear: number;
+  territory: string;
+  officialTotalProjects: number;
+  knownProjectsSubtotal: number;
+  occupationCount: number;
+  recordCount: number;
+  basinCount: number;
+  suppressedProjectCells: number;
+  difficultSharePercent: number | null;
+  seasonalSharePercent: number | null;
+  sourceUrl: string;
+  sourceLabel: string;
+  warning: string;
+  occupations: UiBmoOccupation[];
 };
 
 export type UiReferenceSkill = {
@@ -325,6 +382,8 @@ export type OrchestrationUiModel = {
   passport: UiPassport;
   occupation: UiOccupation;
   occupations: UiOccupation[];
+  occupationCoverage: UiOccupationCoverage;
+  bmoRegistry: UiBmoRegistry;
   referenceSkills: UiReferenceSkill[];
   actors: UiActor[];
   services: UiService[];

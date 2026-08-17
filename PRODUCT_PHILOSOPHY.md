@@ -91,3 +91,13 @@ Chaque transaction réelle est persistée dans le ledger `Transaction`.
 - **Particulier** : sortir du flou, éviter une mauvaise décision et accéder à une formation adaptée.
 - **Centre partenaire** : recevoir des demandes qualifiées, gagner en visibilité et réduire la charge administrative.
 - **Plateforme** : monétiser les bilans, les mises en relation et les abonnements avec une traçabilité complète.
+
+## Orchestration territoriale des parcours
+
+L’espace admin **Orchestration** transforme un diagnostic individuel en parcours humainement validé : état participant + état cible + capacités locales → étapes, responsables, échéances, orientations, coûts, financements et résultat maintenu.
+
+La BMO France Travail est utilisée comme **signal de marché exhaustif**, jamais comme catalogue d’offres. Un volume BMO ne prouve ni l’existence d’un poste, ni une place disponible, ni la faisabilité d’un parcours. Le Pathway Engine conserve six niveaux de connaissance : L0 Signal, L1 Mappé, L2 Modélisé, L3 Écosystème, L4 Activable et L5 Éprouvé. Un parcours ne peut être validé opérationnellement sous L3.
+
+Les 180 familles métier BMO peuvent toutes devenir une cible d’ingénierie. Ce droit à préparer un brouillon ne vaut jamais promesse de faisabilité : changer de cible remplace son identifiant, son contexte et ses écarts métier, retire la trajectoire devenue obsolète et impose un nouveau passage humain. Une ligne absente ou masquée reste inconnue ; elle n’est ni zéro ni un faible volume.
+
+La valeur différenciante vient de la fermeture de la boucle avec le réel : proposition → validation de la personne et du CIP → engagement acteur → exécution → preuve → coût → résultat → apprentissage.
