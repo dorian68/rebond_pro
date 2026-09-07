@@ -299,7 +299,7 @@ function mutationData(input: Roadmap2NodeInput, actorUserId: string) {
 export async function ensureRoadmap2Workspace() {
   return prisma.roadmap2Workspace.upsert({
     where: { key: ROADMAP2_WORKSPACE_KEY },
-    create: { key: ROADMAP2_WORKSPACE_KEY, name: "Le Bon Rebond — Roadmap 2" },
+    create: { key: ROADMAP2_WORKSPACE_KEY, name: "Le Bon Rebond, Roadmap 2" },
     update: {},
   });
 }
@@ -613,7 +613,7 @@ export const roadmap2Repository = {
       const node = await tx.roadmap2Node.create({
         data: {
           workspaceId,
-          title: `${source.title} — copie`,
+          title: `${source.title}, copie`,
           description: source.description,
           expectedOutcome: source.expectedOutcome,
           type: source.type,
@@ -827,7 +827,7 @@ export const roadmap2Repository = {
             seedKey: item.key,
             isWorkspaceRoot: item.key === "root",
             title: item.title,
-            description: item.type === "phase" ? `Chantier stratégique — ${item.title}.` : null,
+            description: item.type === "phase" ? `Chantier stratégique, ${item.title}.` : null,
             expectedOutcome: item.definitionOfDone ?? null,
             type: item.type,
             category: item.category,

@@ -48,7 +48,7 @@ export async function submitContactRequest(input: unknown): Promise<ContactResul
     return { ok: false, error: "Trop de demandes ont été envoyées. Réessayez plus tard ou contactez-nous par téléphone." };
   }
 
-  const situationLabel = SITUATION_LABELS[d.situation ?? ""] ?? d.situation ?? "—";
+  const situationLabel = SITUATION_LABELS[d.situation ?? ""] ?? d.situation ?? "Non précisé";
   const now = new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full", timeStyle: "short" });
 
   logger.info("site.contact.received", {
@@ -61,7 +61,7 @@ export async function submitContactRequest(input: unknown): Promise<ContactResul
     await sendEmail({
       from: CONTACT_FROM,
       to: LEAD_RECIPIENTS,
-      subject: `🔔 Nouveau lead — ${d.name} · ${situationLabel}`,
+      subject: `🔔 Nouveau lead, ${d.name} · ${situationLabel}`,
       html: brandedEmail(
         "Nouvelle demande de contact",
         `<table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -74,7 +74,7 @@ export async function submitContactRequest(input: unknown): Promise<ContactResul
         <p style="margin-top:20px;font-size:12px;color:#aaa">Reçu le ${esc(now)} · Répondre directement à <a href="mailto:${esc(d.email)}" style="color:#2469a6">${esc(d.email)}</a></p>`,
       ),
       text: [
-        `🔔 Nouveau lead — ${d.name}`,
+        `🔔 Nouveau lead, ${d.name}`,
         `Email    : ${d.email}`,
         d.phone ? `Tél      : ${d.phone}` : "",
         `Besoin   : ${situationLabel}`,

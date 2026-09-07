@@ -5,7 +5,7 @@ import { formatMoney } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const PAYOUT_LABEL: Record<string, string> = { pending: "À reverser", settled: "Reversé", not_applicable: "—" };
+const PAYOUT_LABEL: Record<string, string> = { pending: "À reverser", settled: "Reversé", not_applicable: "Non applicable" };
 const PAYOUT_CLS: Record<string, string> = { pending: "badge-warn", settled: "badge-positive", not_applicable: "badge-neutral" };
 
 async function settleAction(formData: FormData) {
@@ -61,10 +61,10 @@ export default async function AdminFinancesPage() {
                   <td className="muted">{new Date(t.createdAt).toLocaleDateString("fr-FR")}</td>
                   <td><span className={"badge " + (TYPE_CLS[t.type] ?? "badge-neutral")}>{TYPE_LABEL[t.type] ?? t.type}</span></td>
                   <td style={{ fontWeight: 600 }}>{t.organization.name}</td>
-                  <td className="muted">{t.payerName ?? t.payerEmail ?? "—"}</td>
+                  <td className="muted">{t.payerName ?? t.payerEmail ?? ""}</td>
                   <td className="tnum" style={{ fontWeight: 700 }}>{formatMoney(t.amount)}</td>
-                  <td className="tnum">{t.commission > 0 ? formatMoney(t.commission) : "—"}</td>
-                  <td className="tnum">{t.type === "FORMATION_PURCHASE" ? formatMoney(t.amount - t.commission) : "—"}</td>
+                  <td className="tnum">{t.commission > 0 ? formatMoney(t.commission) : ""}</td>
+                  <td className="tnum">{t.type === "FORMATION_PURCHASE" ? formatMoney(t.amount - t.commission) : ""}</td>
                   <td>
                     {t.payoutStatus === "pending" ? (
                       <form action={settleAction}>

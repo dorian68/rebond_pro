@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const org = await getCenterProfile(orgSlug);
   if (!org) return { title: "Centre indisponible" };
   const description = org.tagline || org.description || `Découvrez les formations de ${org.name}.`;
-  return { title: `${org.name} — Centre partenaire · Le Bon Rebond`, description, openGraph: { title: org.name, description, type: "website" } };
+  return { title: `${org.name}, Centre partenaire · Le Bon Rebond`, description, openGraph: { title: org.name, description, type: "website" } };
 }
 
 const sectionPad: CSSProperties = { padding: "92px 0" };
@@ -73,7 +73,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
         <div className="container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 32px", gap: 16 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 600, color: "rgba(255,255,255,.85)" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#5FB14E" }} />
-            Centre partenaire — propulsé par Le Bon Rebond
+            Centre partenaire, propulsé par Le Bon Rebond
           </span>
           <Link href="/marketplace" style={{ color: "rgba(255,255,255,.7)", textDecoration: "none", fontWeight: 600 }}>← Tous les centres</Link>
         </div>
@@ -142,7 +142,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 460, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)", background: "#e7ddca", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {org.coverImageUrl
                   ? <Image src={org.coverImageUrl} alt={`Locaux de ${org.name}`} fill sizes="(max-width: 980px) 100vw, 45vw" unoptimized preload style={{ objectFit: "cover" }} />
-                  : <span style={{ fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>Photo — les locaux du centre, une salle de formation lumineuse</span>}
+                  : <span style={{ fontSize: ".82rem", color: "rgba(21,49,76,.45)", fontWeight: 600, padding: "0 20px", textAlign: "center" }}>Photo : les locaux du centre, une salle de formation lumineuse</span>}
               </div>
             </div>
           </div>
@@ -325,7 +325,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
       <footer style={{ background: "#091a29", color: "rgba(255,255,255,.7)" }}>
         <div className="container" style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "space-between", alignItems: "center", padding: "28px 32px" }}>
           <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", color: "rgba(255,255,255,.85)" }}>Un nouveau départ, la bonne direction.</span>
-          <span style={{ fontSize: ".88rem" }}>{org.name} — Centre partenaire Le Bon Rebond</span>
+          <span style={{ fontSize: ".88rem" }}>{org.name}, Centre partenaire Le Bon Rebond</span>
         </div>
       </footer>
 

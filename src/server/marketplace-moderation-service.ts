@@ -252,7 +252,7 @@ export async function rejectCenterMarketplaceForAdmin(
       try {
         await sendEmail({
           to,
-          subject: "Votre demande de publication — Le Bon Rebond",
+          subject: "Votre demande de publication, Le Bon Rebond",
           text: `Votre centre ${org.name} n'a pas encore été validé pour la marketplace.${reason ? " Motif : " + reason : ""}`,
           html: brandedEmail(
             "Publication en attente",

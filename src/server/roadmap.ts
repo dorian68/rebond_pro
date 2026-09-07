@@ -79,7 +79,7 @@ function toMilestone(row: {
   };
 }
 
-/** Roadmap plateforme partagée — réservée au super-admin. */
+/** Roadmap plateforme partagée, réservée au super-admin. */
 export async function getRoadmap(): Promise<RoadmapData> {
   await requirePlatformAdmin();
   const rows = await prisma.roadmapMilestone.findMany({

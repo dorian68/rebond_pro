@@ -114,7 +114,7 @@ export const AGENT_TOOLS: AgentTool[] = [
       } else if (entityType === "learner") {
         const items = await prisma.learner.findMany({ where: { ...where, ...(q ? { OR: [{ firstName: { contains: q, mode: "insensitive" } }, { lastName: { contains: q, mode: "insensitive" } }] } : {}) }, take: 10, orderBy: { lastName: "asc" } });
         columns = ["Nom", "Entreprise", "Email"];
-        rows = items.map((l) => [`${l.firstName} ${l.lastName}`, l.company ?? "—", l.email ?? "—"]);
+        rows = items.map((l) => [`${l.firstName} ${l.lastName}`, l.company ?? "", l.email ?? ""]);
         llmItems = items.map((l) => ({ id: l.id, label: `${l.firstName} ${l.lastName}` }));
       } else {
         const items = await prisma.trainer.findMany({ where: { ...where, active: true }, take: 10, orderBy: { lastName: "asc" } });
@@ -123,7 +123,7 @@ export const AGENT_TOOLS: AgentTool[] = [
         llmItems = items.map((t) => ({ id: t.id, label: `${t.firstName} ${t.lastName}` }));
       }
 
-      const block: UIBlock = { type: "data_table", title: `Résultats — ${entityType}`, columns, rows, emptyText: "Aucun résultat." };
+      const block: UIBlock = { type: "data_table", title: `Résultats, ${entityType}`, columns, rows, emptyText: "Aucun résultat." };
       // Les IDs sont fournis au LLM (pas affichés dans le tableau) pour permettre les actions ciblées.
       return { textForLLM: JSON.stringify({ count: llmItems.length, items: llmItems }), uiBlock: block };
     },
@@ -152,7 +152,7 @@ export const AGENT_TOOLS: AgentTool[] = [
           },
         });
         if (f) {
-          block = { type: "entity_card", entityType, title: f.title, subtitle: MODALITY_LABELS[f.modality], href: `/formations/${f.id}`, color: f.color ?? undefined, fields: [{ label: "Prix", value: formatMoney(f.price) }, { label: "Durée", value: f.durationDays ? `${f.durationDays} j` : "—" }, { label: "Modules", value: String(f.modules.length) }] };
+          block = { type: "entity_card", entityType, title: f.title, subtitle: MODALITY_LABELS[f.modality], href: `/formations/${f.id}`, color: f.color ?? undefined, fields: [{ label: "Prix", value: formatMoney(f.price) }, { label: "Durée", value: f.durationDays ? `${f.durationDays} j` : "" }, { label: "Modules", value: String(f.modules.length) }] };
           const detail = {
             found: true, id: f.id, title: f.title, status: f.status, modality: f.modality, level: f.level, price: f.price,
             durationDays: f.durationDays, durationHours: f.durationHours,
@@ -164,10 +164,10 @@ export const AGENT_TOOLS: AgentTool[] = [
         }
       } else if (entityType === "prospect") {
         const p = await prisma.prospect.findFirst({ where: w, include: { formationOfInterest: { select: { title: true } } } });
-        if (p) { block = { type: "entity_card", entityType, title: p.name, subtitle: PROSPECT_STAGE_LABELS[p.stage], href: `/prospects/${p.id}`, fields: [{ label: "Contact", value: p.contactName ?? "—" }, { label: "Montant", value: formatMoney(p.potentialAmount) }, { label: "Formation", value: p.formationOfInterest?.title ?? "—" }] }; summary = p.name; }
+        if (p) { block = { type: "entity_card", entityType, title: p.name, subtitle: PROSPECT_STAGE_LABELS[p.stage], href: `/prospects/${p.id}`, fields: [{ label: "Contact", value: p.contactName ?? "" }, { label: "Montant", value: formatMoney(p.potentialAmount) }, { label: "Formation", value: p.formationOfInterest?.title ?? "" }] }; summary = p.name; }
       } else if (entityType === "learner") {
         const l = await prisma.learner.findFirst({ where: w });
-        if (l) { block = { type: "entity_card", entityType, title: `${l.firstName} ${l.lastName}`, subtitle: l.company ?? undefined, href: `/apprenants/${l.id}`, fields: [{ label: "Email", value: l.email ?? "—" }] }; summary = `${l.firstName} ${l.lastName}`; }
+        if (l) { block = { type: "entity_card", entityType, title: `${l.firstName} ${l.lastName}`, subtitle: l.company ?? undefined, href: `/apprenants/${l.id}`, fields: [{ label: "Email", value: l.email ?? "" }] }; summary = `${l.firstName} ${l.lastName}`; }
       } else if (entityType === "trainer") {
         const t = await prisma.trainer.findFirst({ where: w });
         if (t) { block = { type: "entity_card", entityType, title: `${t.firstName} ${t.lastName}`, subtitle: t.specialities.join(", "), href: `/formateurs/${t.id}`, color: t.color ?? undefined }; summary = `${t.firstName} ${t.lastName}`; }
@@ -188,7 +188,7 @@ export const AGENT_TOOLS: AgentTool[] = [
   },
   {
     name: "find_best_slots",
-    description: "Optimise le planning d'une formation : propose les meilleurs créneaux en croisant disponibilités et salles. Prend en compte TOUS les formateurs éligibles de la formation (et, pour les formations à modules, le vivier de formateurs capables d'animer chaque module) afin de maximiser les options et éviter les conflits — une formation peut être animée par plusieurs formateurs. Pour « optimiser le planning », appelle cet outil pour chaque formation concernée. Argument: formationId.",
+    description: "Optimise le planning d'une formation : propose les meilleurs créneaux en croisant disponibilités et salles. Prend en compte TOUS les formateurs éligibles de la formation (et, pour les formations à modules, le vivier de formateurs capables d'animer chaque module) afin de maximiser les options et éviter les conflits, une formation peut être animée par plusieurs formateurs. Pour « optimiser le planning », appelle cet outil pour chaque formation concernée. Argument: formationId.",
     input_schema: { type: "object", properties: { formationId: { type: "string" } }, required: ["formationId"] },
     execute: async (ctx, args) => {
       const slots = await findBestSlots(ctx, String(args.formationId));
@@ -342,12 +342,12 @@ export const AGENT_TOOLS: AgentTool[] = [
         emptyText: "Aucun modèle importé.",
       };
       // Sortie COMPACTE pour le LLM : la liste complète (~50 modèles) doit tenir sous la
-      // troncature à 4000 caractères des résultats d'outils — sinon Socrate ne « voit »
+      // troncature à 4000 caractères des résultats d'outils, sinon Socrate ne « voit »
       // que les premiers modèles et croit ne pas avoir accès aux autres.
       const textForLLM = mapped.length === 0
         ? "Aucun modèle de document disponible (ni centre, ni plateforme)."
         : `${mapped.length} modèle(s) de document disponibles (centre + plateforme), utilisables par generate_document :\n`
-          + mapped.map((t) => `- ${t.type} — « ${t.name} »${t.isDefault ? " (défaut)" : ""} [${t.origin === "tenant" ? "centre" : "plateforme"}, ${t.engine}]`).join("\n");
+          + mapped.map((t) => `- ${t.type}, « ${t.name} »${t.isDefault ? " (défaut)" : ""} [${t.origin === "tenant" ? "centre" : "plateforme"}, ${t.engine}]`).join("\n");
       return { textForLLM, uiBlock: block };
     },
   },
@@ -376,11 +376,11 @@ export const AGENT_TOOLS: AgentTool[] = [
       const catalog = DOCUMENT_CATALOG_BY_TYPE[String(args.type)];
       const block: UIBlock = {
         type: "data_table",
-        title: `Préflight — ${DOC_LABELS[String(args.type)] ?? String(args.type)}`,
+        title: `Préflight, ${DOC_LABELS[String(args.type)] ?? String(args.type)}`,
         columns: ["Statut", "Valeur"],
         rows: [
           ["Modèle", `${preflight.template.name} (${preflight.template.organizationId ? "centre" : preflight.template.isBuiltin ? "intégré" : "plateforme"})`],
-          ["Contexte", catalog?.contexts.join(", ") ?? "—"],
+          ["Contexte", catalog?.contexts.join(", ") ?? ""],
           ["Complétude", `${preflight.completionStatus} · ${preflight.completionScore}%`],
           ["Variables remplies", String(preflight.filledVariables.length)],
           ["Variables manquantes", preflight.missingVariables.map((m) => m.label).slice(0, 8).join(", ") || "Aucune"],

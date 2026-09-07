@@ -96,7 +96,7 @@ export function FormationForm({
             <div>
               <label className="field-label" htmlFor="category">Catégorie</label>
               <select className="select" id="category" name="category" defaultValue={draftDefaults.category ?? ""}>
-                <option value="">—</option>
+                <option value="">Choisir une catégorie</option>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>

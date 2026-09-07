@@ -4,7 +4,7 @@ import { getRoadmap2DriveStatus } from "@/server/roadmap2-drive-actions";
 import styles from "../../roadmap2.module.css";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Google Drive — Roadmap 2", robots: { index: false, follow: false } };
+export const metadata = { title: "Google Drive, Roadmap 2", robots: { index: false, follow: false } };
 
 function safeRoadmapKey(value?: string) {
   return value && /^[a-z0-9][a-z0-9-]{0,119}$/.test(value) ? value : null;

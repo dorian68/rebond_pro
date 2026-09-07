@@ -17,7 +17,7 @@ export default async function AdminFormateursPage() {
               <tr key={t.id}>
                 <td style={{ fontWeight: 600 }}>{t.firstName} {t.lastName}{!t.active && <span className="badge badge-neutral" style={{ marginLeft: 6 }}>Inactif</span>}</td>
                 <td><Link href={`/admin/centres/${t.organization.id}`} style={{ color: "var(--primary)" }}>{t.organization.name}</Link></td>
-                <td className="muted">{t.specialities.join(", ") || "—"}</td>
+                <td className="muted">{t.specialities.join(", ") || ""}</td>
                 <td className="tnum">{t._count.sessions}</td>
                 <td className="tnum">{t._count.formations}</td>
                 <td>{t.userId ? <span className="badge badge-positive">Activé</span> : <span className="badge badge-neutral">Non lié</span>}</td>

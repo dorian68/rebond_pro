@@ -46,13 +46,13 @@ export default async function ProspectDetailPage({ params }: { params: Promise<{
           <Card style={{ marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 14 }}>Informations</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Info label="Contact" value={p.contactName ?? "—"} />
-              <Info label="Email" value={p.email ?? "—"} />
-              <Info label="Téléphone" value={p.phone ?? "—"} />
+              <Info label="Contact" value={p.contactName ?? ""} />
+              <Info label="Email" value={p.email ?? ""} />
+              <Info label="Téléphone" value={p.phone ?? ""} />
               <Info label="Montant potentiel" value={formatMoney(p.potentialAmount)} />
-              <Info label="Formation d'intérêt" value={p.formationOfInterest?.title ?? "—"} />
+              <Info label="Formation d'intérêt" value={p.formationOfInterest?.title ?? ""} />
               <Info label="Prochaine relance" value={formatDate(p.nextFollowUpDate)} />
-              <Info label="Prochaine action" value={p.nextAction ?? "—"} />
+              <Info label="Prochaine action" value={p.nextAction ?? ""} />
             </div>
             {p.notes && <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border-2)" }}><div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>Notes</div><p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{p.notes}</p></div>}
           </Card>

@@ -54,5 +54,5 @@ export async function enrollableSessions(ctx: TenantContext) {
     include: { formation: { select: { title: true } }, _count: { select: { enrollments: true } } },
     orderBy: { startDate: "asc" },
   });
-  return sessions.map((s) => ({ id: s.id, label: `${s.formation.title} — ${formatDateShort(s.startDate)}`, capacity: s.capacity, enrolled: s._count.enrollments }));
+  return sessions.map((s) => ({ id: s.id, label: `${s.formation.title}, ${formatDateShort(s.startDate)}`, capacity: s.capacity, enrolled: s._count.enrollments }));
 }

@@ -48,7 +48,7 @@ export function PlatformInviteBeneficiary() {
               <span className="field-label">Accompagnement prévu *</span>
               <select className="select" name="programId" required defaultValue="adultes_projet_competences">
                 {Object.values(BILAN_PROGRAMS).map((program) => (
-                  <option key={program.id} value={program.id}>{program.label} — {program.audience}</option>
+                  <option key={program.id} value={program.id}>{program.label}, {program.audience}</option>
                 ))}
               </select>
               <span className="muted-3" style={{ fontSize: 12 }}>Ce choix prépare directement le bon livret numérique et le futur PDF.</span>

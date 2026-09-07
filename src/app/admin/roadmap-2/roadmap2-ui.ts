@@ -75,7 +75,7 @@ export function nodeToInput(node: Roadmap2NodeDto): Roadmap2NodeInput {
 }
 
 export function formatRoadmap2Date(value: string | null, options?: Intl.DateTimeFormatOptions) {
-  if (!value) return "—";
+  if (!value) return "";
   return new Date(`${value}T12:00:00`).toLocaleDateString("fr-FR", options ?? { day: "2-digit", month: "short", year: "numeric" });
 }
 

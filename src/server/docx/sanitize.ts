@@ -16,7 +16,7 @@ const PARAGRAPH_MARKERS = [
   "variables principales détectables",
   "variables principales",
   "variable détectable",
-  // Variante « Annexe technique » (templates auto-documentés) — wording différent mais même intention.
+  // Variante « Annexe technique » (templates auto-documentés), wording différent mais même intention.
   // NB : on ne matche PAS « annexe technique » seul (une vraie annexe peut être légitime) ;
   // on cible les formulations sans ambiguïté d'instruction de template.
   "variables du template",

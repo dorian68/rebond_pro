@@ -1,4 +1,4 @@
-// AG-UI — Agent–User Interaction Protocol — types (CDC §15).
+// AG-UI, Agent–User Interaction Protocol, types (CDC §15).
 
 export type AGUIRole = "developer" | "system" | "assistant" | "user" | "tool" | "activity" | "reasoning";
 

@@ -27,7 +27,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
               <h1 style={{ fontSize: 23, fontWeight: 800 }}>{o.name}</h1>
               <MarketplaceStatusBadge status={o.marketplaceStatus} />
             </div>
-            <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{o.city ?? "—"} · Plan <strong>{o.plan}</strong> · {o.billingStatus ?? "—"}</p>
+            <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{o.city ?? ""} · Plan <strong>{o.plan}</strong> · {o.billingStatus ?? ""}</p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -50,7 +50,7 @@ export default async function AdminCenterDetailPage({ params }: { params: Promis
 
       {o.marketplaceStatus === "REJECTED" && o.marketplaceRejectionReason && (
         <div className="badge badge-danger" style={{ marginBottom: 16, padding: "8px 12px", display: "block", width: "fit-content" }}>
-          Refusé — motif : {o.marketplaceRejectionReason}
+          Refusé, motif : {o.marketplaceRejectionReason}
         </div>
       )}
 

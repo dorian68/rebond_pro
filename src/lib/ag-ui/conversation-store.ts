@@ -1,6 +1,6 @@
 import type { UIBlock } from "./types";
 
-// Persistance locale des conversations (CDC §29.5 — fallback localStorage,
+// Persistance locale des conversations (CDC §29.5, fallback localStorage,
 // migration backend recommandée documentée dans AG_UI_LOCAL_DOC.md).
 
 export type ChatRole = "user" | "assistant";
@@ -11,7 +11,7 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   blocks?: UIBlock[];
-  /** Noms des pièces jointes (affichage uniquement — pas de base64 en localStorage). */
+  /** Noms des pièces jointes (affichage uniquement, pas de base64 en localStorage). */
   attachmentNames?: string[];
 };
 

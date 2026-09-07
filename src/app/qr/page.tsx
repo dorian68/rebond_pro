@@ -3,7 +3,7 @@ import Image from "next/image";
 import { PrintButton } from "./qr-actions";
 
 export const metadata: Metadata = {
-  title: "Mon QR — Le Bon Rebond",
+  title: "Mon QR, Le Bon Rebond",
   robots: { index: false, follow: false },
 };
 

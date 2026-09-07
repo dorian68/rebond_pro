@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 /**
- * Limiteur de débit en mémoire (fenêtre glissante) — adapté au déploiement
+ * Limiteur de débit en mémoire (fenêtre glissante), adapté au déploiement
  * mono-instance (un seul conteneur app). Pas de dépendance externe.
  */
 

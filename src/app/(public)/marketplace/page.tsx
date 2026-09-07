@@ -17,7 +17,7 @@ import type { Modality, Level } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Trouver une formation — Le Bon Rebond",
+  title: "Trouver une formation, Le Bon Rebond",
   description: "Trouvez la formation adaptée à votre projet et entrez en relation avec un centre partenaire.",
 };
 

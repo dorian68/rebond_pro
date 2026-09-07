@@ -212,7 +212,7 @@ export default function BilanOrientationPage() {
             <div>
               <motion.p initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
                 style={{ fontSize: "1.15rem", color: "#5d6f7c", lineHeight: 1.65, margin: "0 0 24px", paddingTop: 8 }}>
-                La même rigueur que pour les adultes, avec un ton adapté à l&apos;âge : on accompagne le jeune — et ses parents — du questionnement à une décision sereine.
+                La même rigueur que pour les adultes, avec un ton adapté à l&apos;âge : on accompagne le jeune, et ses parents, du questionnement à une décision sereine.
               </motion.p>
               <motion.blockquote initial="hidden" whileInView="visible" viewport={{ once: true }} custom={2} variants={fadeUp}
                 style={{ margin: 0, padding: "16px 24px", borderLeft: "3px solid #2C8E86", background: "rgba(44,142,134,.06)", borderRadius: "0 12px 12px 0" }}>
@@ -321,7 +321,7 @@ export default function BilanOrientationPage() {
               Un été pour <em style={{ fontStyle: "italic", color: "#2C8E86" }}>préparer la rentrée</em>, encadré par des ingénieurs.
             </h2>
             <p style={{ fontSize: "1.15rem", color: "#5d6f7c", lineHeight: 1.65, marginTop: 16 }}>
-              Collégiens, lycéens et étudiants : reprenez de l&apos;avance avec des cours particuliers, une initiation à l&apos;IA et au marketing digital — de la 4ᵉ aux classes préparatoires.
+              Collégiens, lycéens et étudiants : reprenez de l&apos;avance avec des cours particuliers, une initiation à l&apos;IA et au marketing digital, de la 4ᵉ aux classes préparatoires.
             </p>
           </motion.div>
 
@@ -351,7 +351,7 @@ export default function BilanOrientationPage() {
                   overflow: "hidden",
                   boxShadow: p.featured ? "0 22px 50px -34px rgba(44,142,134,.42)" : "0 4px 20px -12px rgba(14,36,56,.1)",
                 }}>
-                {/* Filet supérieur — accent teal pour la formule mise en avant, neutre sinon */}
+                {/* Filet supérieur, accent teal pour la formule mise en avant, neutre sinon */}
                 <div style={{ height: 3, background: p.featured ? "#2C8E86" : "rgba(21,49,76,.12)" }} />
                 <div style={{ padding: "34px 30px 32px" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>

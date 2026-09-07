@@ -82,7 +82,7 @@ export function SessionModulePanel({
                 disabled={pending && busyModule === m.id}
                 onChange={(e) => assign(m.id, e.target.value)}
               >
-                <option value="">— Non affecté —</option>
+                <option value="">Non affecté</option>
                 {optionsFor(m).map((t) => (
                   <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
                 ))}

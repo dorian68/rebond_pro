@@ -21,6 +21,6 @@ export async function GET(request: Request) {
     prisma.user.update({ where: { id: record.userId }, data: { emailVerified: new Date() } }),
     prisma.emailVerificationToken.deleteMany({ where: { userId: record.userId } }),
   ]);
-  // Page de confirmation claire (tous rôles) — l'utilisateur enchaîne ensuite sur /login.
+  // Page de confirmation claire (tous rôles), l'utilisateur enchaîne ensuite sur /login.
   return NextResponse.redirect(new URL("/email-confirmed", base));
 }

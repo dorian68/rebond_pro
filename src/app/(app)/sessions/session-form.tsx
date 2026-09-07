@@ -78,7 +78,7 @@ export function SessionForm({
           <div>
             <label className="field-label" htmlFor="formationId">Formation *</label>
             <select className="select" id="formationId" name="formationId" required value={formationId} onChange={(e) => onFormationChange(e.target.value)}>
-              {formations.length === 0 && <option value="">Aucune formation — créez-en une d&apos;abord</option>}
+              {formations.length === 0 && <option value="">Aucune formation, créez-en une d&apos;abord</option>}
               {formations.map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}
             </select>
           </div>
@@ -112,14 +112,14 @@ export function SessionForm({
           <div>
             <label className="field-label" htmlFor="trainerId">Formateur</label>
             <select className="select" id="trainerId" name="trainerId" defaultValue={draftDefaults.trainerId ?? ""}>
-              <option value="">— Non assigné</option>
+              <option value="">Non assigné</option>
               {trainers.map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>)}
             </select>
           </div>
           <div>
             <label className="field-label" htmlFor="roomId">Salle / Visio</label>
             <select className="select" id="roomId" name="roomId" defaultValue={draftDefaults.roomId ?? ""}>
-              <option value="">— Aucune</option>
+              <option value="">Aucune</option>
               {rooms.map((r) => <option key={r.id} value={r.id}>{r.name} {r.type === "VISIO" ? "(visio)" : ""}</option>)}
             </select>
           </div>

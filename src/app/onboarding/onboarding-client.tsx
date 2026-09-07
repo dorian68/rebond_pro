@@ -92,12 +92,12 @@ export function OnboardingClient({ organizationName, defaults }: { organizationN
                 ? "Ces informations personnalisent votre cockpit. Vous pourrez les modifier à tout moment."
                 : step === 2
                 ? "Nous mettrons en avant les outils les plus utiles pour vous."
-                : "Ajoutez vos premiers éléments — ou passez et faites-le plus tard."}
+                : "Ajoutez vos premiers éléments, ou passez et faites-le plus tard."}
             </p>
           </div>
 
           <form action={action}>
-            {/* Étape 1 — Votre centre */}
+            {/* Étape 1, Votre centre */}
             <section style={{ display: step === 1 ? "block" : "none" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                 <div>
@@ -121,7 +121,7 @@ export function OnboardingClient({ organizationName, defaults }: { organizationN
               </div>
             </section>
 
-            {/* Étape 2 — Votre objectif */}
+            {/* Étape 2, Votre objectif */}
             <section style={{ display: step === 2 ? "block" : "none" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {GOALS.map(([value, title, text, icon]) => {
@@ -158,7 +158,7 @@ export function OnboardingClient({ organizationName, defaults }: { organizationN
               </div>
             </section>
 
-            {/* Étape 3 — Configuration */}
+            {/* Étape 3, Configuration */}
             <section style={{ display: step === 3 ? "block" : "none" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>

@@ -29,7 +29,7 @@ export default async function LoginPage({
 
       {params.verified === "1" && (
         <div style={{ background: "rgba(95,177,78,.10)", border: "1px solid rgba(95,177,78,.3)", borderRadius: 12, padding: "12px 16px", color: "#3d8c45", fontSize: ".9rem", fontWeight: 600, marginBottom: 14 }}>
-          Email confirmé — vous pouvez vous connecter.
+          Email confirmé, vous pouvez vous connecter.
         </div>
       )}
       {params.reset === "ok" && (

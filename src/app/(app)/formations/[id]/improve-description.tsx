@@ -44,7 +44,7 @@ export function ImproveDescription({ formationId, canEdit }: { formationId: stri
               <button onClick={() => setOpen(false)} className="btn btn-ghost btn-icon" style={{ color: "var(--ink-3)" }}><Icon name="x" size={18} /></button>
             </div>
             <div style={{ padding: 22 }}>
-              <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 10 }}>{pending ? "Génération…" : source === "ai" ? "Proposition générée par l'IA." : "Proposition (modèle) — ajoutez une clé ANTHROPIC_API_KEY pour l'IA."}</p>
+              <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 10 }}>{pending ? "Génération…" : source === "ai" ? "Proposition générée par l'IA." : "Proposition (modèle), ajoutez une clé ANTHROPIC_API_KEY pour l'IA."}</p>
               <textarea className="input" value={pending ? "…" : text} onChange={(e) => setText(e.target.value)} rows={10} style={{ fontSize: 13 }} />
             </div>
             <div style={{ padding: "16px 22px", borderTop: "1px solid var(--border-2)", display: "flex", justifyContent: "flex-end", gap: 10, background: "var(--surface-2)" }}>

@@ -61,7 +61,7 @@ export default async function AdminDocumentTemplatesPage() {
                     <td>
                       <div style={{ fontWeight: 700 }}>{t.name}</div>
                       <div className="muted" style={{ fontSize: 12 }}>
-                        {t.sourceFileName ?? "—"} · moteur {t.engine} · v{t.version}
+                        {t.sourceFileName ?? ""} · moteur {t.engine} · v{t.version}
                       </div>
                       {t.description ? <div className="muted" style={{ fontSize: 12 }}>{t.description}</div> : null}
                     </td>

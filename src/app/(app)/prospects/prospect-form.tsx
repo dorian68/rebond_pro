@@ -89,7 +89,7 @@ export function ProspectForm({
           <div>
             <label className="field-label" htmlFor="formationOfInterestId">Formation d&apos;intérêt</label>
             <select className="select" id="formationOfInterestId" name="formationOfInterestId" defaultValue={draftDefaults.formationOfInterestId ?? ""}>
-              <option value="">—</option>
+              <option value="">Choisir une formation</option>
               {formations.map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}
             </select>
           </div>

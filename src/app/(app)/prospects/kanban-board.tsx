@@ -78,7 +78,7 @@ export function KanbanBoard({ prospects }: { prospects: ProspectCard[] }) {
                   {p.nextAction && <div style={{ fontSize: 11.5, color: "var(--ink-2)", marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border-2)" }}>{p.nextAction}</div>}
                 </div>
               ))}
-              {cards.length === 0 && <div style={{ fontSize: 12, color: "var(--ink-4)", textAlign: "center", padding: "16px 0" }}>—</div>}
+              {cards.length === 0 && <div style={{ fontSize: 12, color: "var(--ink-4)", textAlign: "center", padding: "16px 0" }}></div>}
             </div>
           </div>
         );

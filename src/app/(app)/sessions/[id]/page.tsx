@@ -79,7 +79,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                         <Link href={`/apprenants/${e.learner.id}`} style={{ fontWeight: 600 }}>{e.learner.firstName} {e.learner.lastName}</Link>
                       </div>
                     </td>
-                    <td className="muted">{e.learner.company ?? "—"}</td>
+                    <td className="muted">{e.learner.company ?? ""}</td>
                     <td>{canEdit ? <StatusSelect enrollmentId={e.id} status={e.status} /> : e.status}</td>
                     {canEdit && <td style={{ textAlign: "right" }}><UnenrollButton enrollmentId={e.id} /></td>}
                   </tr>
@@ -96,9 +96,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 14 }}>Détails</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
             <Row label="Dates">{formatDateRange(s.startDate, s.endDate)}</Row>
-            <Row label="Créneaux">{s.slots.map((sl) => SLOT_LABELS[sl]).join(", ") || "—"}</Row>
+            <Row label="Créneaux">{s.slots.map((sl) => SLOT_LABELS[sl]).join(", ") || ""}</Row>
             <Row label="Formateur">{s.trainer ? `${s.trainer.firstName} ${s.trainer.lastName}${s.trainerConfirmed ? " ✓" : " (non confirmé)"}` : "Non assigné"}</Row>
-            <Row label="Salle / Visio">{s.room ? s.room.name : "—"}</Row>
+            <Row label="Salle / Visio">{s.room ? s.room.name : ""}</Row>
             <Row label="Capacité">{enrolled}/{s.capacity}</Row>
             <Row label="Seuil rentabilité">{s.breakEvenSeats} inscrits</Row>
             <Row label="Prix / apprenant">{formatMoney(s.pricePerLearner)}</Row>

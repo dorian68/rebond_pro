@@ -26,7 +26,7 @@ const SYSTEM_PROMPT = `Tu es le copilote intégré de Le Bon Rebond Partenaires,
 
 CE QUE TU PEUX FAIRE (via tes outils) :
 - Lire : indicateurs/KPIs, recherche d'entités, détail d'une entité, meilleurs créneaux, carte de l'app.
-- Formations : créer (concevoir une formation complète — tu rédiges toi-même objectifs, programme détaillé, public, prérequis), modifier, supprimer.
+- Formations : créer (concevoir une formation complète, tu rédiges toi-même objectifs, programme détaillé, public, prérequis), modifier, supprimer.
 - Sessions : créer un créneau, reprogrammer (dates), changer formateur/salle/capacité/statut, supprimer un créneau, confirmer le formateur.
 - CRM prospects : créer, modifier, supprimer, déplacer dans le pipeline, ajouter une activité (appel/email/note), convertir en apprenant.
 - Apprenants : créer, modifier, supprimer, inscrire/désinscrire à une session, gérer l'émargement (statut d'inscription).
@@ -34,7 +34,7 @@ CE QUE TU PEUX FAIRE (via tes outils) :
 - Qualité : enregistrer une réclamation et la traiter, créer une action d'amélioration.
 - Documents : lister les modèles, faire un préflight documentaire, puis générer les documents officiels (convocation, attestation, convention, BPF, finance, bilan de compétences, etc.). Les modèles du centre sont prioritaires sur les modèles plateforme. Pour les documents de session/apprenant, récupère d'abord l'id de session ; pour les documents annuels, finance ou bilan, utilise les données disponibles et demande/ajoute des compléments via manualOverrides si nécessaire.
 - Import intelligent : quand l'utilisateur partage un document pour créer une formation/session/prospect/apprenant/bénéficiaire/formateur, commence par préparer un brouillon avec prepare_form_draft. Cet outil préremplit le formulaire côté utilisateur et N'ENREGISTRE RIEN.
-- Connecteurs externes (Google & Microsoft, via Composio) — tu DISPOSES bel et bien de ces outils, utilise-les :
+- Connecteurs externes (Google & Microsoft, via Composio), tu DISPOSES bel et bien de ces outils, utilise-les :
   • Lire un agenda connecté → list_external_calendar_events (connector: google_calendar ou microsoft_calendar). Lecture seule.
   • Chercher des fichiers → search_external_documents, puis en importer un → import_external_document (connector: google_drive, onedrive ou sharepoint).
   • Préparer un email → create_external_email_draft (connector: gmail ou outlook) : crée un brouillon à relire.
@@ -50,13 +50,13 @@ MÉTHODE DE TRAVAIL :
 - Enchaîne plusieurs outils si nécessaire pour accomplir une demande complète (ex : trouver l'id puis supprimer).
 - Avant une génération documentaire demandée depuis le chat, utilise preflight_document_generation sauf si l'utilisateur a explicitement fourni toutes les informations et confirmé le document exact.
 - N'invente jamais une donnée : les valeurs viennent de l'application, de l'utilisateur, ou de ton expertise pédagogique pour la conception de contenus.
-- CONNECTEURS — n'affirme JAMAIS que tu n'as pas accès à l'agenda, au Drive/OneDrive/SharePoint ou aux emails : tu as les outils ci-dessus. Dès qu'une demande ressemble à « regarde mon agenda / mes disponibilités », « cherche (ou ouvre/importe) un fichier dans mon Drive/OneDrive/SharePoint », « prépare un email à … », APPELLE directement l'outil connecteur correspondant. Si le compte concerné n'est pas encore connecté, l'outil affiche AUTOMATIQUEMENT une carte de connexion OAuth à l'utilisateur : tu n'as donc jamais à refuser ni à dire « je ne peux pas » — tente l'outil, c'est lui qui gère l'autorisation. En cas de doute sur ce qui est connecté, appelle list_external_connectors.
+- CONNECTEURS, n'affirme JAMAIS que tu n'as pas accès à l'agenda, au Drive/OneDrive/SharePoint ou aux emails : tu as les outils ci-dessus. Dès qu'une demande ressemble à « regarde mon agenda / mes disponibilités », « cherche (ou ouvre/importe) un fichier dans mon Drive/OneDrive/SharePoint », « prépare un email à … », APPELLE directement l'outil connecteur correspondant. Si le compte concerné n'est pas encore connecté, l'outil affiche AUTOMATIQUEMENT une carte de connexion OAuth à l'utilisateur : tu n'as donc jamais à refuser ni à dire « je ne peux pas », tente l'outil, c'est lui qui gère l'autorisation. En cas de doute sur ce qui est connecté, appelle list_external_connectors.
 
 SÉCURITÉ :
 - Toute action qui modifie/supprime des données ou génère un document est SENSIBLE : elle déclenche une carte de validation humaine avant exécution. Annonce clairement ce que tu vas faire.
 - L'import d'un fichier externe et la création d'un brouillon sont sensibles : ils passent par une carte de validation humaine. Les agendas restent en lecture seule, les bibliothèques documentaires en recherche/import uniquement, et aucun envoi direct d'email n'est autorisé.
 - Pour les suppressions, préviens des conséquences (ex : inscrits impactés).
-- Respecte les permissions : si le rôle de l'utilisateur ne permet pas l'action, l'outil renverra une erreur — explique-le simplement.
+- Respecte les permissions : si le rôle de l'utilisateur ne permet pas l'action, l'outil renverra une erreur, explique-le simplement.
 
 Réponds en français, de façon concise et actionnable. Si une action échoue, explique pourquoi et propose l'alternative la plus proche.`;
 
@@ -111,7 +111,7 @@ async function runTool(ctx: TenantContext, emit: Emit, messageId: string, toolCa
 function approvalPresentation(toolName: string, args: Record<string, unknown>) {
   const fieldLabels: Record<string, string> = { description: "Contexte", expectedOutcome: "Résultat attendu", status: "Statut", priority: "Priorité", progressPercent: "Progression", ownerUserId: "Responsable", startDate: "Date de début", dueDate: "Échéance", nextAction: "Prochaine action", decisionRequired: "Décision requise", definitionOfDone: "Definition of done" };
   if (toolName === "send_external_gmail") {
-    const recipients = Array.isArray(args.to) ? args.to.map(String).join(", ") : "—";
+    const recipients = Array.isArray(args.to) ? args.to.map(String).join(", ") : "";
     const requestHash = roadmap2EmailRequestHash({
       to: Array.isArray(args.to) ? args.to.map(String) : [],
       cc: Array.isArray(args.cc) ? args.cc.map(String) : [],
@@ -130,7 +130,7 @@ function approvalPresentation(toolName: string, args: Record<string, unknown>) {
         { label: "À", value: recipients },
         ...(Array.isArray(args.cc) && args.cc.length ? [{ label: "Cc", value: args.cc.map(String).join(", ") }] : []),
         ...(Array.isArray(args.bcc) && args.bcc.length ? [{ label: "Cci", value: args.bcc.map(String).join(", ") }] : []),
-        { label: "Objet", value: String(args.subject ?? "—") },
+        { label: "Objet", value: String(args.subject ?? "") },
         { label: "Référence de suivi", value: trackingReference },
       ],
       preview: roadmap2FinalEmailBody({ body: String(args.body ?? ""), requestHash }),
@@ -144,14 +144,14 @@ function approvalPresentation(toolName: string, args: Record<string, unknown>) {
       impact: "Cette action modifie Roadmap 2. Elle ne crée pas automatiquement de dossier Drive.",
       riskLevel: "medium" as const,
       fields: [
-        { label: "Titre", value: String(args.title ?? "—") },
-        { label: "Type", value: labels[String(args.type ?? "")] ?? String(args.type ?? "—") },
-        { label: "Catégorie", value: labels[String(args.category ?? "")] ?? String(args.category ?? "—") },
+        { label: "Titre", value: String(args.title ?? "") },
+        { label: "Type", value: labels[String(args.type ?? "")] ?? String(args.type ?? "") },
+        { label: "Catégorie", value: labels[String(args.category ?? "")] ?? String(args.category ?? "") },
         { label: "Priorité", value: String(args.priority ?? "P1") },
         { label: "Responsable", value: String(args.ownerName ?? args.ownerUserId ?? "À attribuer") },
         { label: "Échéance", value: String(args.dueDate ?? "À planifier") },
-        { label: "Résultat attendu", value: String(args.expectedOutcome ?? "—") },
-        { label: "Prochaine action", value: String(args.nextAction ?? "—") },
+        { label: "Résultat attendu", value: String(args.expectedOutcome ?? "") },
+        { label: "Prochaine action", value: String(args.nextAction ?? "") },
       ],
     };
   }
@@ -162,8 +162,8 @@ function approvalPresentation(toolName: string, args: Record<string, unknown>) {
       impact: "Cette action est journalisée dans Roadmap 2.",
       riskLevel: "medium" as const,
       fields: toolName === "update_roadmap2_node"
-        ? [{ label: "Nœud", value: String(args.nodeTitle ?? args.nodeId ?? "—") }, ...Object.entries(args.changes && typeof args.changes === "object" ? args.changes as Record<string, unknown> : {}).slice(0, 10).map(([label, value]) => ({ label: fieldLabels[label] ?? label, value: value == null ? "—" : typeof value === "boolean" ? (value ? "Oui" : "Non") : String(value).slice(0, 500) }))]
-        : [{ label: "Nœud", value: String(args.nodeTitle ?? args.nodeId ?? "—") }, { label: "Type", value: String(args.updateType ?? "note") }],
+        ? [{ label: "Nœud", value: String(args.nodeTitle ?? args.nodeId ?? "") }, ...Object.entries(args.changes && typeof args.changes === "object" ? args.changes as Record<string, unknown> : {}).slice(0, 10).map(([label, value]) => ({ label: fieldLabels[label] ?? label, value: value == null ? "" : typeof value === "boolean" ? (value ? "Oui" : "Non") : String(value).slice(0, 500) }))]
+        : [{ label: "Nœud", value: String(args.nodeTitle ?? args.nodeId ?? "") }, { label: "Type", value: String(args.updateType ?? "note") }],
       preview: toolName === "add_roadmap2_update" ? String(args.body ?? "").slice(0, 2000) : undefined,
     };
   }

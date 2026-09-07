@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <base href="/decouvrir/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Le Bon Rebond — Rencontrons-nous</title>
+<title>Le Bon Rebond, Rencontrons-nous</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -223,7 +223,7 @@
 
 <script>
 /* ============================================================
-   À PERSONNALISER — vos coordonnées
+   À PERSONNALISER, vos coordonnées
    ============================================================ */
 const CONTACT = {
   whatsapp: '33783960192',                            // ← numéro WhatsApp, format international SANS le "+"
@@ -234,16 +234,16 @@ const DOORS = {
   centre: {
     swId:'sw-centre',
     eyebrow:'Pour les organismes de formation',
-    title:'Pilotez tout votre centre — et recevez des apprenants <em>sans prospecter</em>.',
+    title:'Pilotez tout votre centre, et recevez des apprenants <em>sans prospecter</em>.',
     video:'storyboards/video-a-embed.html',
-    vcap:'45 s — découvrez le cockpit Le Bon Rebond',
+    vcap:'45 s, découvrez le cockpit Le Bon Rebond',
     benefits:[
       'Un cockpit unique : planning, CRM, documents Qualiopi et indicateurs',
       'Des apprenants qualifiés via la marketplace, sans démarchage',
       'Conçu pour les organismes · compatible Qualiopi · sans engagement'
     ],
     waMsg:'Bonjour, je dirige un centre de formation et je souhaite découvrir Le Bon Rebond (cockpit + marketplace). Pouvons-nous en parler ?',
-    subject:'Centre de formation — demande d\u2019infos Le Bon Rebond',
+    subject:'Centre de formation, demande d\u2019infos Le Bon Rebond',
     leadLabel:'Centre de formation'
   },
   particulier: {
@@ -251,15 +251,15 @@ const DOORS = {
     eyebrow:'Bilan de compétences · orientation',
     title:'Trouvez votre prochaine <em>direction</em> professionnelle, simplement.',
     video:'storyboards/video-b-embed.html',
-    vcap:'45 s — la méthode Le Bon Rebond',
+    vcap:'45 s, la méthode Le Bon Rebond',
     benefits:[
       'Un cap clair, pas un catalogue : on part de VOTRE situation',
       'Les bons organismes certifiés près de chez vous, finançables CPF',
       'Un accompagnement humain, à chaque étape'
     ],
     waMsg:'Bonjour, je réfléchis à mon avenir professionnel et je souhaite faire le point avec Le Bon Rebond. Pouvons-nous échanger ?',
-    subject:'Faire le point — demande d\u2019infos Le Bon Rebond',
-    leadLabel:'Particulier — bilan de compétences'
+    subject:'Faire le point, demande d\u2019infos Le Bon Rebond',
+    leadLabel:'Particulier, bilan de compétences'
   }
 };
 
@@ -290,7 +290,7 @@ function selectDoor(key, doScroll){
   d.benefits.forEach((b,i)=>{ const li=document.createElement('li'); li.className='reveal'; li.style.setProperty('--d',(i*0.08)+'s'); li.innerHTML='<span class="tick"></span><span>'+b+'</span>'; ul.appendChild(li); });
   // ctas
   document.getElementById('cta-wa').href = waLink(d.waMsg);
-  document.getElementById('cta-mail').href = mailLink(d.subject, d.waMsg + '\n\n— Envoyé depuis la page Le Bon Rebond');
+  document.getElementById('cta-mail').href = mailLink(d.subject, d.waMsg + '\n\nEnvoyé depuis la page Le Bon Rebond');
   document.getElementById('success-wa').href = waLink(d.waMsg);
   // reset funnel
   document.getElementById('lead-form').style.display = '';
@@ -340,8 +340,8 @@ document.getElementById('lead-form').addEventListener('submit', function(e){
   };
   // Fallback : si l'envoi serveur échoue, on ouvre un mail pré-rempli → aucun lead perdu.
   const mailtoFallback = function(){
-    const body = 'NOUVEAU LEAD — '+d.leadLabel+'\n\nNom : '+name+'\nTéléphone : '+(phone||'—')+'\nEmail : '+(email||'—')+'\nSource : Événement\n';
-    window.location.href = mailLink('Lead — '+d.leadLabel, body);
+    const body = 'NOUVEAU LEAD, '+d.leadLabel+'\n\nNom : '+name+'\nTéléphone : '+(phone||'')+'\nEmail : '+(email||'')+'\nSource : Événement\n';
+    window.location.href = mailLink('Lead, '+d.leadLabel, body);
   };
   const submitBtn = (e.submitter) || this.querySelector('[type=submit]');
   if(submitBtn){ submitBtn.disabled = true; }
@@ -349,7 +349,7 @@ document.getElementById('lead-form').addEventListener('submit', function(e){
   fetch('/api/lead', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, phone: phone, email: email, profil: currentDoor, source: 'Carte de visite — événement', date: new Date().toISOString() })
+    body: JSON.stringify({ name: name, phone: phone, email: email, profil: currentDoor, source: 'Carte de visite, événement', date: new Date().toISOString() })
   })
   .then(function(r){ if(!r.ok){ throw new Error('http '+r.status); } return r.json(); })
   .then(function(){ showSuccess(); })

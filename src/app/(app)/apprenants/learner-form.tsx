@@ -73,7 +73,7 @@ export function LearnerForm({
         <Card>
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Inscription (optionnel)</h3>
           <select className="select" name="sessionId" defaultValue={draftDefaults.sessionId ?? presetSessionId ?? ""}>
-            <option value="">— Ne pas inscrire maintenant</option>
+            <option value="">Ne pas inscrire maintenant</option>
             {enrollSessions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </Card>

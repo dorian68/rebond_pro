@@ -76,7 +76,7 @@ export async function sendEmail(opts: { to: string | string[]; from?: string; su
 
 // ── Emails Socrate chatbot ───────────────────────────────────────────────────
 
-/** Destinataires internes fixes — non modifiables par l'utilisateur. */
+/** Destinataires internes fixes, non modifiables par l'utilisateur. */
 const SOCRATE_ADMIN_EMAILS: string[] = (() => {
   const raw = process.env.LE_BON_REBOND_ADMIN_EMAILS ?? "dorian.labry@gmail.com,msuffrin.carra@gmail.com";
   return raw.split(",").map((e) => e.trim()).filter(Boolean);
@@ -106,7 +106,7 @@ export async function sendSkillAssessmentEmail(opts: {
          <ul style="padding-left:20px;line-height:1.8">${opts.recommendedFormations
            .map(
              (f) =>
-               `<li><strong>${esc(f.title)}</strong> — ${esc(f.center)}${
+               `<li><strong>${esc(f.title)}</strong>, ${esc(f.center)}${
                  f.url ? ` <a href="${esc(f.url)}" style="color:#2469a6">[voir la formation]</a>` : ""
                }</li>`,
            )
@@ -126,7 +126,7 @@ export async function sendSkillAssessmentEmail(opts: {
   await sendEmail({
     from: SOCRATE_FROM,
     to: opts.to,
-    subject: "Votre bilan de compétences — Le Bon Rebond",
+    subject: "Votre bilan de compétences, Le Bon Rebond",
     html: brandedEmail(
       "Votre bilan de compétences",
       `<p>${greeting}</p>
@@ -143,7 +143,7 @@ export async function sendSkillAssessmentEmail(opts: {
     text: [
       greeting,
       "",
-      "Votre bilan de compétences — Le Bon Rebond",
+      "Votre bilan de compétences, Le Bon Rebond",
       "",
       opts.assessmentMarkdown,
       opts.recommendedFormations?.length
@@ -158,7 +158,7 @@ export async function sendSkillAssessmentEmail(opts: {
 
 /**
  * Notifie l'équipe interne qu'un lead Socrate souhaite être recontacté.
- * Destinataires hardcodés — l'utilisateur ne peut pas les modifier.
+ * Destinataires hardcodés, l'utilisateur ne peut pas les modifier.
  */
 export async function sendLeadNotificationEmail(opts: {
   firstName?: string;
@@ -193,16 +193,16 @@ export async function sendLeadNotificationEmail(opts: {
     entreprise: "Entreprise",
     autre: "Autre",
   };
-  const profileLabel = PROFILE_LABELS[opts.profileType ?? ""] ?? opts.profileType ?? "—";
+  const profileLabel = PROFILE_LABELS[opts.profileType ?? ""] ?? opts.profileType ?? "Non précisé";
 
   await sendEmail({
     from: SOCRATE_FROM,
     to: SOCRATE_ADMIN_EMAILS,
-    subject: `[Le Bon Rebond] Nouveau lead à recontacter — ${displayName}`,
+    subject: `[Le Bon Rebond] Nouveau lead à recontacter, ${displayName}`,
     html: brandedEmail(
       "Nouveau lead",
       `<p style="background:#e8f4fd;border-left:3px solid #2469a6;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:20px;font-weight:600">
-         🔔 Nouveau lead à recontacter — source : ${esc(source)}
+         🔔 Nouveau lead à recontacter, source : ${esc(source)}
        </p>
        <table style="width:100%;border-collapse:collapse;font-size:14px">
          <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888;width:160px">Nom</td><td style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;color:#15181f">${esc(displayName)}</td></tr>
@@ -216,7 +216,7 @@ export async function sendLeadNotificationEmail(opts: {
        <p style="margin-top:20px;font-size:12px;color:#aaa">Reçu le ${esc(now)} · Source : ${esc(source)} · Statut : <strong style="color:#E07C39">à recontacter</strong></p>`,
     ),
     text: [
-      `[Le Bon Rebond] Nouveau lead — ${displayName}`,
+      `[Le Bon Rebond] Nouveau lead, ${displayName}`,
       `Email    : ${opts.email}`,
       opts.phone ? `Tél      : ${opts.phone}` : "",
       `Profil   : ${profileLabel}`,

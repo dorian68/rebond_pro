@@ -195,7 +195,7 @@ type TargetChoice = {
 
 const L0_COVERAGE: UiOccupationCoverage = {
   level: "L0_SIGNAL",
-  label: "L0 — Signal",
+  label: "L0, Signal",
   reliableForDraft: false,
   activatable: false,
   evidence: [],
@@ -283,7 +283,7 @@ function targetEngineeringSteps(planA: TargetChoice, planB: TargetChoice): UiSte
         completedAt: null,
         expectedCost: null,
         actualCost: null,
-        sourceReason: `Couverture actuelle ${target.coverage.label}. Le niveau L3 — Écosystème est requis avant validation opérationnelle.`,
+        sourceReason: `Couverture actuelle ${target.coverage.label}. Le niveau L3, Écosystème est requis avant validation opérationnelle.`,
         evidence: [],
         draft: true,
         x: 275,
@@ -1137,7 +1137,7 @@ function Ecosystem({ actors, initialCapability, onOpenActor }: { actors: UiActor
 
   return (
     <>
-      <SectionHeader kicker="Registre territorial" title="Écosystème local" description="Cartographier ce qui est documenté — et rendre visible ce qui doit encore être vérifié — avant toute mobilisation." actions={<div className={styles.viewSwitch}><button type="button" className={`${styles.segmentedButton} ${mode === "map" ? styles.segmentedActive : ""}`} onClick={() => setMode("map")}><Icon name="globe" size={12} /> Carte</button><button type="button" className={`${styles.segmentedButton} ${mode === "list" ? styles.segmentedActive : ""}`} onClick={() => setMode("list")}><Icon name="list-checks" size={12} /> Liste</button></div>} />
+      <SectionHeader kicker="Registre territorial" title="Écosystème local" description="Cartographier ce qui est documenté, et rendre visible ce qui doit encore être vérifié, avant toute mobilisation." actions={<div className={styles.viewSwitch}><button type="button" className={`${styles.segmentedButton} ${mode === "map" ? styles.segmentedActive : ""}`} onClick={() => setMode("map")}><Icon name="globe" size={12} /> Carte</button><button type="button" className={`${styles.segmentedButton} ${mode === "list" ? styles.segmentedActive : ""}`} onClick={() => setMode("list")}><Icon name="list-checks" size={12} /> Liste</button></div>} />
       <div className={styles.filterBar}>
         <input aria-label="Rechercher un acteur" placeholder="Rechercher un acteur…" value={search} onChange={(event) => setSearch(event.target.value)} />
         <select aria-label="Filtrer par territoire" value={territory} onChange={(event) => setTerritory(event.target.value)}><option value="">Tous les territoires</option>{territories.map((value) => <option key={value}>{value}</option>)}</select>

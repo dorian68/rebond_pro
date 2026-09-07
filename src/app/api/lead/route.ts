@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       phone: d.phone || undefined,
       profileType: d.profil,
       intent: "contact_request",
-      source: d.source || "Carte de visite — événement",
+      source: d.source || "Carte de visite, événement",
     });
     return NextResponse.json({ ok: true });
   } catch (e) {

@@ -32,12 +32,12 @@ const DATE_FMT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "shor
 const DATE_FMT_SHORT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
 
 export function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "";
   return DATE_FMT.format(typeof date === "string" ? new Date(date) : date);
 }
 
 export function formatDateShort(date: Date | string | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "";
   return DATE_FMT_SHORT.format(typeof date === "string" ? new Date(date) : date);
 }
 

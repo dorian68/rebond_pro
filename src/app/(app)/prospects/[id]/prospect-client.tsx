@@ -50,7 +50,7 @@ export function RelanceGenerator({ prospectId }: { prospectId: string }) {
             </div>
             <div style={{ padding: 22 }}>
               <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginBottom: 10 }}>
-                {pending ? "Génération en cours…" : source === "ai" ? "Généré par l'IA — relisez et personnalisez avant envoi." : "Brouillon (modèle) — ajoutez une clé ANTHROPIC_API_KEY pour une génération IA personnalisée."}
+                {pending ? "Génération en cours…" : source === "ai" ? "Généré par l'IA, relisez et personnalisez avant envoi." : "Brouillon (modèle), ajoutez une clé ANTHROPIC_API_KEY pour une génération IA personnalisée."}
               </p>
               <textarea className="input" value={pending ? "…" : text} onChange={(e) => setText(e.target.value)} rows={12} style={{ fontSize: 13 }} />
             </div>

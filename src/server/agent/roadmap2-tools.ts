@@ -29,7 +29,7 @@ function nodeCard(node: Awaited<ReturnType<typeof getRoadmap2Data>>["nodes"][num
     fields: [
       { label: "Progression", value: `${node.progressPercent} %` },
       { label: "Responsable", value: node.owner?.name ?? "Non assigné" },
-      { label: "Prochaine action", value: node.nextAction ?? "—" },
+      { label: "Prochaine action", value: node.nextAction ?? "" },
     ],
   };
 }

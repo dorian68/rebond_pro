@@ -1,5 +1,5 @@
 /* ============================================================
-   Le Bon Rebond — Design tokens & base styles
+   Le Bon Rebond, Design tokens & base styles
    Premium B2B SaaS cockpit. Light mode first.
    (porté depuis le prototype, compatible Tailwind v4)
    ============================================================ */
@@ -394,7 +394,7 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
 }
 
 /* ============================================================
-   SITE VITRINE — Bilan de compétences (public B2C)
+   SITE VITRINE, Bilan de compétences (public B2C)
    Palette turquoise/or + fontes éditoriales, portée depuis
    le site "rebond-connect-flow". Tout est SCOPÉ à `.vitrine`
    pour ne jamais impacter le cockpit B2B (thème violet).
@@ -402,7 +402,7 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
    border-l-primary…) ne sont utilisées que par le site vitrine.
    ============================================================ */
 @theme {
-  /* Palette Le Bon Rebond — source de vérité : accueil.css & pages.css */
+  /* Palette Le Bon Rebond, source de vérité : accueil.css & pages.css */
   --color-background: #FAF5EC;       /* cream */
   --color-foreground: #1b2b38;       /* ink */
   --color-card: #FFFFFF;

@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const t = await getPublicTrainer(trainerId);
   if (!t) return { title: "Formateur indisponible" };
   const name = `${t.firstName} ${t.lastName}`;
-  const description = t.bio || `${name}, formateur${t.specialities.length ? ` — ${t.specialities.join(", ")}` : ""}.`;
-  return { title: `${name} — Formateur`, description, openGraph: { title: name, description, type: "profile" } };
+  const description = t.bio || `${name}, formateur${t.specialities.length ? `, ${t.specialities.join(", ")}` : ""}.`;
+  return { title: `${name}, Formateur`, description, openGraph: { title: name, description, type: "profile" } };
 }
 
 export default async function TrainerProfilePage({ params }: { params: Params }) {

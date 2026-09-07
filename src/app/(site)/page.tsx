@@ -127,7 +127,7 @@ export default function Home() {
               {/* Badge flottant */}
               <div style={{ position: "absolute", zIndex: 3, left: -30, bottom: 46, background: "#fff", borderRadius: 20, padding: "20px 24px", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)", maxWidth: 264, border: "1px solid rgba(21,49,76,.12)" }}>
                 <div style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "2.3rem", color: "#15314C", lineHeight: 1, fontWeight: 500 }}>Un cap, pas un catalogue.</div>
-                <div style={{ fontSize: ".86rem", color: "#5d6f7c", marginTop: 7, lineHeight: 1.45 }}>On vous oriente vers la bonne formation — et vers les bons partenaires.</div>
+                <div style={{ fontSize: ".86rem", color: "#5d6f7c", marginTop: 7, lineHeight: 1.45 }}>On vous oriente vers la bonne formation, et vers les bons partenaires.</div>
               </div>
             </motion.div>
           </div>
@@ -422,7 +422,7 @@ export default function Home() {
               ?
             </h2>
             <p style={{ margin: "22px auto 38px", fontSize: "1.18rem", color: "rgba(255,255,255,.86)", maxWidth: "54ch", lineHeight: 1.6 }}>
-              Ne restez pas bloqué dans le doute. Le Bon Rebond vous aide à passer à l'action dès aujourd'hui — avec une direction claire et les bons partenaires.
+              Ne restez pas bloqué dans le doute. Le Bon Rebond vous aide à passer à l'action dès aujourd'hui, avec une direction claire et les bons partenaires.
             </p>
             <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/formation" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>

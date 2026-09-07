@@ -50,7 +50,7 @@ export function AvailabilityBulkClient({ trainers }: { trainers: TrainerOption[]
         title="Créer ou modifier plusieurs disponibilités"
         description="Chaque ligne met à jour un formateur, une date et un créneau. Utilisez le statut “Libre / effacer” pour retirer une disponibilité saisie."
         fields={[
-          { name: "trainerId", label: "Formateur", type: "select", required: true, options: [{ value: "", label: "—" }, ...trainerOptions] },
+          { name: "trainerId", label: "Formateur", type: "select", required: true, options: [{ value: "", label: "Choisir un formateur" }, ...trainerOptions] },
           { name: "date", label: "Date", type: "date", required: true },
           { name: "slot", label: "Créneau", type: "select", required: true, options: [
             { value: "JOURNEE", label: "Journée" },

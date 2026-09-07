@@ -142,7 +142,7 @@ const Header = () => {
         }}
       >
         {/* Logo */}
-        <Link href="/" style={{ height: 46, flexShrink: 0 }} aria-label="Le Bon Rebond — accueil">
+        <Link href="/" style={{ height: 46, flexShrink: 0 }} aria-label="Le Bon Rebond, accueil">
           <Image
             src="/brand/logo-le-bon-rebond.png"
             alt="Le Bon Rebond"
@@ -153,7 +153,7 @@ const Header = () => {
           />
         </Link>
 
-        {/* Nav desktop — cachée sous 1024px */}
+        {/* Nav desktop, cachée sous 1024px */}
         <nav
           className="vitrine-desktop-only"
           style={{ display: "flex", gap: 24, marginLeft: 10, flexWrap: "nowrap" }}
@@ -174,7 +174,7 @@ const Header = () => {
             Connexion
           </Link>
 
-          {/* Bouton RDV — visible desktop uniquement */}
+          {/* Bouton RDV, visible desktop uniquement */}
           <Link href="/contact" className="vitrine-desktop-only" style={{ textDecoration: "none" }}>
             <span
               style={{
@@ -204,7 +204,7 @@ const Header = () => {
             </span>
           </Link>
 
-          {/* Hamburger — mobile uniquement */}
+          {/* Hamburger, mobile uniquement */}
           <button
             className="vitrine-mobile-only"
             onClick={() => setOpen(!open)}

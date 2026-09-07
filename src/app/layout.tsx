@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_PUBLIC_URL ?? "https://lebonrebond.optiquant-ia.com"),
-  title: "Le Bon Rebond — Orientation, formation et reconversion",
+  title: "Le Bon Rebond, Orientation, formation et reconversion",
   description:
     "Trouvez votre prochaine direction professionnelle grâce à un bilan de compétences ou une formation adaptée à votre projet.",
   icons: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     apple: "/brand/logo-mark-le-bon-rebond.png",
   },
   openGraph: {
-    title: "Le Bon Rebond — Orientation, formation et reconversion",
+    title: "Le Bon Rebond, Orientation, formation et reconversion",
     description: "Trouvez votre prochaine direction professionnelle grâce à un accompagnement ou une formation adaptée à votre projet.",
     siteName: "Le Bon Rebond",
     locale: "fr_FR",

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/app/Logo";
 
-export const metadata = { title: "Politique de confidentialité — Le Bon Rebond" };
+export const metadata = { title: "Politique de confidentialité, Le Bon Rebond" };
 
 export default function PrivacyPage() {
   return (
@@ -18,9 +18,9 @@ export default function PrivacyPage() {
         <h2>2. Données collectées</h2>
         <ul>
           <li><strong>Données de compte :</strong> nom, email, mot de passe haché, rôle.</li>
-          <li><strong>Données métier :</strong> informations sur les formations, sessions, apprenants, formateurs, prospects — saisies par l&apos;utilisateur dans le cadre de son activité professionnelle.</li>
+          <li><strong>Données métier :</strong> informations sur les formations, sessions, apprenants, formateurs, prospects, saisies par l&apos;utilisateur dans le cadre de son activité professionnelle.</li>
           <li><strong>Données de navigation :</strong> logs d&apos;accès (IP, user-agent, timestamp) à des fins de sécurité.</li>
-          <li><strong>Données de facturation :</strong> coordonnées de facturation, historique des paiements (via Stripe — certifié PCI-DSS).</li>
+          <li><strong>Données de facturation :</strong> coordonnées de facturation, historique des paiements (via Stripe, certifié PCI-DSS).</li>
         </ul>
 
         <h2>3. Finalités du traitement</h2>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
         <p>Toute modification substantielle sera communiquée par email avec un préavis de 30 jours. La version en vigueur est toujours accessible sur cette page.</p>
 
         <p style={{ marginTop: 40, padding: "16px 20px", background: "#f3f4f6", borderRadius: 10, fontSize: 14 }}>
-          Contact vie privée : <a href="mailto:contact.lebondrebond@gmail.com">contact.lebondrebond@gmail.com</a> — réponse dans le délai légal applicable.
+          Contact vie privée : <a href="mailto:contact.lebondrebond@gmail.com">contact.lebondrebond@gmail.com</a>, réponse dans le délai légal applicable.
         </p>
       </article>
     </main>

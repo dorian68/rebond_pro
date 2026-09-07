@@ -44,7 +44,7 @@ const branches: Branch[] = [
       { key: "gouvernance-conflits", title: "Gouvernance et conflits d’intérêts" },
       { key: "propriete-marque-tech", title: "Propriété de la marque et de la technologie" },
     ],
-    milestone: { key: "m1-juridique", title: "M1 — Montage juridique validé" },
+    milestone: { key: "m1-juridique", title: "M1, Montage juridique validé" },
   },
   {
     key: "produit",
@@ -59,7 +59,7 @@ const branches: Branch[] = [
       { key: "fiche-acheteur", title: "Produire la fiche acheteur", status: "in_progress" },
       { key: "deck-pitch", title: "Produire le deck de pitch" },
     ],
-    milestone: { key: "m2-offre", title: "M2 — Offre Emploi’Ton achetable" },
+    milestone: { key: "m2-offre", title: "M2, Offre Emploi’Ton achetable" },
   },
   {
     key: "acheteurs",
@@ -75,7 +75,7 @@ const branches: Branch[] = [
       { key: "approche-france-travail", title: "Préparer l’approche France Travail" },
       { key: "rdv-acheteurs", title: "Obtenir les premiers rendez-vous acheteurs", priority: "P0" },
     ],
-    milestone: { key: "m3-acheteur", title: "M3 — Premier acheteur ou cofinanceur engagé" },
+    milestone: { key: "m3-acheteur", title: "M3, Premier acheteur ou cofinanceur engagé" },
   },
   {
     key: "partenaires",
@@ -90,7 +90,7 @@ const branches: Branch[] = [
       { key: "securiser-opportunites", title: "Sécuriser 25 à 30 opportunités", priority: "P0" },
       { key: "lettres-engagement", title: "Obtenir les lettres d’engagement" },
     ],
-    milestone: { key: "m4-debouches", title: "M4 — Débouchés du pilote sécurisés" },
+    milestone: { key: "m4-debouches", title: "M4, Débouchés du pilote sécurisés" },
   },
   {
     key: "pilote",
@@ -107,7 +107,7 @@ const branches: Branch[] = [
       { key: "suivi-j90", title: "Suivre J+7, J+30, J+60, J+90" },
       { key: "bilan-financeur", title: "Produire le bilan financeur" },
     ],
-    milestone: { key: "m5-cohorte", title: "M5 — Première cohorte exécutée et mesurée" },
+    milestone: { key: "m5-cohorte", title: "M5, Première cohorte exécutée et mesurée" },
   },
   {
     key: "operations",

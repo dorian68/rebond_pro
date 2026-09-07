@@ -58,15 +58,15 @@ function Header({ d }: { d: DocData }) {
 }
 
 function Footer({ d }: { d: DocData }) {
-  return <Text style={s.footer} fixed>{d.org.legalName ?? d.org.name}{d.org.nda ? ` — Déclaration d'activité n° ${d.org.nda}` : ""} · Document généré le {d.generatedAt} via Le Bon Rebond Partenaires</Text>;
+  return <Text style={s.footer} fixed>{d.org.legalName ?? d.org.name}{d.org.nda ? `, Déclaration d'activité n° ${d.org.nda}` : ""} · Document généré le {d.generatedAt} via Le Bon Rebond Partenaires</Text>;
 }
 
 function durationText(f: DocData["formation"]): string {
-  if (!f) return "";
+  if (!f) return "Non renseigné";
   const parts: string[] = [];
   if (f.durationDays) parts.push(`${f.durationDays} jour${f.durationDays > 1 ? "s" : ""}`);
   if (f.durationHours) parts.push(`${f.durationHours} heures`);
-  return parts.join(" — ") || "—";
+  return parts.join(", ") || "Non renseigné";
 }
 
 function ContextSummary({ d }: { d: DocData }) {
@@ -121,7 +121,7 @@ function Body({ d }: { d: DocData }) {
         <View>
           <Text style={s.para}>Je soussigné(e) {d.org.legalRep ?? "le représentant de " + d.org.name}, atteste que :</Text>
           <View style={s.box}>
-            <Text style={[s.bold, { fontSize: 14, marginBottom: 4 }]}>{d.learner?.fullName ?? "—"}</Text>
+            <Text style={[s.bold, { fontSize: 14, marginBottom: 4 }]}>{d.learner?.fullName ?? "Non renseigné"}</Text>
             {d.learner?.company ? <Text style={s.label}>{d.learner.company}</Text> : null}
           </View>
           <Text style={s.para}>a suivi la formation <Text style={s.bold}>« {f?.title} »</Text> d&apos;une durée de <Text style={s.bold}>{durationText(f)}</Text>{ses ? ` qui s'est déroulée ${ses.dateRange}` : ""}.</Text>
@@ -157,7 +157,7 @@ function Body({ d }: { d: DocData }) {
           <Text style={s.para}>La présente convention est conclue en application des dispositions du Code du travail relatives à la formation professionnelle continue.</Text>
           <View style={s.signLine}>
             <Text style={s.signBox}>Pour l&apos;organisme{"\n"}{d.org.legalRep ?? d.org.name}</Text>
-            <Text style={s.signBox}>Pour le bénéficiaire{"\n"}{d.learner?.company ?? d.learner?.fullName ?? ""}</Text>
+            <Text style={s.signBox}>Pour le bénéficiaire{"\n"}{d.learner?.company ?? d.learner?.fullName ?? "Non renseigné"}</Text>
           </View>
         </View>
       );
@@ -166,8 +166,8 @@ function Body({ d }: { d: DocData }) {
         <View>
           <Text style={s.para}>Devis établi pour <Text style={s.bold}>{d.learner?.company ?? d.learner?.fullName ?? "…"}</Text> :</Text>
           <View style={s.th}><Text style={{ width: "70%" }}>Désignation</Text><Text style={{ width: "30%", textAlign: "right" }}>Montant</Text></View>
-          <View style={s.td}><Text style={{ width: "70%" }}>{f?.title}{ses ? ` — ${ses.dateRange}` : ""}</Text><Text style={{ width: "30%", textAlign: "right" }}>{d.amountText ?? "—"}</Text></View>
-          <View style={[s.row, { marginTop: 12 }]}><Text style={s.bold}>Total</Text><Text style={s.bold}>{d.amountText ?? "—"}</Text></View>
+          <View style={s.td}><Text style={{ width: "70%" }}>{f?.title}{ses ? `, ${ses.dateRange}` : ""}</Text><Text style={{ width: "30%", textAlign: "right" }}>{d.amountText ?? "Non renseigné"}</Text></View>
+          <View style={[s.row, { marginTop: 12 }]}><Text style={s.bold}>Total</Text><Text style={s.bold}>{d.amountText ?? "Non renseigné"}</Text></View>
           <Text style={[s.para, { marginTop: 20, fontSize: 9, color: "#5a6271" }]}>Devis valable 30 jours. TVA non applicable, art. 293 B du CGI (le cas échéant).</Text>
         </View>
       );

@@ -252,7 +252,7 @@ export async function findBestSlots(ctx: TenantContext, formationId: string, hor
         roomId: freeRoom?.id ?? null,
         roomName: freeRoom?.name ?? null,
         score,
-        reason: roomConflict ? "Conflit salle détecté — aucune salle libre" : freeRoom ? `Salle « ${freeRoom.name} » disponible` : "Disponible (distanciel)",
+        reason: roomConflict ? "Conflit salle détecté, aucune salle libre" : freeRoom ? `Salle « ${freeRoom.name} » disponible` : "Disponible (distanciel)",
         conflict: roomConflict,
       });
     }

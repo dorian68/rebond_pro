@@ -3,7 +3,7 @@ import { getRoadmap } from "@/server/roadmap";
 import { RoadmapClient } from "./roadmap-client";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Roadmap — Administration" };
+export const metadata = { title: "Roadmap, Administration" };
 
 export default async function AdminRoadmapPage() {
   const { milestones, stats } = await getRoadmap();

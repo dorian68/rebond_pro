@@ -50,7 +50,7 @@ export default async function AdminOverviewPage() {
               {pending.map((o) => (
                 <tr key={o.id}>
                   <td style={{ fontWeight: 600 }}><Link href={`/admin/centres/${o.id}`} style={{ color: "var(--primary)" }}>{o.name}</Link></td>
-                  <td className="muted">{o.city ?? "—"}</td>
+                  <td className="muted">{o.city ?? ""}</td>
                   <td className="tnum">{o._count.formations} formation{o._count.formations > 1 ? "s" : ""}</td>
                   <td><span className={"badge " + (o.marketplaceStatus === "REJECTED" ? "badge-danger" : "badge-warn")}>{o.marketplaceStatus === "REJECTED" ? "Refusé" : "À valider"}</span></td>
                   <td style={{ textAlign: "right" }}><MarketplaceModerationButtons orgId={o.id} status={o.marketplaceStatus} publicProfileEnabled={o.publicProfileEnabled} /></td>
@@ -129,7 +129,7 @@ export default async function AdminOverviewPage() {
             {centers.slice(0, 12).map((o) => (
               <tr key={o.id}>
                 <td style={{ fontWeight: 600 }}><Link href={`/admin/centres/${o.id}`} style={{ color: "var(--primary)" }}>{o.name}</Link></td>
-                <td className="muted">{o.city ?? "—"}</td>
+                <td className="muted">{o.city ?? ""}</td>
                 <td><span className={"badge " + (o.plan === "FREE" ? "badge-neutral" : "badge-positive")}>{o.plan}</span></td>
                 <td className="tnum">{o._count.trainers}</td>
                 <td className="tnum">{o._count.formations}</td>

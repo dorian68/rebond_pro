@@ -148,7 +148,7 @@ export function skillGapToNeed(gap: SkillGap, options: { createdAt?: string; typ
     requiredCapability: NEED_CAPABILITY_MAP[type],
     status: "DETECTED",
     evidence: [gap.explanation],
-    detectedBy: "Pathway Engine — règle déterministe",
+    detectedBy: "Pathway Engine, règle déterministe",
     validatedBy: null,
     createdAt: options.createdAt ?? new Date().toISOString(),
     resolvedAt: null,
@@ -602,7 +602,7 @@ function draftPathway(input: {
       dueOffsetDays: null,
       completedAt: null,
       requiredInputs: ["Source métier officielle", "Validation du crosswalk ROME/FAP", "Exigences réelles d'au moins une cible employeur"],
-      expectedOutputs: ["Métier couvert au niveau L2 — Modélisé"],
+      expectedOutputs: ["Métier couvert au niveau L2, Modélisé"],
       evidence: [],
       expectedCostCents: null,
       actualCostCents: null,
@@ -714,7 +714,7 @@ function draftPathway(input: {
     id: opportunityStepId,
     pathwayId,
     type: "OPPORTUNITY",
-    title: opportunity?.title ?? `Rechercher une opportunité — ${input.occupation.label}`,
+    title: opportunity?.title ?? `Rechercher une opportunité, ${input.occupation.label}`,
     description: opportunity ? "Préparer puis soumettre la candidature après validation humaine." : "Recherche manuelle nécessaire.",
     assignedActorId: opportunity?.providerActorId ?? null,
     serviceOfferId: null,
@@ -904,7 +904,7 @@ export function getPathwayApprovalIssues(pathwayInput: Pathway, referralsInput: 
     issues.push({
       code: "INSUFFICIENT_OCCUPATION_COVERAGE",
       stepId: null,
-      message: `Le métier est couvert au niveau ${pathway.occupationCoverage.level}; le niveau L3 — Écosystème est requis avant validation opérationnelle.`,
+      message: `Le métier est couvert au niveau ${pathway.occupationCoverage.level}; le niveau L3, Écosystème est requis avant validation opérationnelle.`,
     });
   }
 

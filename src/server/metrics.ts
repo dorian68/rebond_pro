@@ -90,7 +90,7 @@ export async function getDashboardMetrics(ctx: TenantContext) {
   const riskSessions = upcoming.filter((s) => s.atRisk);
   const alerts: { id: string; type: string; icon: string; title: string; text: string; href: string }[] = [];
   for (const s of riskSessions.slice(0, 3)) {
-    const reason = s.enrolled < s.breakEvenSeats ? `Remplie à ${s.fillRate} % — sous le seuil de rentabilité (${s.breakEvenSeats} inscrits requis).` : !s.trainerId ? "Aucun formateur affecté." : "Formateur non confirmé.";
+    const reason = s.enrolled < s.breakEvenSeats ? `Remplie à ${s.fillRate} %, sous le seuil de rentabilité (${s.breakEvenSeats} inscrits requis).` : !s.trainerId ? "Aucun formateur affecté." : "Formateur non confirmé.";
     alerts.push({ id: `risk-${s.id}`, type: s.enrolled < s.breakEvenSeats ? "danger" : "warn", icon: s.enrolled < s.breakEvenSeats ? "alert-triangle" : "user-x", title: `${s.formation.title} en risque`, text: reason, href: `/sessions` });
   }
   if (relances > 0) alerts.push({ id: "al-relances", type: "warn", icon: "send", title: `${relances} prospect${relances > 1 ? "s" : ""} à relancer`, text: "Des relances commerciales sont en attente cette semaine.", href: "/prospects" });
@@ -105,7 +105,7 @@ export async function getDashboardMetrics(ctx: TenantContext) {
   if (worst) priorities.push({ id: "p-fill", text: `Remplir « ${worst.formation.title} » (${worst.fillRate} %)`, href: "/sessions" });
   if (docsToGenerate > 0) priorities.push({ id: "p-doc", text: `Générer ${docsToGenerate} document${docsToGenerate > 1 ? "s" : ""} en attente`, href: "/documents" });
 
-  // Reco IA (déterministe pour l'instant — branchée sur Claude au lot IA)
+  // Reco IA (déterministe pour l'instant, branchée sur Claude au lot IA)
   let aiReco: { text: string } | null = null;
   if (worst) {
     const manque = Math.max(0, worst.breakEvenSeats - worst.enrolled);

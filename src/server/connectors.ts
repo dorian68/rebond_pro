@@ -494,7 +494,7 @@ export function roadmap2EmailRequestHash(input: { to: string[]; cc?: string[]; b
 }
 
 export function roadmap2FinalEmailBody(input: { body: string; requestHash: string }) {
-  return `${input.body.trim()}\n\n—\nRéférence de suivi Roadmap 2 : ${roadmap2EmailTrackingReference(input.requestHash)}`;
+  return `${input.body.trim()}\n\nRéférence de suivi Roadmap 2 : ${roadmap2EmailTrackingReference(input.requestHash)}`;
 }
 
 function providerIds(result: unknown) {

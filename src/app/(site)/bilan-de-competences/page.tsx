@@ -23,7 +23,7 @@ const PAIN_ITEMS = [
 
 const CHECK_ITEMS = [
   { mk: "i.", title: "Faire le point sur votre parcours", sub: "Comprendre d'où vous venez pour décider où aller." },
-  { mk: "ii.", title: "Identifier vos compétences réelles", sub: "Mettre des mots sur ce que vous savez faire — et aimez faire." },
+  { mk: "ii.", title: "Identifier vos compétences réelles", sub: "Mettre des mots sur ce que vous savez faire, et aimez faire." },
   { mk: "iii.", title: "Explorer des pistes concrètes", sub: "Des métiers et des reconversions possibles, réalistes pour vous." },
   { mk: "iv.", title: "Construire un plan d'action clair", sub: "Repartir avec une trajectoire et des étapes précises." },
 ];
@@ -76,7 +76,7 @@ export default function BilanCompetencesPage() {
                 <em style={{ fontStyle: "italic", color: "#2C8E86" }}>direction claire.</em>
               </h1>
               <p style={{ marginTop: 22, fontSize: "1.18rem", color: "#5d6f7c", lineHeight: 1.65 }}>
-                Le bilan Le Bon Rebond vous aide à comprendre vos forces, vos envies et à construire un projet professionnel réaliste et motivant — en quelques semaines.
+                Le bilan Le Bon Rebond vous aide à comprendre vos forces, vos envies et à construire un projet professionnel réaliste et motivant, en quelques semaines.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 32 }}>
                 <Link href="#offre" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>

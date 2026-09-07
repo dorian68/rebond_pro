@@ -39,7 +39,7 @@ export async function getMarketplaceFormationsUncached(filters: MarketplaceFilte
       ...(filters.category ? { category: filters.category } : {}),
       ...(filters.modality ? { modality: filters.modality } : {}),
       ...(filters.level ? { level: filters.level } : {}),
-      // Centre validé (+ filtre ville optionnel) — fusionnés dans une seule clé `organization`.
+      // Centre validé (+ filtre ville optionnel), fusionnés dans une seule clé `organization`.
       organization: { ...VERIFIED_MARKETPLACE_ORGANIZATION, ...(filters.city ? { city: filters.city } : {}) },
       ...(q
         ? {
@@ -205,7 +205,7 @@ export const getCenterProfile = unstable_cache(
   { revalidate: 120, tags: [MARKETPLACE_TAG] },
 );
 
-/** Profil public d'un formateur (visibilité — "Facebook de la formation"). */
+/** Profil public d'un formateur (visibilité, "Facebook de la formation"). */
 export async function getPublicTrainerUncached(trainerId: string) {
   const trainer = await prisma.trainer.findFirst({
     where: { id: trainerId, active: true, deletedAt: null, organization: VERIFIED_MARKETPLACE_ORGANIZATION },

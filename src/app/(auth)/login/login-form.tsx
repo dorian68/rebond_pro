@@ -86,7 +86,7 @@ export function LoginForm({ next, googleEnabled }: { next?: string; googleEnable
 
   return (
     <div>
-      {/* Sélecteur d'espace — le backend route ensuite par rôle, le choix est purement UX */}
+      {/* Sélecteur d'espace, le backend route ensuite par rôle, le choix est purement UX */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 26 }} role="group" aria-label="Type d'espace">
         <button type="button" style={space === "client" ? pillActive : pillBase} onClick={() => setSpace("client")}>
           Espace client
@@ -199,7 +199,7 @@ export function LoginForm({ next, googleEnabled }: { next?: string; googleEnable
         </button>
       </form>
 
-      {/* Ligne de bascule — dépend de l'espace */}
+      {/* Ligne de bascule, dépend de l'espace */}
       <p style={{ textAlign: "center", marginTop: 26, color: "#5d6f7c", fontSize: ".98rem" }}>
         {space === "admin" ? (
           <>Accès réservé aux super-admins plateforme.</>

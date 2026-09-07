@@ -70,7 +70,7 @@ export function FormationsExplorer({ formations }: { formations: FormationListIt
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 600 }}>Durée</div>
-                  <div className="tnum" style={{ fontSize: 15, fontWeight: 800 }}>{f.durationDays ? `${f.durationDays} j` : f.durationHours ? `${f.durationHours} h` : "—"}</div>
+                  <div className="tnum" style={{ fontSize: 15, fontWeight: 800 }}>{f.durationDays ? `${f.durationDays} j` : f.durationHours ? `${f.durationHours} h` : ""}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 600 }}>Sessions</div>

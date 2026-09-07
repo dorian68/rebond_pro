@@ -60,7 +60,7 @@ export function ImageUpload({ kind, trainerId, currentUrl, label, shape = "squar
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => inputRef.current?.click()} disabled={busy}>
             <Icon name="download" size={14} /> {busy ? "Envoi…" : url ? "Changer l'image" : "Téléverser une image"}
           </button>
-          <span style={{ fontSize: 11.5, color: "var(--ink-3)" }}>PNG, JPG, WEBP — max 4 Mo</span>
+          <span style={{ fontSize: 11.5, color: "var(--ink-3)" }}>PNG, JPG, WEBP, max 4 Mo</span>
           {error && <span style={{ fontSize: 12, color: "var(--danger)" }}>{error}</span>}
         </div>
         <input ref={inputRef} type="file" accept="image/*" onChange={onPick} style={{ display: "none" }} />

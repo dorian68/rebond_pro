@@ -37,7 +37,7 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<{ handled: 
             try {
               await sendEmail({
                 to: payerEmail,
-                subject: `Confirmation de votre inscription — ${title}`,
+                subject: `Confirmation de votre inscription, ${title}`,
                 html: brandedEmail("Inscription confirmée", `<p>Bonjour${payerName ? " " + payerName : ""},</p><p>Votre paiement pour <strong>${title}</strong> est confirmé et votre inscription est enregistrée auprès du centre de formation.</p><p>Le centre vous contactera prochainement pour les modalités (dates, lieu, accès).</p>`),
                 text: `Votre inscription à ${title} est confirmée. Le centre vous contactera pour les modalités.`,
               });

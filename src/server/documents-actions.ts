@@ -200,7 +200,7 @@ async function persistDoc(
   // Invariant : on ne persiste jamais un document vide/tronqué. Sans cette garde,
   // un rendu de 0 octet était enregistré comme "GENERE" et servi tel quel au client.
   if (!rendered.buffer || rendered.buffer.length < MIN_DOCUMENT_BYTES) {
-    throw new Error(`Document ${type} généré vide (${rendered.buffer?.length ?? 0} octets) — génération annulée.`);
+    throw new Error(`Document ${type} généré vide (${rendered.buffer?.length ?? 0} octets), génération annulée.`);
   }
   const fileId = randomUUID();
   const fileName = `${type.toLowerCase()}-${fileId}.${rendered.extension}`;
@@ -418,7 +418,7 @@ export async function sendDocument(documentId: string): Promise<{ ok: boolean; e
   const formationTitle = doc.session?.formation.title ?? doc.formation?.title ?? "";
   await sendEmail({
     to,
-    subject: `${title}${formationTitle ? ` — ${formationTitle}` : ""}`,
+    subject: `${title}${formationTitle ? `, ${formationTitle}` : ""}`,
     html: brandedEmail(title, `Bonjour ${doc.enrollment?.learner.firstName ?? ""},<br/><br/>Vous trouverez votre document en pièce jointe.<br/><br/>Cordialement,<br/>${ctx.organizationName ?? "Votre centre de formation"}`),
     attachments: [{ filename: doc.fileName ?? `${doc.type.toLowerCase()}.pdf`, content: buf }],
   });

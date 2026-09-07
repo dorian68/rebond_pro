@@ -70,8 +70,8 @@ export default async function TrainerDetailPage({ params }: { params: Promise<{ 
           <Card style={{ marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 14 }}>Contact</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}><Icon name="mail" size={15} style={{ color: "var(--ink-3)" }} /> {t.email ?? "—"}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}><Icon name="phone" size={15} style={{ color: "var(--ink-3)" }} /> {t.phone ?? "—"}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}><Icon name="mail" size={15} style={{ color: "var(--ink-3)" }} /> {t.email ?? ""}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}><Icon name="phone" size={15} style={{ color: "var(--ink-3)" }} /> {t.phone ?? ""}</div>
             </div>
             {t.bio && <p style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.6, marginTop: 14 }}>{t.bio}</p>}
           </Card>

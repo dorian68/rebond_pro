@@ -108,7 +108,7 @@ function interpolate(input, output, ease = Easing.linear) {
   };
 }
 
-// animate({from, to, start, end, ease})(t) — simpler single-segment tween.
+// animate({from, to, start, end, ease})(t), simpler single-segment tween.
 // Returns `from` before `start`, `to` after `end`.
 function animate({ from = 0, to = 1, start = 0, end = 1, ease = Easing.easeInOutCubic }) {
   return (t) => {
@@ -134,7 +134,7 @@ const useTimeline = () => React.useContext(TimelineContext);
 //     {({ localTime, progress }) => <Thing x={progress * 100} />}
 //   </Sprite>
 //
-// Or as a plain wrapper — children can call useSprite() themselves.
+// Or as a plain wrapper, children can call useSprite() themselves.
 
 const SpriteContext = React.createContext({ localTime: 0, progress: 0, duration: 0 });
 const useSprite = () => React.useContext(SpriteContext);
@@ -283,7 +283,7 @@ function ImageSprite({
 }
 
 // RectSprite: simple rectangle that animates position/size/color via props.
-// Useful demo primitive — takes a `render` fn for per-frame customization.
+// Useful demo primitive, takes a `render` fn for per-frame customization.
 function RectSprite({
   x = 0, y = 0,
   width = 100, height = 100,
@@ -447,7 +447,7 @@ function Stage({
         fontFamily: 'Inter, system-ui, sans-serif',
       }}
     >
-      {/* Canvas area — vertically centered in remaining space */}
+      {/* Canvas area, vertically centered in remaining space */}
       <div style={{
         flex: 1,
         width: '100%',
@@ -474,7 +474,7 @@ function Stage({
         </div>
       </div>
 
-      {/* Playback bar — stacked below canvas, never overlapping */}
+      {/* Playback bar, stacked below canvas, never overlapping */}
       {controls && <PlaybackBar
         time={displayTime}
         actualTime={time}

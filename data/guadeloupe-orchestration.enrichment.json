@@ -3,7 +3,7 @@
     {
       "id": "source-greta-cfa-guadeloupe",
       "title": "GRETA-CFA de la Guadeloupe",
-      "publisher": "Académie de la Guadeloupe — DRAFPIC",
+      "publisher": "Académie de la Guadeloupe, DRAFPIC",
       "url": "https://drafpic.site.ac-guadeloupe.fr/greta-cfa-de-la-guadeloupe/",
       "kind": "PUBLIC_OFFICIAL",
       "checkedAt": "2026-08-15T12:00:00.000Z",
@@ -15,7 +15,7 @@
     },
     {
       "id": "source-vatel-session-11749175",
-      "title": "Bachelor Responsable en management opérationnel en hôtellerie internationale — session 11749175",
+      "title": "Bachelor Responsable en management opérationnel en hôtellerie internationale, session 11749175",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/formations/detail/11749175/true/false/false/false",
       "kind": "PUBLIC_OFFICIAL",
@@ -28,7 +28,7 @@
     },
     {
       "id": "source-ctig-espace-pro",
-      "title": "CTIG — espace professionnels",
+      "title": "CTIG, espace professionnels",
       "publisher": "Comité du Tourisme des Îles de Guadeloupe",
       "url": "https://www.lesilesdeguadeloupe.com/espace-pro/",
       "kind": "PUBLIC_OFFICIAL",
@@ -41,7 +41,7 @@
     },
     {
       "id": "source-geiq-guadeloupe-primary",
-      "title": "GEIQ Guadeloupe — parcours alternance et accompagnement",
+      "title": "GEIQ Guadeloupe, parcours alternance et accompagnement",
       "publisher": "GEIQ Guadeloupe",
       "url": "https://www.geiq-guadeloupe.fr/2025/05/12/vous-avez-18-ans-et-lenvie-davancer-le-geiq-transforme-votre-motivation-en-metier/",
       "kind": "PUBLIC_OFFICIAL",
@@ -54,7 +54,7 @@
     },
     {
       "id": "source-ft-mobilite-formation",
-      "title": "France Travail — aide aux déplacements liés à la formation",
+      "title": "France Travail, aide aux déplacements liés à la formation",
       "publisher": "France Travail",
       "url": "https://www.francetravail.fr/candidat/en-formation/les-dispositifs/jentre-en-formation---laide-au-d.html",
       "kind": "PUBLIC_OFFICIAL",
@@ -67,7 +67,7 @@
     },
     {
       "id": "source-ft-age-formation",
-      "title": "France Travail — aide à la garde d'enfants pendant une formation",
+      "title": "France Travail, aide à la garde d'enfants pendant une formation",
       "publisher": "France Travail",
       "url": "https://www.francetravail.fr/candidat/en-formation/les-dispositifs/formation---laide-a-la-garde-den.html",
       "kind": "PUBLIC_OFFICIAL",
@@ -80,7 +80,7 @@
     },
     {
       "id": "source-region-transport-interurbain",
-      "title": "Région Guadeloupe — réseau de transport interurbain",
+      "title": "Région Guadeloupe, réseau de transport interurbain",
       "publisher": "Région Guadeloupe",
       "url": "https://www.regionguadeloupe.fr/Transport-Interurbain-22",
       "kind": "PUBLIC_OFFICIAL",
@@ -93,7 +93,7 @@
     },
     {
       "id": "source-ladom-pmfp",
-      "title": "LADOM — passeport mobilité formation professionnelle",
+      "title": "LADOM, passeport mobilité formation professionnelle",
       "publisher": "LADOM",
       "url": "https://ladom.fr/vie-active/formation-professionnelle/",
       "kind": "PUBLIC_OFFICIAL",
@@ -106,7 +106,7 @@
     },
     {
       "id": "source-caf-cmg-guadeloupe",
-      "title": "CAF Guadeloupe — complément de libre choix du mode de garde",
+      "title": "CAF Guadeloupe, complément de libre choix du mode de garde",
       "publisher": "CAF de la Guadeloupe",
       "url": "https://www.caf.fr/allocataires/caf-de-la-guadeloupe/actualites-departementales/le-complement-mode-de-garde-cmg-evolue-ce-qui-change-pour-les-familles",
       "kind": "PUBLIC_OFFICIAL",
@@ -119,7 +119,7 @@
     },
     {
       "id": "source-caf-creche-ti-zabitan",
-      "title": "CAF Guadeloupe — ouverture de la crèche Ti Zabitan",
+      "title": "CAF Guadeloupe, ouverture de la crèche Ti Zabitan",
       "publisher": "CAF de la Guadeloupe",
       "url": "https://www.caf.fr/allocataires/caf-de-la-guadeloupe/actualites-departementales/une-nouvelle-creche-ouvert-ses-portes-vieux-habitants",
       "kind": "PUBLIC_OFFICIAL",
@@ -145,7 +145,7 @@
     },
     {
       "id": "source-agefiph-aide-technique",
-      "title": "Agefiph — aide technique en compensation du handicap",
+      "title": "Agefiph, aide technique en compensation du handicap",
       "publisher": "Agefiph",
       "url": "https://www.agefiph.fr/aides-financieres/aide-technique-en-compensation-du-handicap",
       "kind": "PUBLIC_OFFICIAL",
@@ -158,7 +158,7 @@
     },
     {
       "id": "source-agefiph-deplacements",
-      "title": "Agefiph — aide aux déplacements en compensation du handicap",
+      "title": "Agefiph, aide aux déplacements en compensation du handicap",
       "publisher": "Agefiph",
       "url": "https://www.agefiph.fr/aides-financieres/aide-aux-deplacements",
       "kind": "PUBLIC_OFFICIAL",
@@ -171,7 +171,7 @@
     },
     {
       "id": "source-departement-insertion-emploi",
-      "title": "Conseil départemental — insertion par l'emploi",
+      "title": "Conseil départemental, insertion par l'emploi",
       "publisher": "Département de la Guadeloupe",
       "url": "https://www.cg971.fr/insertion-par-lemploi/",
       "kind": "PUBLIC_OFFICIAL",
@@ -184,7 +184,7 @@
     },
     {
       "id": "source-departement-habitat-logement",
-      "title": "Conseil départemental — habitat, logement et FSL",
+      "title": "Conseil départemental, habitat, logement et FSL",
       "publisher": "Département de la Guadeloupe",
       "url": "https://www.cg971.fr/solidarites/habitat-et-logement/",
       "kind": "PUBLIC_OFFICIAL",
@@ -197,7 +197,7 @@
     },
     {
       "id": "source-action-logement-outremer",
-      "title": "Action Logement — logement social en outre-mer",
+      "title": "Action Logement, logement social en outre-mer",
       "publisher": "Action Logement",
       "url": "https://www.actionlogement.fr/le-logement-social-en-outre-mer",
       "kind": "PUBLIC_OFFICIAL",
@@ -210,7 +210,7 @@
     },
     {
       "id": "source-adil-guadeloupe",
-      "title": "ADIL Guadeloupe — conseil logement",
+      "title": "ADIL Guadeloupe, conseil logement",
       "publisher": "ANIL",
       "url": "https://www.anil.org/adil-971/",
       "kind": "PUBLIC_OFFICIAL",
@@ -223,7 +223,7 @@
     },
     {
       "id": "source-cap-emploi-971-primary",
-      "title": "Cap emploi 971 — accompagnement vers l'emploi",
+      "title": "Cap emploi 971, accompagnement vers l'emploi",
       "publisher": "Cap emploi 971",
       "url": "https://www.capemploi-971.com/nos-missions/laccompagnement-vers-lemploi.html",
       "kind": "PUBLIC_OFFICIAL",
@@ -236,7 +236,7 @@
     },
     {
       "id": "source-ft-offer-211zxwz",
-      "title": "Offre France Travail 211ZXWZ — commis de salle, Hôtel Toubana",
+      "title": "Offre France Travail 211ZXWZ, commis de salle, Hôtel Toubana",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/211ZXWZ",
       "kind": "PUBLIC_OFFICIAL",
@@ -249,7 +249,7 @@
     },
     {
       "id": "source-ft-offer-212lmkv",
-      "title": "Offre France Travail 212LMKV — serveur, Jungle Bar",
+      "title": "Offre France Travail 212LMKV, serveur, Jungle Bar",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/212LMKV",
       "kind": "PUBLIC_OFFICIAL",
@@ -262,7 +262,7 @@
     },
     {
       "id": "source-ft-offer-212mppz",
-      "title": "Offre France Travail 212MPPZ — serveur, QUATRE",
+      "title": "Offre France Travail 212MPPZ, serveur, QUATRE",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/212MPPZ",
       "kind": "PUBLIC_OFFICIAL",
@@ -275,7 +275,7 @@
     },
     {
       "id": "source-ft-offer-212bsxw",
-      "title": "Offre France Travail 212BSXW — conseiller de vente, JAVA MODE",
+      "title": "Offre France Travail 212BSXW, conseiller de vente, JAVA MODE",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/212BSXW",
       "kind": "PUBLIC_OFFICIAL",
@@ -817,7 +817,7 @@
     {
       "id": "service-ft-age-formation",
       "actorId": "actor-france-travail-guadeloupe-iles-du-nord",
-      "name": "Instruction AGE — garde d'enfants pendant une formation",
+      "name": "Instruction AGE, garde d'enfants pendant une formation",
       "description": "Aide financière conditionnelle aux frais de garde pendant une formation validée ; ne fournit pas une place de garde.",
       "capabilitiesProvided": ["SUPPORT_CHILDCARE"],
       "skillsDeveloped": [],
@@ -933,7 +933,7 @@
       "skillsDeveloped": [],
       "needsResolved": ["MOBILITY", "FUNDING", "SKILL_GAP"],
       "targetPublic": ["Résidents ultramarins demandeurs d'emploi ou alternants répondant aux critères publiés"],
-      "territory": ["Mobilité hors territoire — national ou international"],
+      "territory": ["Mobilité hors territoire, national ou international"],
       "eligibilityRules": ["Âge et statut publiés", "Formation indisponible ou saturée localement"],
       "prerequisites": ["Projet validé", "Recherche locale documentée"],
       "duration": null,
@@ -1103,7 +1103,7 @@
     {
       "id": "service-vatel-bachelor-management-hotellerie",
       "actorId": "actor-vatel-guadeloupe",
-      "name": "Bachelor — management opérationnel en hôtellerie internationale",
+      "name": "Bachelor, management opérationnel en hôtellerie internationale",
       "description": "Parcours certifiant en management hôtelier de 3 726 heures, dont 2 520 heures en entreprise, publié à Baie-Mahault.",
       "capabilitiesProvided": ["ASSESS_PREREQUISITES", "DELIVER_TRAINING", "CERTIFY_SKILL"],
       "skillsDeveloped": ["Management hôtelier", "Gestion des services opérationnels", "Marketing hôtelier"],
@@ -1128,7 +1128,7 @@
       "id": "opportunity-ft-211zxwz",
       "providerActorId": "actor-la-toubana-hotel-spa",
       "type": "CDD",
-      "title": "Commis de salle — Hôtel Toubana — 211ZXWZ",
+      "title": "Commis de salle, Hôtel Toubana, 211ZXWZ",
       "occupationId": null,
       "location": "Sainte-Anne",
       "schedule": "40 heures ; conditions détaillées à rafraîchir sur la fiche.",
@@ -1151,7 +1151,7 @@
       "id": "opportunity-ft-212lmkv",
       "providerActorId": "actor-jungle-bar-deshaies",
       "type": "CDI",
-      "title": "Serveur / serveuse — Jungle Bar — 212LMKV",
+      "title": "Serveur / serveuse, Jungle Bar, 212LMKV",
       "occupationId": null,
       "location": "Deshaies",
       "schedule": "37 heures ; week-ends et jours fériés selon l'offre.",
@@ -1174,7 +1174,7 @@
       "id": "opportunity-ft-212mppz",
       "providerActorId": "actor-quatre-deshaies",
       "type": "CDD",
-      "title": "Serveur — QUATRE — 212MPPZ",
+      "title": "Serveur, QUATRE, 212MPPZ",
       "occupationId": null,
       "location": "Grande-Anse, Deshaies",
       "schedule": "35 heures selon l'offre.",
@@ -1197,7 +1197,7 @@
       "id": "opportunity-ft-212bsxw",
       "providerActorId": "actor-java-mode",
       "type": "OTHER",
-      "title": "Conseiller de vente — JAVA MODE — 212BSXW",
+      "title": "Conseiller de vente, JAVA MODE, 212BSXW",
       "occupationId": null,
       "location": "Pointe-à-Pitre / Jarry",
       "schedule": "35 heures avec samedi selon l'offre.",

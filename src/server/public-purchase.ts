@@ -15,7 +15,7 @@ function baseUrl(): string {
  * Achat PUBLIC d'une formation depuis la marketplace, SANS compte (checkout invité).
  * Stripe collecte l'email du payeur ; le webhook FORMATION_PURCHASE crée ensuite un Learner
  * et l'inscrit dans le centre vendeur (cf. enrollBeneficiaryInFormation).
- * Aucune authentification requise — d'où le module séparé de `finance-actions` (qui exige un tenant).
+ * Aucune authentification requise, d'où le module séparé de `finance-actions` (qui exige un tenant).
  */
 export async function publicFormationCheckout(formationId: string): Promise<CheckoutResult> {
   // 1. La formation doit être publique et publiée (validé avant Stripe pour rester testable en CLI).

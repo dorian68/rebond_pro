@@ -91,7 +91,7 @@ export function Roadmap2List({ nodes, edges, owners, actions, onOpen }: {
                   <td data-label="Prochaine action"><span className={styles.nextAction}>{node.nextAction ?? "À préciser"}</span></td>
                   <td data-label="Dépendances"><button className={styles.dependencyCount} onClick={() => onOpen(node.id)}>{dependencies.get(node.id) ?? 0}</button></td>
                   <td data-label="Dossier Drive">{node.driveFolderUrl ? <a className={styles.driveIconLink} href={node.driveFolderUrl} target="_blank" rel="noopener noreferrer" aria-label={`Ouvrir le dossier Drive de ${node.title}`}><Icon name="external" size={15} /> Ouvrir</a> : <button className={styles.missingLink} onClick={() => onOpen(node.id)}>Ajouter un lien</button>}</td>
-                  <td data-label="Mise à jour"><span>{new Date(node.updatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</span><small>{node.updatedBy?.name ?? "—"}</small></td>
+                  <td data-label="Mise à jour"><span>{new Date(node.updatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</span><small>{node.updatedBy?.name ?? ""}</small></td>
                   <td data-label="Actions"><div className={styles.rowActions}><button onClick={() => onOpen(node.id)} aria-label={`Ouvrir ${node.title}`}><Icon name="edit" size={15} /></button>{node.status === "archived" ? <button onClick={() => void actions.restoreNode(node)} aria-label={`Restaurer ${node.title}`}><Icon name="refresh" size={15} /></button> : !node.isWorkspaceRoot && <button onClick={() => void actions.archiveNode(node)} aria-label={`Archiver ${node.title}`}><Icon name="download" size={15} /></button>}</div></td>
                 </tr>
               );

@@ -166,7 +166,7 @@ export async function buildDocumentGenerationContext(input: {
         .map((m, i) => {
           const dur = moduleDuration(m);
           const tr = moduleTrainers(m);
-          return `${i + 1}. ${m.title}${dur ? ` (${dur})` : ""}${tr ? ` — ${tr}` : ""}${m.description ? ` : ${m.description}` : ""}`;
+          return `${i + 1}. ${m.title}${dur ? ` (${dur})` : ""}${tr ? `, ${tr}` : ""}${m.description ? ` : ${m.description}` : ""}`;
         })
         .join("\n")
     : undefined;
@@ -297,7 +297,7 @@ export async function buildDocumentGenerationContext(input: {
     // Défauts professionnels (sinon "[À compléter]" sur des champs à valeur standard)
     conditions_paiement: "Paiement à 30 jours à réception de facture.",
     payment_terms: "Paiement à 30 jours à réception de facture.",
-    tva: "TVA non applicable — art. 293 B du CGI.",
+    tva: "TVA non applicable, art. 293 B du CGI.",
     version_cgv: "v1.0",
   };
 

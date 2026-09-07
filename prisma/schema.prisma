@@ -1,5 +1,5 @@
 // ============================================================
-// RebondPro Formation — schéma de données (multi-tenant)
+// RebondPro Formation, schéma de données (multi-tenant)
 // Réf : CAHIER_DES_CHARGES.md §5
 // Règle P1 : chaque entité métier porte organizationId.
 // ============================================================
@@ -1135,7 +1135,7 @@ model SocrateAssessmentLog {
 
 /**
  * Roadmap interne plateforme : jalons (« milestones ») partagés entre tous les
- * super-admins. Donnée GLOBALE (non rattachée à un centre) — suivi d'avancement
+ * super-admins. Donnée GLOBALE (non rattachée à un centre), suivi d'avancement
  * collaboratif. Statut/priorité en String (mêmes conventions que SocrateLeadCapture).
  */
 model RoadmapMilestone {

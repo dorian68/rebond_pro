@@ -240,9 +240,9 @@ function MilestoneForm({ milestone, onClose, onSaved }: { milestone: Milestone |
         <Field label="Responsable" name="ownerName" defaultValue={milestone?.ownerName ?? ""} placeholder="Qui pilote ce jalon ?" />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <Field label="Contact — nom" name="contactName" defaultValue={milestone?.contactName ?? ""} placeholder="Personne à contacter" />
-          <Field label="Contact — email" name="contactEmail" type="email" defaultValue={milestone?.contactEmail ?? ""} placeholder="prenom@email.fr" />
-          <Field label="Contact — téléphone" name="contactPhone" defaultValue={milestone?.contactPhone ?? ""} placeholder="06 12 34 56 78" />
+          <Field label="Contact : nom" name="contactName" defaultValue={milestone?.contactName ?? ""} placeholder="Personne à contacter" />
+          <Field label="Contact : email" name="contactEmail" type="email" defaultValue={milestone?.contactEmail ?? ""} placeholder="prenom@email.fr" />
+          <Field label="Contact : téléphone" name="contactPhone" defaultValue={milestone?.contactPhone ?? ""} placeholder="06 12 34 56 78" />
         </div>
 
         <Field label="Lien (doc, ticket, ressource)" name="link" defaultValue={milestone?.link ?? ""} placeholder="https://…" />

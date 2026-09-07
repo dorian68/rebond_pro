@@ -83,7 +83,7 @@ export default async function AdminBeneficiaryDetailPage({
           <div>
             <h1 style={{ fontSize: 23, fontWeight: 800 }}>{beneficiary.firstName} {beneficiary.lastName}</h1>
             <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>
-              {beneficiary.email ?? "—"}{beneficiary.phone ? ` · ${beneficiary.phone}` : ""}
+              {beneficiary.email ?? ""}{beneficiary.phone ? ` · ${beneficiary.phone}` : ""}
             </p>
             <p style={{ color: "var(--ink-3)", marginTop: 4, fontSize: 12.5 }}>
               Dossier de prestation numérique · {program.label} · Opéré par <Link href={`/admin/centres/${beneficiary.organization.id}`} style={{ color: "var(--primary)", fontWeight: 700 }}>{beneficiary.organization.name}</Link>
@@ -305,7 +305,7 @@ function IkigaiBox({ title, text }: { title: string; text: string }) {
   return (
     <div style={{ padding: 10, borderRadius: 9, background: "#fff", border: "1px solid var(--border-2)" }}>
       <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 5 }}>{title}</div>
-      <p style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{text || "—"}</p>
+      <p style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{text || ""}</p>
     </div>
   );
 }
@@ -342,7 +342,7 @@ function IkigaiIntersections({ intersections }: { intersections: NonNullable<Ret
       {rows.map(([label, value]) => (
         <div key={label} style={{ padding: 10, borderRadius: 10, background: "#fff", border: "1px solid var(--border-2)" }}>
           <div style={{ fontSize: 11.5, fontWeight: 850, marginBottom: 5 }}>{label}</div>
-          <div className="muted-3" style={{ fontSize: 11.5, lineHeight: 1.4 }}>{value || "—"}</div>
+          <div className="muted-3" style={{ fontSize: 11.5, lineHeight: 1.4 }}>{value || ""}</div>
         </div>
       ))}
     </div>

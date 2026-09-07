@@ -142,12 +142,12 @@ export default async function FormationDetailPage({ params }: { params: Promise<
             <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 14 }}>Indicateurs</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <Stat label="Prix par apprenant" value={formatMoney(f.price)} />
-              <Stat label="Durée" value={f.durationDays ? `${f.durationDays} jour${f.durationDays > 1 ? "s" : ""}` : f.durationHours ? `${f.durationHours} h` : "—"} />
+              <Stat label="Durée" value={f.durationDays ? `${f.durationDays} jour${f.durationDays > 1 ? "s" : ""}` : f.durationHours ? `${f.durationHours} h` : ""} />
               <Stat label="Sessions à venir" value={String(upcoming.length)} />
               <Stat label="CA prévisionnel" value={formatMoney(forecast)} />
               <div>
                 <div style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 600, marginBottom: 6 }}>Remplissage moyen</div>
-                {upcoming.length ? <FillBar value={avgFill} width={180} /> : <span className="muted-3" style={{ fontSize: 12.5 }}>—</span>}
+                {upcoming.length ? <FillBar value={avgFill} width={180} /> : <span className="muted-3" style={{ fontSize: 12.5 }}></span>}
               </div>
             </div>
           </Card>

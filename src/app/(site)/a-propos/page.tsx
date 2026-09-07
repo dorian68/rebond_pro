@@ -49,7 +49,7 @@ export default function AProposPage() {
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
           style={{ height: 440, borderRadius: 28, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
           <div style={{ position: "relative", width: "100%", height: "100%" }}>
-            <Image src="/photos/ap-hero.jpg" alt="Le Bon Rebond — accompagnement professionnel" fill style={{ objectFit: "cover", objectPosition: "center 40%" }} sizes="(max-width:1200px) 100vw, 1200px" priority />
+            <Image src="/photos/ap-hero.jpg" alt="Le Bon Rebond, accompagnement professionnel" fill style={{ objectFit: "cover", objectPosition: "center 40%" }} sizes="(max-width:1200px) 100vw, 1200px" priority />
           </div>
         </motion.div>
       </section>
@@ -61,7 +61,7 @@ export default function AProposPage() {
             <span className="eyebrow">Les fondateurs</span>
             <h2 className="ap-section-h2" style={{ marginTop: 18 }}>Deux profils, une même conviction.</h2>
             <p style={{ fontSize: "1.14rem", color: "#5d6f7c", lineHeight: 1.65, marginTop: 20, maxWidth: "62ch" }}>
-              Le Bon Rebond est né de la rencontre entre l&apos;ancrage terrain et la vision technologique — deux parcours complémentaires au service du rebond professionnel.
+              Le Bon Rebond est né de la rencontre entre l&apos;ancrage terrain et la vision technologique, deux parcours complémentaires au service du rebond professionnel.
             </p>
           </motion.div>
 
@@ -101,7 +101,7 @@ export default function AProposPage() {
               <p style={{ fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.2rem", color: "#2C8E86", marginBottom: 24 }}>Ingénieur financier, fondateur d&apos;OptiQuant IA, spécialiste IA &amp; automatisation.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 18, fontSize: "1.06rem", color: "#5d6f7c", lineHeight: 1.7 }}>
                 <p style={{ margin: 0 }}>
-                  Formé en ingénierie financière puis en finance quantitative à <strong style={{ color: "#15314C", fontWeight: 600 }}>Paris Dauphine</strong> et à l&apos;<strong style={{ color: "#15314C", fontWeight: 600 }}>ENSAE Paris</strong>, Dorian a travaillé dans des environnements exigeants de finance de marché — autour du risque, du PnL, du reporting, de l&apos;analyse de données et de l&apos;automatisation de processus.
+                  Formé en ingénierie financière puis en finance quantitative à <strong style={{ color: "#15314C", fontWeight: 600 }}>Paris Dauphine</strong> et à l&apos;<strong style={{ color: "#15314C", fontWeight: 600 }}>ENSAE Paris</strong>, Dorian a travaillé dans des environnements exigeants de finance de marché, autour du risque, du PnL, du reporting, de l&apos;analyse de données et de l&apos;automatisation de processus.
                 </p>
                 <p style={{ margin: 0 }}>Après plusieurs expériences dans de grands groupes financiers, il fonde <strong style={{ color: "#15314C", fontWeight: 600 }}>OptiQuant IA</strong>, une société dédiée à la recherche, l&apos;ingénierie appliquée et la transformation digitale. Il y conçoit :</p>
                 <ul className="ap-vlist">
@@ -110,7 +110,7 @@ export default function AProposPage() {
                   <li><strong>Automatisation</strong> de processus complexes, de bout en bout.</li>
                 </ul>
                 <p style={{ margin: 0, fontFamily: "'Newsreader', Georgia, serif", fontStyle: "italic", fontSize: "1.14rem", color: "#15314C", lineHeight: 1.5 }}>
-                  Avec Le Bon Rebond, il apporte la vision technologique et produit : transformer une problématique humaine et territoriale en une plateforme digitale robuste, moderne et utile — l&apos;IA et l&apos;automatisation au service de l&apos;orientation.
+                  Avec Le Bon Rebond, il apporte la vision technologique et produit : transformer une problématique humaine et territoriale en une plateforme digitale robuste, moderne et utile, l&apos;IA et l&apos;automatisation au service de l&apos;orientation.
                 </p>
               </div>
             </div>
@@ -144,13 +144,13 @@ export default function AProposPage() {
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1} variants={fadeUp}
               style={{ display: "flex", flexDirection: "column", gap: 20, fontSize: "1.1rem", color: "#5d6f7c", lineHeight: 1.7 }}>
               <p style={{ margin: 0 }}>
-                Beaucoup de personnes souhaitent évoluer professionnellement, mais <strong style={{ color: "#15314C", fontWeight: 600 }}>ne savent pas par où commencer.</strong> Elles ont des compétences, de l&apos;expérience, de la motivation — mais manquent de clarté sur la prochaine étape. Quelle formation choisir ? Vers quel métier aller ? Comment transformer une envie de changement en plan concret ?
+                Beaucoup de personnes souhaitent évoluer professionnellement, mais <strong style={{ color: "#15314C", fontWeight: 600 }}>ne savent pas par où commencer.</strong> Elles ont des compétences, de l&apos;expérience, de la motivation, mais manquent de clarté sur la prochaine étape. Quelle formation choisir ? Vers quel métier aller ? Comment transformer une envie de changement en plan concret ?
               </p>
               <p style={{ margin: 0 }}>
                 En parallèle, de nombreux centres de formation disposent d&apos;une vraie expertise, mais peinent à rendre leur offre visible, lisible et accessible. Le besoin existe, l&apos;offre existe, mais <strong style={{ color: "#15314C", fontWeight: 600 }}>la connexion entre les deux reste souvent imparfaite.</strong>
               </p>
               <p style={{ margin: 0 }}>
-                Le Bon Rebond a été pensé pour répondre à ce manque : rendre l&apos;orientation plus simple, plus humaine et plus intelligente — et donner aux acteurs de la formation des outils adaptés à leurs réalités.
+                Le Bon Rebond a été pensé pour répondre à ce manque : rendre l&apos;orientation plus simple, plus humaine et plus intelligente, et donner aux acteurs de la formation des outils adaptés à leurs réalités.
               </p>
             </motion.div>
           </div>
@@ -224,7 +224,7 @@ export default function AProposPage() {
               Faire du rebond professionnel un chemin accessible à tous.
             </h2>
             <p style={{ position: "relative", zIndex: 2, color: "rgba(255,255,255,.78)", fontSize: "1.12rem", lineHeight: 1.65, maxWidth: "60ch", margin: "28px auto 0" }}>
-              Dans des territoires comme la Guadeloupe — où les enjeux d&apos;emploi, de reconversion et de développement économique sont essentiels — mieux orienter les talents et mieux valoriser les acteurs de la formation peut avoir un impact profond.
+              Dans des territoires comme la Guadeloupe, où les enjeux d&apos;emploi, de reconversion et de développement économique sont essentiels, mieux orienter les talents et mieux valoriser les acteurs de la formation peut avoir un impact profond.
             </p>
           </motion.div>
         </div>

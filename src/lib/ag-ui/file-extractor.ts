@@ -1,9 +1,9 @@
 /**
- * Proxy d'extraction de fichiers — décide AUTOMATIQUEMENT comment traiter
+ * Proxy d'extraction de fichiers, décide AUTOMATIQUEMENT comment traiter
  * chaque fichier avant de l'envoyer à Socrate.
  *
- * Route A — texte extrait  → 0 token vision  (PDF digital)
- * Route B — vision LLM     → tokens consommés (PDF scanné / image)
+ * Route A, texte extrait  → 0 token vision  (PDF digital)
+ * Route B, vision LLM     → tokens consommés (PDF scanné / image)
  *
  * Ce module tourne EXCLUSIVEMENT côté client (browser).
  */
@@ -27,9 +27,9 @@ export type ExtractionResult = {
   /** Nombre de caractères extraits (si applicable) */
   charCount?: number;
   /**
-   * Explication de la décision de routing — pour le log/debug côté UI.
-   * Exemples : "PDF digital — 4200 chars / 3 pages → 0 token"
-   *            "PDF scanné — 12 chars/page → vision LLM"
+   * Explication de la décision de routing, pour le log/debug côté UI.
+   * Exemples : "PDF digital, 4200 chars / 3 pages → 0 token"
+   *            "PDF scanné, 12 chars/page → vision LLM"
    *            "Image JPEG → vision LLM"
    */
   routingReason: string;
@@ -101,7 +101,7 @@ async function routeDocx(file: File): Promise<ExtractionResult> {
   }
   const fullText = texts.join("\n\n").trim();
   const text = fullText.length > MAX_CHARS
-    ? fullText.slice(0, MAX_CHARS) + `\n\n⚠️ [Document DOCX tronqué — ${fullText.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
+    ? fullText.slice(0, MAX_CHARS) + `\n\n⚠️ [Document DOCX tronqué, ${fullText.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
     : fullText;
   return {
     mode: "text",
@@ -109,7 +109,7 @@ async function routeDocx(file: File): Promise<ExtractionResult> {
     mimeType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     extractedText: text,
     charCount: fullText.length,
-    routingReason: `[A] DOCX — ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
+    routingReason: `[A] DOCX, ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
   };
 }
 
@@ -125,7 +125,7 @@ async function routeSpreadsheet(file: File): Promise<ExtractionResult> {
       mimeType: file.type || "text/csv",
       extractedText: text,
       charCount: fullText.length,
-      routingReason: `[A] CSV — ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
+      routingReason: `[A] CSV, ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
     };
   }
 
@@ -159,7 +159,7 @@ async function routeSpreadsheet(file: File): Promise<ExtractionResult> {
     mimeType: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     extractedText: text,
     charCount: fullText.length,
-    routingReason: `[A] XLSX — ${sheetNames.length} feuille(s), ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
+    routingReason: `[A] XLSX, ${sheetNames.length} feuille(s), ${fullText.length.toLocaleString()} caractères extraits par fonction → 0 token vision`,
   };
 }
 
@@ -190,7 +190,7 @@ function csvEscape(value: string) {
 
 function truncateExtracted(fullText: string, label: string) {
   return fullText.length > MAX_CHARS
-    ? fullText.slice(0, MAX_CHARS) + `\n\n⚠️ [${label} tronqué — ${fullText.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
+    ? fullText.slice(0, MAX_CHARS) + `\n\n⚠️ [${label} tronqué, ${fullText.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
     : fullText;
 }
 
@@ -222,7 +222,7 @@ async function routePdf(file: File): Promise<ExtractionResult> {
     const text =
       extracted.text.length > MAX_CHARS
         ? extracted.text.slice(0, MAX_CHARS) +
-          `\n\n⚠️ [Document tronqué — ${extracted.text.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
+          `\n\n⚠️ [Document tronqué, ${extracted.text.length.toLocaleString()} caractères extraits, limite ${MAX_CHARS.toLocaleString()} affichée]`
         : extracted.text;
 
     return {
@@ -232,7 +232,7 @@ async function routePdf(file: File): Promise<ExtractionResult> {
       extractedText: text,
       pageCount: extracted.pageCount,
       charCount: extracted.charCount,
-      routingReason: `[A] PDF digital — ${extracted.charCount.toLocaleString()} chars / ${extracted.pageCount} pages (moy. ${Math.round(avgCharsPerPage)} c/p) → 0 token vision`,
+      routingReason: `[A] PDF digital, ${extracted.charCount.toLocaleString()} chars / ${extracted.pageCount} pages (moy. ${Math.round(avgCharsPerPage)} c/p) → 0 token vision`,
     };
   }
 
@@ -245,7 +245,7 @@ async function routePdf(file: File): Promise<ExtractionResult> {
     attachment,
     pageCount: extracted.pageCount,
     charCount: extracted.charCount,
-    routingReason: `[B] PDF scanné — ${Math.round(avgCharsPerPage)} c/page < seuil ${TEXT_DENSITY_THRESHOLD} → vision LLM`,
+    routingReason: `[B] PDF scanné, ${Math.round(avgCharsPerPage)} c/page < seuil ${TEXT_DENSITY_THRESHOLD} → vision LLM`,
   };
 }
 

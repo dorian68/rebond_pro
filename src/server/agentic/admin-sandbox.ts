@@ -90,7 +90,7 @@ function sandboxErrorReport(id: SandboxAgentId, name: string, error: unknown): S
 export async function runAdminSandboxAgents(): Promise<SandboxAgentReport[]> {
   await requirePlatformAdmin();
   // Exécution SÉQUENTIELLE + RÉSILIENTE : borne le nombre de connexions DB concurrentes
-  // (8 agents × N requêtes en parallèle saturaient le pool) et isole les échecs — un agent
+  // (8 agents × N requêtes en parallèle saturaient le pool) et isole les échecs, un agent
   // qui plante rend une carte « indisponible » au lieu de faire crasher toute la page.
   const reports: SandboxAgentReport[] = [];
   for (const agent of SANDBOX_AGENT_RUNNERS) {

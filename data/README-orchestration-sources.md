@@ -69,7 +69,7 @@ Les libellés ambigus (`CARL`, `Sygma`, `RSMA`, `Conseil Départemental (DSIA)`,
 
 Le seed est un registre de pistes, pas une preuve de partenariat. Tant qu'un acteur ne dispose pas d'une source probante et d'une validation humaine datée, l'interface doit afficher « À vérifier » et le Pathway Engine ne doit pas présenter ses capacités, services, disponibilités ou financements comme confirmés.
 
-## Enrichissement par sources officielles — 2026-08-15
+## Enrichissement par sources officielles, 2026-08-15
 
 Deux registres documentaires complètent le seed initial à partir de sources publiques primaires : `guadeloupe-orchestration.sources.json` conserve le socle audité et `guadeloupe-orchestration.enrichment.json` porte l'enrichissement incrémental. Cette séparation est volontaire :
 

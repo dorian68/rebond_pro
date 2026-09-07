@@ -80,7 +80,7 @@ function withRetry(base: PrismaClient) {
   });
 }
 
-// Singleton Prisma — évite d'épuiser les connexions en dev (HMR).
+// Singleton Prisma, évite d'épuiser les connexions en dev (HMR).
 // Le retron est appliqué au runtime ; on conserve le type `PrismaClient`
 // standard pour rester compatible avec tout le code (transactions incluses).
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };

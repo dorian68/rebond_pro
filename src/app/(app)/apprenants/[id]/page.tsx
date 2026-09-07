@@ -26,7 +26,7 @@ export default async function LearnerDetailPage({ params }: { params: Promise<{ 
           <Avatar size={52}>{(l.firstName[0] + l.lastName[0]).toUpperCase()}</Avatar>
           <div>
             <h1 style={{ fontSize: 23, fontWeight: 800 }}>{l.firstName} {l.lastName}</h1>
-            <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{l.company ?? "—"}{l.email ? ` · ${l.email}` : ""}{l.phone ? ` · ${l.phone}` : ""}</p>
+            <p style={{ color: "var(--ink-2)", marginTop: 4, fontSize: 14 }}>{l.company ?? ""}{l.email ? ` · ${l.email}` : ""}{l.phone ? ` · ${l.phone}` : ""}</p>
           </div>
         </div>
         {canEdit && (

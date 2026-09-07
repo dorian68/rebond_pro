@@ -39,14 +39,14 @@ function SatisfactionGraph({ series }: { series: { m: string; v: number | null }
           const height = s.v !== null ? Math.max(4, Math.round(((s.v - minY) / (max - minY || 1)) * 80)) : 0;
           return (
             <div key={s.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 600 }}>{s.v !== null ? s.v.toFixed(1) : "—"}</span>
+              <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 600 }}>{s.v !== null ? s.v.toFixed(1) : ""}</span>
               <div style={{ width: "100%", height: `${height}px`, background: s.v !== null ? (s.v >= 4 ? "var(--positive-600)" : s.v >= 3 ? "var(--warn-strong)" : "var(--danger)") : "var(--surface-3)", borderRadius: "4px 4px 0 0", minHeight: s.v !== null ? 4 : 0 }} />
               <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 600 }}>{s.m}</span>
             </div>
           );
         })}
       </div>
-      <p style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 8 }}>Satisfaction moyenne sur 5 — 6 derniers mois.</p>
+      <p style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 8 }}>Satisfaction moyenne sur 5, 6 derniers mois.</p>
     </Card>
   );
 }
@@ -68,21 +68,21 @@ export default async function QualitePage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 18 }}>
         <KpiCard
           label="Satisfaction moyenne"
-          value={metrics.avgSatisfaction !== null ? `${metrics.avgSatisfaction}/5` : "—"}
+          value={metrics.avgSatisfaction !== null ? `${metrics.avgSatisfaction}/5` : ""}
           icon="star"
           sub={`${metrics.feedbacks.length} retour${metrics.feedbacks.length !== 1 ? "s" : ""}`}
           tone={satTone}
         />
         <KpiCard
           label="Taux de présence"
-          value={metrics.attendanceRate !== null ? `${metrics.attendanceRate}%` : "—"}
+          value={metrics.attendanceRate !== null ? `${metrics.attendanceRate}%` : ""}
           icon="user-check"
           sub="apprenants présents"
           tone={metrics.attendanceRate === null ? "neutral" : metrics.attendanceRate >= 80 ? "positive" : "warn"}
         />
         <KpiCard
           label="Taux de complétion"
-          value={metrics.completionRate !== null ? `${metrics.completionRate}%` : "—"}
+          value={metrics.completionRate !== null ? `${metrics.completionRate}%` : ""}
           icon="graduation-cap"
           sub="formations terminées"
           tone={metrics.completionRate === null ? "neutral" : metrics.completionRate >= 80 ? "positive" : "warn"}

@@ -22,7 +22,7 @@
         "kind": "user_prompt",
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier avant utilisation",
+        "row_or_section": "/local_ecosystem, exemples à vérifier avant utilisation",
         "sha256": null,
         "used_for": "Noms candidats et territoire uniquement lorsque celui-ci figure dans le nom",
         "limitations": "Le prompt qualifie explicitement ces noms de points de départ à vérifier."
@@ -277,7 +277,7 @@
         "file": "financement/excel/Cofinancements_Partenaires_AAP.xlsx",
         "sheet": "Partenaires",
         "row_or_section": "row 2",
-        "excerpt": "Mission Locale — rôle attendu; lettre d'intention à obtenir"
+        "excerpt": "Mission Locale, rôle attendu; lettre d'intention à obtenir"
       },
       "verification_status": "needs_verification",
       "last_verified_at": null,
@@ -409,7 +409,7 @@
         "file": "financement/excel/Cofinancements_Partenaires_AAP.xlsx",
         "sheet": "Partenaires",
         "row_or_section": "row 3",
-        "excerpt": "France Travail — rôle attendu; rendez-vous et courrier de soutien à obtenir"
+        "excerpt": "France Travail, rôle attendu; rendez-vous et courrier de soutien à obtenir"
       },
       "verification_status": "needs_verification",
       "last_verified_at": null,
@@ -474,7 +474,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "Région Guadeloupe"
       },
       "verification_status": "needs_verification",
@@ -980,7 +980,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "UMIH Guadeloupe"
       },
       "verification_status": "needs_verification",
@@ -1090,7 +1090,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "AKTO"
       },
       "verification_status": "needs_verification",
@@ -1112,7 +1112,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "France Travail Guadeloupe & Îles du Nord"
       },
       "verification_status": "needs_verification",
@@ -1134,7 +1134,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "Mission Locale Guadeloupe"
       },
       "verification_status": "needs_verification",
@@ -1156,7 +1156,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "PLIE Cap Excellence"
       },
       "verification_status": "needs_verification",
@@ -1178,7 +1178,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "Cap emploi 971"
       },
       "verification_status": "needs_verification",
@@ -1200,7 +1200,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "DEETS Guadeloupe"
       },
       "verification_status": "needs_verification",
@@ -1222,7 +1222,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "CCI des Îles de Guadeloupe"
       },
       "verification_status": "needs_verification",
@@ -1244,7 +1244,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "Campus Guadeloupéen de l’Apprentissage"
       },
       "verification_status": "needs_verification",
@@ -1266,7 +1266,7 @@
       "source_ref": {
         "file": "user-provided prompt",
         "sheet": null,
-        "row_or_section": "/local_ecosystem — exemples à vérifier",
+        "row_or_section": "/local_ecosystem, exemples à vérifier",
         "excerpt": "GEIQ Archipel Guadeloupe"
       },
       "verification_status": "needs_verification",

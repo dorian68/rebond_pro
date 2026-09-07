@@ -47,7 +47,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
         </Link>
 
-        {/* Accroche + points — varient selon l'espace sélectionné (client / centre) */}
+        {/* Accroche + points, varient selon l'espace sélectionné (client / centre) */}
         <AuthBrandCopy />
       </aside>
 

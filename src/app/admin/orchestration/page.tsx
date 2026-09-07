@@ -8,7 +8,7 @@ import { OrchestrationClient } from "./orchestration-client";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Orchestration des parcours — Administration",
+  title: "Orchestration des parcours, Administration",
   description: "Studio de démonstration du Pathway Engine Le Bon Rebond.",
   robots: { index: false, follow: false },
 };

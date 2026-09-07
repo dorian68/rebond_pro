@@ -43,7 +43,7 @@ const CONTACT_EMAIL = "contact.lebondrebond@gmail.com";
 const WA_MESSAGE = encodeURIComponent(
   "Bonjour, je suis intéressé(e) par vos services de reconversion professionnelle (Le Bon Rebond). Pourriez-vous me recontacter pour en discuter ? Merci !"
 );
-const MAIL_SUBJECT = encodeURIComponent("Demande d'information — Le Bon Rebond");
+const MAIL_SUBJECT = encodeURIComponent("Demande d'information, Le Bon Rebond");
 const MAIL_BODY = encodeURIComponent(
   "Bonjour,\n\nJe souhaite en savoir plus sur vos services d'accompagnement à la reconversion professionnelle.\n\nMon besoin : \nMon téléphone : \n\nCordialement,"
 );
@@ -52,7 +52,7 @@ const channels = [
   {
     k: "Le plus rapide",
     v: "WhatsApp & appel",
-    s: `${PHONE_DISPLAY} — du lundi au vendredi, 9h à 18h.`,
+    s: `${PHONE_DISPLAY}, du lundi au vendredi, 9h à 18h.`,
     accent: true,
     href: `https://wa.me/${PHONE_WA}?text=${WA_MESSAGE}`,
   },

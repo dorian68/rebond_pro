@@ -129,7 +129,7 @@ export async function loadDemoData(organizationId: string): Promise<void> {
   }
 
   // Réclamation et action corrective démo
-  await prisma.complaint.create({ data: { organizationId, subject: "Salle de formation mal climatisée", description: "Session du 12/05 — chaleur excessive, inconfort pour les participants.", status: "EN_COURS" } });
+  await prisma.complaint.create({ data: { organizationId, subject: "Salle de formation mal climatisée", description: "Session du 12/05, chaleur excessive, inconfort pour les participants.", status: "EN_COURS" } });
   await prisma.improvementAction.create({ data: { organizationId, title: "Vérifier la climatisation salle Alizé avant chaque session", owner: "Équipe logistique", status: "EN_COURS" } });
 
 }

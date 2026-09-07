@@ -27,7 +27,7 @@ export function Logo({
     >
       <Image
         src={compact ? "/brand/logo-mark-le-bon-rebond.png" : "/brand/logo-le-bon-rebond.png"}
-        alt="Le Bon Rebond — Un nouveau départ, la bonne direction"
+        alt="Le Bon Rebond, Un nouveau départ, la bonne direction"
         width={width}
         height={size}
         priority={priority}

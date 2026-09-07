@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   }
 
   // Anti-abus : le flux visiteur (anonyme) déclenche des appels LLM facturés,
-  // sans quota de plan — on borne par IP (les personas connectés ont enforceQuota).
+  // sans quota de plan, on borne par IP (les personas connectés ont enforceQuota).
   if (!hasSession) {
     const ip = clientIp(req);
     if (!rateLimit(`agui:min:${ip}`, 8, 60_000) || !rateLimit(`agui:hour:${ip}`, 40, 3_600_000)) {

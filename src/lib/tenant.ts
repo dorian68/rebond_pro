@@ -17,7 +17,7 @@ async function devAutoSession(): Promise<Session | null> {
   const email = process.env.DEV_AUTOLOGIN_EMAIL?.toLowerCase();
   const membership = await prisma.membership.findFirst({
     where: { status: "ACTIVE", ...(email ? { user: { email } } : {}) },
-    orderBy: [{ role: "asc" }, { createdAt: "asc" }], // OWNER ('OWNER' < autres ? non) — on filtre ci-dessous
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }], // OWNER ('OWNER' < autres ? non), on filtre ci-dessous
     include: { user: true, organization: true },
   });
   // Préférence : un OWNER si disponible (sinon le premier membre actif)

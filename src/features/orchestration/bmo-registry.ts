@@ -204,7 +204,7 @@ export function bmoSignalToOccupation(signalInput: BmoOccupationSignal): Occupat
     romeCode: null,
     fapCode: signal.code,
     fapMapping: null,
-    sector: "Secteur NAF non renseigné — famille métier FAP conservée séparément",
+    sector: "Secteur NAF non renseigné, famille métier FAP conservée séparément",
     requiredSkills: [],
     preferredSkills: [],
     prerequisites: [],

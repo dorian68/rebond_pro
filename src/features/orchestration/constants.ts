@@ -199,12 +199,12 @@ export const OCCUPATION_COVERAGE_LEVELS = [
 ] as const;
 
 export const OCCUPATION_COVERAGE_LABELS: Record<(typeof OCCUPATION_COVERAGE_LEVELS)[number], string> = {
-  L0_SIGNAL: "L0 — Signal",
-  L1_MAPPED: "L1 — Mappé",
-  L2_MODELED: "L2 — Modélisé",
-  L3_ECOSYSTEM: "L3 — Écosystème",
-  L4_ACTIVATABLE: "L4 — Activable",
-  L5_PROVEN: "L5 — Éprouvé",
+  L0_SIGNAL: "L0, Signal",
+  L1_MAPPED: "L1, Mappé",
+  L2_MODELED: "L2, Modélisé",
+  L3_ECOSYSTEM: "L3, Écosystème",
+  L4_ACTIVATABLE: "L4, Activable",
+  L5_PROVEN: "L5, Éprouvé",
 };
 
 export const OCCUPATION_COVERAGE_RANK: Record<(typeof OCCUPATION_COVERAGE_LEVELS)[number], number> = {

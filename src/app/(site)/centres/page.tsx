@@ -58,7 +58,7 @@ export default function CentresPage() {
                 <em style={{ fontStyle: "italic", color: "#2C8E86" }}>vraiment motivés.</em>
               </h1>
               <p style={{ marginTop: 22, fontSize: "1.18rem", color: "#5d6f7c", lineHeight: 1.65 }}>
-                Vous êtes un organisme de formation ? Rejoignez le réseau Le Bon Rebond, gagnez en visibilité et recevez des demandes de mise en relation qualifiées — sans prospection.
+                Vous êtes un organisme de formation ? Rejoignez le réseau Le Bon Rebond, gagnez en visibilité et recevez des demandes de mise en relation qualifiées, sans prospection.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 32 }}>
                 <Link href="/register#centre" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>
@@ -79,7 +79,7 @@ export default function CentresPage() {
             <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} style={{ position: "relative" }}>
               <div style={{ position: "absolute", zIndex: 1, width: "115%", height: "115%", left: "-7%", top: "-7%", borderRadius: "50%", background: "conic-gradient(from 200deg, #2C8E86, #5FB14E 40%, transparent 60%)", opacity: .16, filter: "blur(2px)", pointerEvents: "none" }} />
               <div style={{ position: "relative", zIndex: 2, width: "100%", height: 480, borderRadius: 26, overflow: "hidden", boxShadow: "0 24px 60px -34px rgba(14,36,56,.55)" }}>
-                <Image src="/photos/centre-building.jpg" alt="Centre de formation — bâtiment et accueil" fill style={{ objectFit: "cover", objectPosition: "center" }} priority sizes="(max-width:980px) 100vw, 48vw" />
+                <Image src="/photos/centre-building.jpg" alt="Centre de formation, bâtiment et accueil" fill style={{ objectFit: "cover", objectPosition: "center" }} priority sizes="(max-width:980px) 100vw, 48vw" />
               </div>
             </motion.div>
           </div>

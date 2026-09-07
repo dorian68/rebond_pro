@@ -23,7 +23,7 @@ if (!parsed.success) {
   const msg = `[env] Configuration invalide → ${issues}`;
   // Ne jamais throw au chargement du module : sinon `next build` (collecte des routes)
   // échoue sans variables. Les appels runtime (Prisma, Auth) échoueront naturellement si manquant.
-  console.warn(`${msg} (avertissement uniquement — validation runtime laissée aux consommateurs)`);
+  console.warn(`${msg} (avertissement uniquement, validation runtime laissée aux consommateurs)`);
   // Fournir des valeurs factices pour permettre l'instanciation de Prisma/Auth au build.
   // Toute requête réelle échouera avec une erreur explicite à l'exécution.
   if (!process.env.DATABASE_URL) {
@@ -37,7 +37,7 @@ if (!parsed.success) {
 // Garde-fou de sécurité : le bypass d'auth dev ne doit JAMAIS être effectif en production.
 // La neutralisation FONCTIONNELLE est dans src/lib/tenant.ts (devAutoSession renvoie null si prod).
 if (isProd && process.env.DEV_AUTOLOGIN === "true") {
-  console.error("[env] ⚠️ DEV_AUTOLOGIN=true détecté en production — IGNORÉ par sécurité (auth réelle exigée). Retirez ce flag des secrets de production.");
+  console.error("[env] ⚠️ DEV_AUTOLOGIN=true détecté en production, IGNORÉ par sécurité (auth réelle exigée). Retirez ce flag des secrets de production.");
 }
 
 export const env = {

@@ -31,7 +31,7 @@ export async function generateRelance(prospectId: string): Promise<AiText> {
   const prompt = `Rédige un email de relance commerciale court (max 120 mots), prêt à envoyer.
 Destinataire : ${who}${p.contactName && p.contactName !== p.name ? ` (société ${p.name})` : ""}
 Formation d'intérêt : ${fTitle}
-${dateStr ? `Prochaine session : ${dateStr}${places ? ` — ${places} place(s) restante(s)` : ""}` : "Pas de session datée pour l'instant."}
+${dateStr ? `Prochaine session : ${dateStr}${places ? `, ${places} place(s) restante(s)` : ""}` : "Pas de session datée pour l'instant."}
 Étape actuelle dans le pipeline : ${p.stage}.
 Signe avec : ${ctx.name ?? ctx.organizationName ?? "l'équipe"}.
 Donne uniquement le corps de l'email, sans objet ni commentaire.`;
@@ -47,16 +47,16 @@ export async function improveFormationDescription(formationId: string): Promise<
   const f = await prisma.formation.findFirst({ where: { id: formationId, organizationId: ctx.organizationId } });
   if (!f) return { text: "Formation introuvable.", source: "fallback" };
 
-  const fallback = f.longDescription || `${f.title} — ${f.shortDescription ?? "une formation conçue pour des résultats concrets."}\n\nObjectifs : ${f.objectives ?? "à compléter"}.\nProgramme : ${f.program ?? "à compléter"}.`;
+  const fallback = f.longDescription || `${f.title}, ${f.shortDescription ?? "une formation conçue pour des résultats concrets."}\n\nObjectifs : ${f.objectives ?? "à compléter"}.\nProgramme : ${f.program ?? "à compléter"}.`;
 
   const prompt = `Rédige une description commerciale convaincante (120-200 mots) pour cette formation, orientée bénéfices et conversion, pour une page publique.
 Titre : ${f.title}
-Catégorie : ${f.category ?? "—"}
-Durée : ${f.durationDays ? f.durationDays + " jours" : f.durationHours ? f.durationHours + " h" : "—"}
+Catégorie : ${f.category ?? ""}
+Durée : ${f.durationDays ? f.durationDays + " jours" : f.durationHours ? f.durationHours + " h" : ""}
 Modalité : ${f.modality}
-Objectifs : ${f.objectives ?? "—"}
-Programme : ${f.program ?? "—"}
-Public : ${f.targetAudience ?? "—"}
+Objectifs : ${f.objectives ?? ""}
+Programme : ${f.program ?? ""}
+Public : ${f.targetAudience ?? ""}
 Donne uniquement le texte de la description, sans titre ni puces markdown.`;
 
   const res = await generateText({ system: ORG_VOICE, prompt, maxTokens: 700 }, fallback);
@@ -92,7 +92,7 @@ export async function weeklySummary(): Promise<AiText> {
 export async function businessRecommendations(): Promise<AiText> {
   const ctx = await requireTenant();
   const m = await getDashboardMetrics(ctx);
-  const risk = m.alerts.filter((a) => a.type === "danger" || a.type === "warn").map((a) => `${a.title} — ${a.text}`).join("\n") || "Aucune session à risque.";
+  const risk = m.alerts.filter((a) => a.type === "danger" || a.type === "warn").map((a) => `${a.title}, ${a.text}`).join("\n") || "Aucune session à risque.";
   const facts = `Remplissage moyen ${m.kpis.avgFill}%, ${m.kpis.prospectsActifs} prospects actifs, ${m.kpis.relances} relances en attente.\nAlertes :\n${risk}`;
   const fallback = `Recommandations :\n- ${m.priorities.map((p) => p.text).join("\n- ") || "Rien d'urgent."}`;
   const prompt = `Analyse ces indicateurs d'un centre de formation et propose 3 à 5 actions business priorisées et concrètes (commencer par la plus impactante) :\n${facts}`;
@@ -104,7 +104,7 @@ export async function businessRecommendations(): Promise<AiText> {
 /** Questionnaire de satisfaction pour une formation. */
 export async function generateQuestionnaire(formationTitle: string): Promise<AiText> {
   const ctx = await requireTenant();
-  const fallback = `Questionnaire de satisfaction — ${formationTitle}\n1. La formation a-t-elle répondu à vos attentes ? (1-5)\n2. Qualité des contenus et supports ? (1-5)\n3. Pédagogie du formateur ? (1-5)\n4. Organisation logistique ? (1-5)\n5. Recommanderiez-vous cette formation ? (1-5)\n6. Commentaires libres :`;
+  const fallback = `Questionnaire de satisfaction, ${formationTitle}\n1. La formation a-t-elle répondu à vos attentes ? (1-5)\n2. Qualité des contenus et supports ? (1-5)\n3. Pédagogie du formateur ? (1-5)\n4. Organisation logistique ? (1-5)\n5. Recommanderiez-vous cette formation ? (1-5)\n6. Commentaires libres :`;
   const prompt = `Crée un questionnaire de satisfaction (8 questions max) pour la formation « ${formationTitle} », avec une échelle 1-5 et 1 ou 2 questions ouvertes. Format liste numérotée.`;
   const res = await generateText({ system: ORG_VOICE, prompt, maxTokens: 600 }, fallback);
   await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "questionnaire", input: formationTitle, output: res.text, model: res.model });
@@ -119,7 +119,7 @@ export async function assistantChat(history: { role: "user" | "assistant"; conte
 Contexte temps réel : CA prévisionnel ${formatMoney(m.kpis.caForecast)}, ${m.kpis.sessionsAVenir} sessions à venir, remplissage moyen ${m.kpis.avgFill}%, ${m.kpis.prospectsActifs} prospects actifs, ${m.kpis.relances} relances à faire.
 Réponds de façon concise et actionnable. Si on te demande une action (relance, document...), explique brièvement la marche à suivre dans l'outil.`;
   const lastUser = [...history].reverse().find((h) => h.role === "user")?.content ?? "";
-  const fallback = `Voici un aperçu : ${m.priorities.map((p) => p.text).join(" · ") || "tout est sous contrôle"}. (Assistant IA en mode hors-ligne — ajoutez une clé ANTHROPIC_API_KEY pour des réponses complètes.)`;
+  const fallback = `Voici un aperçu : ${m.priorities.map((p) => p.text).join(" · ") || "tout est sous contrôle"}. (Assistant IA en mode hors-ligne, ajoutez une clé ANTHROPIC_API_KEY pour des réponses complètes.)`;
   const res = await chat(history, system, fallback);
   await logAi({ organizationId: ctx.organizationId, userId: ctx.userId, type: "chat", input: lastUser, output: res.text, model: res.model });
   return { text: res.text, source: res.source };
@@ -138,7 +138,7 @@ export async function synthesizeFeedbacks(): Promise<AiText> {
   const avgRating = feedbacks.reduce((a, b) => a + b.rating, 0) / feedbacks.length;
   const comments = feedbacks.filter((f) => f.comment).map((f) => `[${f.rating}/5] ${f.comment}`).join("\n");
 
-  const fallback = `Synthèse sur ${feedbacks.length} retour(s) — Moyenne : ${avgRating.toFixed(1)}/5.\n${comments ? "Commentaires :\n" + comments.slice(0, 800) : "Pas de commentaires textuels."}`;
+  const fallback = `Synthèse sur ${feedbacks.length} retour(s), Moyenne : ${avgRating.toFixed(1)}/5.\n${comments ? "Commentaires :\n" + comments.slice(0, 800) : "Pas de commentaires textuels."}`;
 
   const prompt = `Voici les retours apprenants d'un centre de formation (${feedbacks.length} réponses, moyenne ${avgRating.toFixed(1)}/5) :\n\n${comments || "Pas de commentaires textuels disponibles."}\n\nFais une synthèse structurée en 3 parties : 1) Points forts (2-3 points) 2) Points à améliorer (2-3 points) 3) Actions suggérées (2-3 actions concrètes). Sois factuel et concis.`;
   const res = await generateText({ system: ORG_VOICE, prompt, maxTokens: 800 }, fallback);

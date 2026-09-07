@@ -1,4 +1,4 @@
-/* Vidéo B — Particuliers / bilan de compétences. Plus dynamique : typo cinétique,
+/* Vidéo B, Particuliers / bilan de compétences. Plus dynamique : typo cinétique,
    parcours animé, cartes qui volent, cuts rapides. Engine globals from animations.jsx. */
 
 const B = {
@@ -63,7 +63,7 @@ function Browser({ src, style }) {
     </div>
   );
 }
-// Kinetic typography — words rise + scale in, staggered. More energetic easing.
+// Kinetic typography, words rise + scale in, staggered. More energetic easing.
 function Kinetic({ text, localTime, start = 0, stagger = 0.07, size = 110, color = B.navy, em, weight = 500, lineHeight = 1.02, style }) {
   const words = text.split(' ');
   return (
@@ -109,12 +109,12 @@ function Intro() {
   );
 }
 
-/* ---------- S1 — douleur (émotion) ---------- */
+/* ---------- S1, douleur (émotion) ---------- */
 function S1() {
   const { localTime } = useSprite();
   return (
     <SceneBox bg={B.navy} color="#fff">
-      <Photo localTime={localTime} label="PHOTO — personne 35-50 ans, à un tournant, lumineux" scrim="left" />
+      <Photo localTime={localTime} label="PHOTO, personne 35-50 ans, à un tournant, lumineux" scrim="left" />
       <div style={{ position:'absolute', top:'50%', left:130, width:1000, transform:'translateY(-50%)' }}>
         <Eyebrow localTime={localTime} start={0.1} light>Là où vous en êtes</Eyebrow>
         <div style={{ marginTop:30 }}>
@@ -127,7 +127,7 @@ function S1() {
   );
 }
 
-/* ---------- S2 — tension (trop d'offres) ---------- */
+/* ---------- S2, tension (trop d'offres) ---------- */
 function CourseCard({ localTime, start, x, y, rot, c, title }) {
   const t = Easing.easeOutExpo(clamp((localTime - start) / 0.6, 0, 1));
   const drift = Math.sin((localTime - start) * 1.5 + x) * 4;
@@ -161,7 +161,7 @@ function S2() {
   );
 }
 
-/* ---------- S3 — révélation : le parcours ---------- */
+/* ---------- S3, révélation : le parcours ---------- */
 function Step({ localTime, start, label, idx }) {
   const t = Easing.easeOutBack(clamp((localTime - start) / 0.5, 0, 1));
   const on = localTime > start + 0.2;
@@ -199,7 +199,7 @@ function S3() {
   );
 }
 
-/* ---------- S4 — diff1 : un cap, pas un catalogue ---------- */
+/* ---------- S4, diff1 : un cap, pas un catalogue ---------- */
 function S4() {
   const { localTime } = useSprite();
   const slide = animate({ from:170, to:0, start:0.2, end:1.1, ease:Easing.easeOutExpo })(localTime);
@@ -228,7 +228,7 @@ function S4() {
   );
 }
 
-/* ---------- S5 — diff2 : les bons centres près de chez vous (CPF) ---------- */
+/* ---------- S5, diff2 : les bons centres près de chez vous (CPF) ---------- */
 function Badge({ localTime, start, top, left, accent, label }) {
   const t = Easing.easeOutBack(clamp((localTime - start) / 0.5, 0, 1));
   return (
@@ -269,7 +269,7 @@ function S5() {
   );
 }
 
-/* ---------- S6 — confiance ---------- */
+/* ---------- S6, confiance ---------- */
 function Check({ localTime, start, children }) {
   const t = Easing.easeOutBack(clamp((localTime - start) / 0.45, 0, 1));
   return (
@@ -298,7 +298,7 @@ function S6() {
   );
 }
 
-/* ---------- S7 — CTA ---------- */
+/* ---------- S7, CTA ---------- */
 function S7() {
   const { localTime } = useSprite();
   const pulse = 1 + 0.045 * Math.max(0, Math.sin((localTime - 1.3) * 3.2)) * (localTime > 1.3 ? 1 : 0);

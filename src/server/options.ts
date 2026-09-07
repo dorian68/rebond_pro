@@ -33,7 +33,7 @@ export async function sessionOptions(ctx: TenantContext) {
     orderBy: { startDate: "desc" },
     take: 100,
   });
-  return sessions.map((s) => ({ id: s.id, label: `${s.formation.title} — ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(s.startDate)}` }));
+  return sessions.map((s) => ({ id: s.id, label: `${s.formation.title}, ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(s.startDate)}` }));
 }
 
 export async function learnerOptions(ctx: TenantContext) {

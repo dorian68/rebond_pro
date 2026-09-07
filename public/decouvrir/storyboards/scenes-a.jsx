@@ -1,4 +1,4 @@
-/* Vidéo A — Centres de formation. Scenes composed on the animations.jsx engine.
+/* Vidéo A, Centres de formation. Scenes composed on the animations.jsx engine.
    Globals from animations.jsx: Stage, Sprite, useSprite, useTime, Easing, interpolate, animate, clamp. */
 
 const A = {
@@ -91,7 +91,7 @@ function Intro() {
   );
 }
 
-/* ---------- S1 — douleur ---------- */
+/* ---------- S1, douleur ---------- */
 function Note({ localTime, start, top, left, rot, children }) {
   const t = Easing.easeOutBack(clamp((localTime - start) / 0.5, 0, 1));
   const wob = Math.sin((localTime - start) * 3) * 0.6;
@@ -111,7 +111,7 @@ function S1() {
     <SceneBox bg={A.cream}>
       <Note localTime={localTime} start={0.6} top={150} left={1180} rot={5}>Relance oubliée…</Note>
       <Note localTime={localTime} start={1.0} top={560} left={1280} rot={-4}>Convention.docx</Note>
-      <Note localTime={localTime} start={1.4} top={360} left={1500} rot={8}>Session — 7 %</Note>
+      <Note localTime={localTime} start={1.4} top={360} left={1500} rot={8}>Session, 7 %</Note>
       <Note localTime={localTime} start={1.8} top={770} left={1120} rot={3}>planning_v4_FINAL.xlsx</Note>
       <div style={{ position:'absolute', top:300, left:130, width:980 }}>
         <Eyebrow localTime={localTime} start={0.1}>Aujourd'hui</Eyebrow>
@@ -124,7 +124,7 @@ function S1() {
   );
 }
 
-/* ---------- S2 — tension ---------- */
+/* ---------- S2, tension ---------- */
 function S2() {
   const { localTime } = useSprite();
   const raw = interpolate([0.3, 2.2], [0, 4000], Easing.easeOutCubic)(localTime);
@@ -147,7 +147,7 @@ function S2() {
   );
 }
 
-/* ---------- S3 — révélation dashboard ---------- */
+/* ---------- S3, révélation dashboard ---------- */
 function S3() {
   const { localTime } = useSprite();
   const slide = animate({ from:160, to:0, start:0.2, end:1.2, ease:Easing.easeOutCubic })(localTime);
@@ -175,7 +175,7 @@ function S3() {
   );
 }
 
-/* ---------- S4 — différenciateur pilotage ---------- */
+/* ---------- S4, différenciateur pilotage ---------- */
 function Toast({ localTime, start, top, left, accent, label, sub }) {
   const t = Easing.easeOutBack(clamp((localTime - start) / 0.5, 0, 1));
   return (
@@ -220,7 +220,7 @@ function S4() {
   );
 }
 
-/* ---------- S5 — différenciateur marketplace ---------- */
+/* ---------- S5, différenciateur marketplace ---------- */
 function S5() {
   const { localTime } = useSprite();
   const slide = animate({ from:170, to:0, start:0.2, end:1.2, ease:Easing.easeOutCubic })(localTime);
@@ -249,7 +249,7 @@ function S5() {
   );
 }
 
-/* ---------- S6 — confiance ---------- */
+/* ---------- S6, confiance ---------- */
 function Check({ localTime, start, children }) {
   const t = Easing.easeOutBack(clamp((localTime - start) / 0.5, 0, 1));
   return (
@@ -277,7 +277,7 @@ function S6() {
   );
 }
 
-/* ---------- S7 — CTA ---------- */
+/* ---------- S7, CTA ---------- */
 function S7() {
   const { localTime } = useSprite();
   const pulse = 1 + 0.04 * Math.max(0, Math.sin((localTime - 1.4) * 3)) * (localTime > 1.4 ? 1 : 0);

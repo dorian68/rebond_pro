@@ -537,7 +537,7 @@ function nodeFolderName(title: string, nodeId: string, type: Roadmap2DriveNodeCo
   const marker = nodeFolderMarker(nodeId);
   const prefix = isWorkspaceRoot ? "ROADMAP" : type === "phase" ? "PHASE" : type === "milestone" ? "JALON" : type === "decision" ? "DÉCISION" : type === "action" ? "ACTION" : "PROJET";
   const titleLimit = Math.max(24, 120 - marker.length - prefix.length - 6);
-  return `${prefix} — ${safeResourceName(title).slice(0, titleLimit)} · ${marker}`;
+  return `${prefix}, ${safeResourceName(title).slice(0, titleLimit)} · ${marker}`;
 }
 
 function isManagedNodeFolderName(name: unknown, nodeId: string) {
@@ -555,7 +555,7 @@ function operationMarker(operationId: string) {
 
 function rootFolderName(workspaceName: string, workspaceId: string) {
   const marker = `[RM2-ROOT-${createHash("sha256").update(workspaceId).digest("hex").slice(0, 10)}]`;
-  return safeResourceName(`${workspaceName} — Roadmap 2 ${marker}`);
+  return safeResourceName(`${workspaceName}, Roadmap 2 ${marker}`);
 }
 
 async function findOrCreateNodeFolder(driver: Roadmap2DriveDriver, workspaceId: string, parentId: string, nodeId: string, title: string, type: Roadmap2DriveNodeContext["type"] = "initiative", isWorkspaceRoot = false) {

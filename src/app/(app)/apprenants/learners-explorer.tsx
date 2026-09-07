@@ -46,11 +46,11 @@ export function LearnersExplorer({ learners, canEdit }: { learners: LearnerListI
                     </div>
                   </div>
                 </td>
-                <td className="muted">{l.company ?? "—"}</td>
-                <td className="muted">{l.latestFormation ?? "—"}{l.latestSessionDate ? ` · ${l.latestSessionDate}` : ""}</td>
+                <td className="muted">{l.company ?? ""}</td>
+                <td className="muted">{l.latestFormation ?? ""}{l.latestSessionDate ? ` · ${l.latestSessionDate}` : ""}</td>
                 <td className="tnum">{l.enrollmentCount}</td>
-                <td>{l.latestStatus ? <span className="badge badge-neutral">{ENROLLMENT_STATUS_LABELS[l.latestStatus]}</span> : <span className="muted-3">—</span>}</td>
-                <td>{l.satisfaction ? <span style={{ color: "var(--warn-strong)", fontWeight: 700 }}>{"★".repeat(l.satisfaction)}</span> : <span className="muted-3">—</span>}</td>
+                <td>{l.latestStatus ? <span className="badge badge-neutral">{ENROLLMENT_STATUS_LABELS[l.latestStatus]}</span> : <span className="muted-3"></span>}</td>
+                <td>{l.satisfaction ? <span style={{ color: "var(--warn-strong)", fontWeight: 700 }}>{"★".repeat(l.satisfaction)}</span> : <span className="muted-3"></span>}</td>
               </tr>
             ))}
           </tbody>

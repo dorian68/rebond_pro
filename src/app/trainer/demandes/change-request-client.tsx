@@ -43,14 +43,14 @@ export function ChangeRequestClient({ requests, sessions }: { requests: Req[]; s
             {sessions.length > 0 && (
               <div>
                 <label className="field-label">Session concernée (optionnel)</label>
-                <select name="sessionId" className="input"><option value="">— Aucune / disponibilité générale —</option>{sessions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
+                <select name="sessionId" className="input"><option value="">Aucune / disponibilité générale</option>{sessions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div><label className="field-label">Date alternative proposée (optionnel)</label><input type="date" name="proposedDate" className="input" /></div>
               <div>
                 <label className="field-label">Créneau proposé (optionnel)</label>
-                <select name="proposedSlot" className="input"><option value="">—</option><option value="MATIN">Matin</option><option value="APRES_MIDI">Après-midi</option><option value="JOURNEE">Journée</option><option value="SOIR">Soir</option></select>
+                <select name="proposedSlot" className="input"><option value="">Choisir un créneau</option><option value="MATIN">Matin</option><option value="APRES_MIDI">Après-midi</option><option value="JOURNEE">Journée</option><option value="SOIR">Soir</option></select>
               </div>
             </div>
             <div><label className="field-label">Motif / message *</label><textarea name="reason" className="input" rows={3} required placeholder="Ex : Je ne suis finalement plus disponible le 12, je propose le 14." /></div>

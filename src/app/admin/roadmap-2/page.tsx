@@ -6,7 +6,7 @@ import { Roadmap2Client } from "./roadmap2-client";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "Roadmap 2 — Administration",
+  title: "Roadmap 2, Administration",
   robots: { index: false, follow: false },
 };
 

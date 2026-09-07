@@ -1,5 +1,5 @@
 // Logger structuré minimal (JSON), avec masquage des secrets.
-// Usage : logger.info("event", { ... }) — jamais de secret en clair.
+// Usage : logger.info("event", { ... }), jamais de secret en clair.
 
 type Level = "debug" | "info" | "warn" | "error";
 

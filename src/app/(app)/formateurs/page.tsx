@@ -33,7 +33,7 @@ export default async function FormateursPage() {
                 <Avatar size={46} color={t.color}>{t.initials}</Avatar>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 15 }}>{t.firstName} {t.lastName}</div>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.specialities.join(", ") || "—"}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.specialities.join(", ") || ""}</div>
                 </div>
               </div>
               <div className="spread">

@@ -88,7 +88,7 @@ function registrySourceRef(sourceId: string): SourceRef {
   if (!source) throw new Error(`Source Orchestration introuvable : ${sourceId}`);
   return {
     kind: source.kind === "PUBLIC_OFFICIAL" ? "PUBLIC_OFFICIAL" : "SOURCE_FILE",
-    label: `${source.publisher} — ${source.title}`,
+    label: `${source.publisher}, ${source.title}`,
     file: null,
     sheet: null,
     page: null,
@@ -122,7 +122,7 @@ function mapSeedActor(raw: z.infer<typeof seedActorSchema>): Actor {
     dataSharingPolicy: null,
     sourceRef: {
       kind: raw.source_ref.file === "user-provided prompt" ? "MISSION_BRIEF" : "SOURCE_FILE",
-      label: `${raw.source_ref.file} — ${raw.source_ref.row_or_section}`,
+      label: `${raw.source_ref.file}, ${raw.source_ref.row_or_section}`,
       file: raw.source_ref.file,
       sheet: raw.source_ref.sheet,
       page: null,
@@ -328,8 +328,8 @@ export const demoOccupations: Occupation[] = [
     ],
     preferredSkills: [],
     prerequisites: ["Prérequis détaillés de la fiche ROME à revalider avant ingestion canonique"],
-    constraints: ["Travail de nuit, le week-end et les jours fériés possible selon la fiche détaillée 2021 — à revalider et confirmer pour chaque offre"],
-    typicalSchedules: ["Horaires variables selon établissement — à confirmer offre par offre"],
+    constraints: ["Travail de nuit, le week-end et les jours fériés possible selon la fiche détaillée 2021, à revalider et confirmer pour chaque offre"],
+    typicalSchedules: ["Horaires variables selon établissement, à confirmer offre par offre"],
     relatedOccupationIds: [OCCUPATION_B_ID],
     sourceRef: currentRomeSource,
     verificationStatus: "NEEDS_VERIFICATION",
@@ -455,7 +455,7 @@ export const sarahDemoPassport: ParticipantPassport = {
     {
       id: "demo-consent-preview-employer",
       participantId: PARTICIPANT_ID,
-      purpose: "Aperçu de la future vue employeur — aucun partage réel",
+      purpose: "Aperçu de la future vue employeur, aucun partage réel",
       recipientActorId: null,
       recipientActorType: "EMPLOYER",
       dataScope: ["Identité utile", "Expérience", "Compétences confirmées", "CV", "Disponibilité"],
@@ -467,7 +467,7 @@ export const sarahDemoPassport: ParticipantPassport = {
     {
       id: "demo-consent-preview-cfa",
       participantId: PARTICIPANT_ID,
-      purpose: "Aperçu de la future vue CFA — aucun partage réel",
+      purpose: "Aperçu de la future vue CFA, aucun partage réel",
       recipientActorId: null,
       recipientActorType: "CFA",
       dataScope: ["Projet", "Compétences utiles", "Prérequis", "Formation visée"],
@@ -479,7 +479,7 @@ export const sarahDemoPassport: ParticipantPassport = {
     {
       id: "demo-consent-preview-prescriber",
       participantId: PARTICIPANT_ID,
-      purpose: "Aperçu de la future vue prescripteur — aucun partage réel",
+      purpose: "Aperçu de la future vue prescripteur, aucun partage réel",
       recipientActorId: null,
       recipientActorType: "PRESCRIBER",
       dataScope: ["Prise en charge", "Statut du parcours", "Prochaine étape", "Résultat final"],
@@ -620,7 +620,7 @@ export const sarahPlanA: Pathway = {
       status: "COMPLETED",
       dueDate: "2026-08-11T09:00:00.000Z",
       completedAt: "2026-08-11T09:00:00.000Z",
-      evidence: ["Preuve synthétique — aucune orientation réelle envoyée."],
+      evidence: ["Preuve synthétique, aucune orientation réelle envoyée."],
       sourceReason: "Le scénario désigne Mission Locale Guadeloupe comme source de l'orientation.",
     }),
     demoStep(PLAN_A_ID, a2, "DIAGNOSTIC", "Diagnostic Passeport Rebond", [a1], {
@@ -642,7 +642,7 @@ export const sarahPlanA: Pathway = {
       status: "READY",
       dueDate: "2026-08-18T16:00:00.000Z",
       requiredInputs: ["Validation du rapprochement FAP S2X60 / ROME G1703", "Exigences réelles d’une cible employeur"],
-      expectedOutputs: ["Métier couvert au niveau L2 — Modélisé"],
+      expectedOutputs: ["Métier couvert au niveau L2, Modélisé"],
       sourceReason: "La BMO documente le groupe large « Employés de l’hôtellerie » ; elle ne suffit pas à prouver les exigences du métier de réceptionniste ni l’existence d’une offre.",
       suggestion: {
         humanValidationRequired: true,

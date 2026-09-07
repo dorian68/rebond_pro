@@ -15,7 +15,7 @@ const fadeUp = {
 const PAIN_ITEMS = [
   "Des centaines d'offres sur internet, impossibles à départager.",
   "La difficulté de savoir laquelle est réellement reconnue.",
-  "La peur de perdre du temps — et de l'argent.",
+  "La peur de perdre du temps, et de l'argent.",
   "Le manque d'accompagnement pour faire le bon choix.",
 ];
 
@@ -52,7 +52,7 @@ export default function FormationPage() {
                 <em style={{ fontStyle: "italic", color: "#2C8E86" }}>bonnes portes.</em>
               </h1>
               <p style={{ marginTop: 22, fontSize: "1.18rem", color: "#5d6f7c", lineHeight: 1.65 }}>
-                Le Bon Rebond vous met en relation avec des centres de formation fiables, choisis selon votre projet professionnel — pas selon un catalogue générique.
+                Le Bon Rebond vous met en relation avec des centres de formation fiables, choisis selon votre projet professionnel, pas selon un catalogue générique.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 32 }}>
                 <Link href="/marketplace" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>

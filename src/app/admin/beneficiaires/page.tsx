@@ -30,7 +30,7 @@ export default async function AdminBeneficiairesPage() {
                   <Avatar size={44} color="#2f9488">{(b.firstName[0] + b.lastName[0]).toUpperCase()}</Avatar>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 15 }}>{b.firstName} {b.lastName}</div>
-                    <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{b.email ?? "—"}</div>
+                    <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>{b.email ?? ""}</div>
                   </div>
                   <span className={`badge ${s.cls}`}>{s.label}</span>
                 </div>

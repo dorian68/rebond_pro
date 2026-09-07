@@ -1,5 +1,5 @@
 // ============================================================
-// Seed — Académie Horizon Formation (données de démonstration)
+// Seed, Académie Horizon Formation (données de démonstration)
 // Source : projet_formation/app/data.jsx converti en données réelles.
 // Exécution : npx prisma db seed
 // ============================================================
@@ -15,7 +15,7 @@ function d(y: number, m: number, day: number, h = 8): Date {
 const EUR = (n: number) => Math.round(n * 100); // euros -> centimes
 
 async function main() {
-  console.log("🌱 Seed RebondPro — Académie Horizon Formation");
+  console.log("🌱 Seed RebondPro, Académie Horizon Formation");
 
   // Nettoyage de l'org démo si elle existe (réexécution idempotente)
   const existing = await prisma.organization.findUnique({ where: { slug: "academie-horizon" } });
@@ -86,7 +86,7 @@ async function main() {
       shortDescription: "Maîtrisez Excel pour gagner du temps et fiabiliser vos analyses en PME.",
       objectives: "Automatiser ses tableaux ; maîtriser les formules avancées ; construire des tableaux croisés dynamiques.",
       program: "Jour 1 : formules avancées, mise en forme conditionnelle. Jour 2 : TCD, graphiques, automatisations." },
-    { key: "powerbi", title: "Power BI — Construire un tableau de bord", slug: "power-bi-tableau-de-bord", category: "Data & BI", durationDays: 3, durationHours: 21, price: EUR(990), modality: Modality.HYBRIDE, level: Level.INTERMEDIAIRE, color: "#2469a6", eligible: ["claire"],
+    { key: "powerbi", title: "Power BI, Construire un tableau de bord", slug: "power-bi-tableau-de-bord", category: "Data & BI", durationDays: 3, durationHours: 21, price: EUR(990), modality: Modality.HYBRIDE, level: Level.INTERMEDIAIRE, color: "#2469a6", eligible: ["claire"],
       shortDescription: "Transformez vos données en tableaux de bord clairs et actionnables avec Power BI.",
       objectives: "Connecter des sources ; modéliser ; créer des visualisations ; publier un rapport.",
       program: "Jour 1 : Power Query. Jour 2 : modèle de données & DAX. Jour 3 : visualisations & publication." },
@@ -216,7 +216,7 @@ async function main() {
   await prisma.complaint.create({ data: { organizationId: org.id, subject: "Salle trop chaude (session Excel mai)", description: "Un apprenant a signalé une climatisation défaillante.", status: "RESOLUE" } });
   await prisma.improvementAction.create({ data: { organizationId: org.id, title: "Mettre à jour les supports Power BI (nouvelle interface)", owner: "Claire Martin", dueDate: d(2026, 6, 20), status: "EN_COURS" } });
   await prisma.improvementAction.create({ data: { organizationId: org.id, title: "Ajouter un quiz d'évaluation à chaud", owner: "Camille Rivière", dueDate: d(2026, 6, 30), status: "OUVERTE" } });
-  await prisma.feedback.create({ data: { organizationId: org.id, rating: 5, formationTitle: "Power BI — Tableau de bord", comment: "Excellente pédagogie, exemples concrets." } });
+  await prisma.feedback.create({ data: { organizationId: org.id, rating: 5, formationTitle: "Power BI, Tableau de bord", comment: "Excellente pédagogie, exemples concrets." } });
   await prisma.feedback.create({ data: { organizationId: org.id, rating: 4, formationTitle: "Finance d'entreprise", comment: "Très utile pour piloter ma trésorerie." } });
 
   // --- Page publique : FAQ pour Power BI ---

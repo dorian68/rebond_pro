@@ -17,9 +17,9 @@ export default async function AdminCentresPage() {
             {centers.map((o) => (
               <tr key={o.id}>
                 <td style={{ fontWeight: 600 }}>{o.name}</td>
-                <td className="muted">{o.city ?? "—"}</td>
+                <td className="muted">{o.city ?? ""}</td>
                 <td><span className={"badge " + (o.plan === "FREE" ? "badge-neutral" : "badge-positive")}>{o.plan}</span></td>
-                <td className="muted">{o.billingStatus ?? "—"}</td>
+                <td className="muted">{o.billingStatus ?? ""}</td>
                 <td>
                   {o.marketplaceStatus === "APPROVED" ? <span className="badge badge-positive">Validé</span> : o.marketplaceStatus === "REJECTED" ? <span className="badge badge-danger">Refusé</span> : <span className="badge badge-warn">À valider</span>}
                 </td>

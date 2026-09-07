@@ -42,7 +42,9 @@ function rewriteHrefs(html) {
   });
 }
 
-const pick = (re, s, g = 1) => { const m = s.match(re); return m ? m[g].trim() : ""; };
+const dashRegex = new RegExp("[ \\t]*[" + String.fromCodePoint(0x2014) + String.fromCodePoint(0x2015) + "][ \\t]*", "g");
+const cleanText = (value) => value.replace(dashRegex, ", ").replace(/(^|[\\r\\n])([ \\t]*),[ \\t]+/g, "$1$2");
+const pick = (re, s, g = 1) => { const m = s.match(re); return m ? cleanText(m[g].trim()) : ""; };
 
 // ---- excerpts depuis blog.html (les cartes) ----
 const blogHtml = readFileSync(join(SRC, "blog.html"), "utf8");
@@ -66,7 +68,7 @@ const articles = SLUGS.map((slug) => {
   const related = [];
   const relBlock = pick(/<div class="related">([\s\S]*?)<\/article>/, html);
   for (const r of relBlock.matchAll(/<a class="rel-card" href="([^"]+)\.html">\s*<span class="rel-cat">([\s\S]*?)<\/span>\s*<span class="rel-t">([\s\S]*?)<\/span>/g)) {
-    related.push({ slug: r[1], category: r[2].trim(), title: r[3].trim() });
+    related.push({ slug: r[1], category: cleanText(r[2].trim()), title: cleanText(r[3].trim()) });
   }
 
   return {
@@ -86,7 +88,7 @@ const articles = SLUGS.map((slug) => {
   };
 });
 
-const out = `// ⚠️ Fichier GÉNÉRÉ par scripts/gen-blog.mjs — ne pas éditer à la main.
+const out = `// ⚠️ Fichier GÉNÉRÉ par scripts/gen-blog.mjs, ne pas éditer à la main.
 // Source : export Claude Design "blog-lebonrebond".
 
 export type BlogRelated = { slug: string; category: string; title: string };
@@ -113,7 +115,7 @@ export const blogBySlug = (slug: string): BlogArticle | undefined =>
 `;
 
 writeFileSync(join(process.cwd(), "src/content/blog-data.ts"), out, "utf8");
-console.log(`✓ src/content/blog-data.ts généré — ${articles.length} articles`);
+console.log(`✓ src/content/blog-data.ts généré, ${articles.length} articles`);
 for (const a of articles) {
   console.log(`  - ${a.slug} | ${a.category} | ${a.readingMin} | ${a.date} | body ${a.bodyHtml.length}c | related ${a.related.length} | excerpt ${a.excerpt ? "ok" : "MANQUE"}`);
 }

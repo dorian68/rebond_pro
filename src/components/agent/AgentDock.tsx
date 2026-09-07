@@ -82,7 +82,7 @@ function MarkdownContent({ text }: { text: string }) {
       i++; continue;
     }
 
-    // Ordered list — collect consecutive items
+    // Ordered list, collect consecutive items
     if (line.match(/^\d+\.\s/)) {
       const items: React.ReactNode[] = [];
       while (i < lines.length && lines[i].match(/^\d+\.\s/)) {
@@ -94,7 +94,7 @@ function MarkdownContent({ text }: { text: string }) {
       continue;
     }
 
-    // Bullet list — collect consecutive items
+    // Bullet list, collect consecutive items
     if (line.match(/^[-*•]\s/)) {
       const items: React.ReactNode[] = [];
       while (i < lines.length && lines[i].match(/^[-*•]\s/)) {
@@ -112,7 +112,7 @@ function MarkdownContent({ text }: { text: string }) {
       i++; continue;
     }
 
-    // Empty line — small gap
+    // Empty line, small gap
     if (!line.trim()) {
       nodes.push(<div key={i} style={{ height: 6 }} />);
       i++; continue;
@@ -134,7 +134,7 @@ function SocrateAvatar({ size = 28 }: { size?: number }) {
       display: "flex", alignItems: "center", justifyContent: "center",
       boxShadow: `0 2px 10px rgba(36,105,166,.4)`,
     }}>
-      {/* Stylised "S" — serif italic, the hallmark of Socratic thought */}
+      {/* Stylised "S", serif italic, the hallmark of Socratic thought */}
       <svg width={size * 0.56} height={size * 0.56} viewBox="0 0 20 20">
         <text x="10" y="15" textAnchor="middle" fontSize="15" fontWeight="bold" fontStyle="italic" fill="#fff" fontFamily="Georgia, 'Times New Roman', serif">S</text>
       </svg>
@@ -235,7 +235,7 @@ function NudgeBubble({ onOpen, bottomOffset }: { onOpen: () => void; bottomOffse
         {quote.q}
       </p>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: "#23756e", marginBottom: 12 }}>
-        — {quote.a}
+{quote.a}
       </div>
 
       {/* CTA */}
@@ -319,11 +319,11 @@ function agentContext(pathname: string): { intro: string; suggestions: Suggestio
     planning: [{ label: "Meilleurs créneaux", prompt: "Trouve les meilleurs créneaux pour programmer une session." }],
   };
   if (center[seg]) {
-    return { intro: "Je peux analyser votre centre, retrouver des informations, proposer des créneaux et préparer des actions — en toute sécurité.", suggestions: center[seg] };
+    return { intro: "Je peux analyser votre centre, retrouver des informations, proposer des créneaux et préparer des actions, en toute sécurité.", suggestions: center[seg] };
   }
   const cockpitSegs = ["apprenants", "formateurs", "documents", "qualite", "assistant"];
   if (cockpitSegs.includes(seg)) {
-    return { intro: "Je peux analyser votre centre, retrouver des informations et préparer des actions — en toute sécurité.", suggestions: center.dashboard };
+    return { intro: "Je peux analyser votre centre, retrouver des informations et préparer des actions, en toute sécurité.", suggestions: center.dashboard };
   }
 
   return {
@@ -360,7 +360,7 @@ function Landing({ pathname, onPick }: { pathname: string; onPick: (prompt: stri
         {intro}
       </p>
 
-      {/* Suggestion chips — inchangés */}
+      {/* Suggestion chips, inchangés */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left" }}>
         {suggestions.map((s, i) => (
           <button
@@ -418,10 +418,10 @@ export function AgentDock({
     const textRoutes = extractions.filter((r) => r.mode === "text");
     const visionRoutes = extractions.filter((r) => r.mode === "vision");
 
-    // Construit le bloc texte à injecter dans le message (Route A — 0 token vision)
+    // Construit le bloc texte à injecter dans le message (Route A, 0 token vision)
     const textBlock = textRoutes.length > 0
       ? "\n\n" + textRoutes.map((r) =>
-          `---\n📄 **${r.filename}** — ${r.pageCount} page(s) extraites sans vision (${(r.charCount ?? 0).toLocaleString()} caractères)\n\n${r.extractedText}\n---`
+          `---\n📄 **${r.filename}**, ${r.pageCount} page(s) extraites sans vision (${(r.charCount ?? 0).toLocaleString()} caractères)\n\n${r.extractedText}\n---`
         ).join("\n\n")
       : "";
 
@@ -437,7 +437,7 @@ export function AgentDock({
 
     a.sendMessage(finalText, visionAttachments.length > 0 ? visionAttachments : undefined);
     // Override attachmentNames sur le dernier message (hook ne l'expose pas directement,
-    // les noms sont déjà inclus dans le texte et dans le bloc textuel — suffisant pour l'UX)
+    // les noms sont déjà inclus dans le texte et dans le bloc textuel, suffisant pour l'UX)
     void attachmentNames; // référencé pour éviter le warning unused
 
     setDraft("");
@@ -522,7 +522,7 @@ export function AgentDock({
           <aside
             className="agui-panel"
             role="dialog"
-            aria-label="Socrate — Intelligence agentique"
+            aria-label="Socrate, Intelligence agentique"
             style={{ position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 90, width: "min(440px, 100vw)", background: "var(--surface)", borderLeft: "1px solid var(--border)", boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column" }}
           >
             {/* ── Header gradient premium ── */}
@@ -640,7 +640,7 @@ export function AgentDock({
 
             {/* ── Composer ── */}
             <div style={{ borderTop: "1px solid var(--border-2)", padding: 12, flexShrink: 0 }}>
-              {/* Fichiers — chips avec indicateur de route (A=texte / B=vision) */}
+              {/* Fichiers, chips avec indicateur de route (A=texte / B=vision) */}
               {(extractions.length > 0 || extracting) && (
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                   {extractions.map((r, i) => {

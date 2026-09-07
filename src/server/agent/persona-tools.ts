@@ -20,7 +20,7 @@ function isValidEmail(v: string): boolean {
   return EMAIL_RE.test(v.trim());
 }
 
-/** Nettoyage minimal — supprime les balises HTML pour éviter l'injection dans les emails. */
+/** Nettoyage minimal, supprime les balises HTML pour éviter l'injection dans les emails. */
 function sanitizeText(v: unknown, maxLen = 4000): string {
   return String(v ?? "")
     .replace(/<[^>]*>/g, "")
@@ -131,7 +131,7 @@ export const PERSONA_TOOLS: AgentTool[] = [
         };
       });
 
-      const text = `MICRO-BILAN DE COMPÉTENCES — DONNÉES DISPONIBLES
+      const text = `MICRO-BILAN DE COMPÉTENCES, DONNÉES DISPONIBLES
 
 PROFIL ANALYSÉ :
 ${args.profile_summary}
@@ -168,13 +168,13 @@ GARDE-FOUS OBLIGATOIRES :
       return { textForLLM: text, uiBlock: block };
     },
   },
-  // ── Socrate — capture email & lead ──────────────────────────────────────────
+  // ── Socrate, capture email & lead ──────────────────────────────────────────
 
   {
     name: "validate_user_email",
     description: `Valide l'adresse email fournie par l'utilisateur et confirme si elle est syntaxiquement correcte.
 Utiliser dès que l'utilisateur communique une adresse email.
-Ne stocke rien — retourne simplement ok ou une erreur de format.
+Ne stocke rien, retourne simplement ok ou une erreur de format.
 TOUJOURS appeler cet outil avant send_skill_assessment_email ou request_contact.`,
     input_schema: {
       type: "object",
@@ -201,7 +201,7 @@ TOUJOURS appeler cet outil avant send_skill_assessment_email ou request_contact.
     description: `Envoie le bilan de compétences complet à l'adresse email validée de l'utilisateur et l'enregistre en base.
 PRÉREQUIS : validate_user_email doit avoir été appelé et retourné valid=true.
 IMPORTANT : N'appeler qu'UNE SEULE FOIS par conversation. Vérifier dans le contexte qu'aucun bilan n'a déjà été envoyé.
-L'utilisateur NE PEUT PAS choisir de destinataire alternatif — le seul destinataire est l'email validé ci-dessus.`,
+L'utilisateur NE PEUT PAS choisir de destinataire alternatif, le seul destinataire est l'email validé ci-dessus.`,
     input_schema: {
       type: "object",
       properties: {
@@ -234,7 +234,7 @@ L'utilisateur NE PEUT PAS choisir de destinataire alternatif — le seul destina
     execute: async (_ctx, args) => {
       const email = String(args.user_email ?? "").trim();
       if (!isValidEmail(email)) {
-        return { textForLLM: JSON.stringify({ sent: false, error: "Email invalide — appeler validate_user_email d'abord." }) };
+        return { textForLLM: JSON.stringify({ sent: false, error: "Email invalide, appeler validate_user_email d'abord." }) };
       }
       // Anti-abus (flux visiteur anonyme) : borne par destinataire et au global.
       if (!rateLimit(`socrate:assessment:${email.toLowerCase()}`, 3, 86_400_000) || !rateLimit("socrate:assessment:global", 100, 86_400_000)) {
@@ -298,7 +298,7 @@ L'utilisateur NE PEUT PAS choisir de destinataire alternatif — le seul destina
     name: "request_contact",
     description: `Enregistre la demande de contact d'un lead et notifie l'équipe Le Bon Rebond par email interne.
 Utiliser quand l'utilisateur demande : à être recontacté, à parler à un conseiller, plus d'informations, un rappel, un partenariat centre, etc.
-L'email interne est envoyé UNIQUEMENT aux destinataires administrateurs configurés — l'utilisateur NE PEUT PAS modifier les destinataires.
+L'email interne est envoyé UNIQUEMENT aux destinataires administrateurs configurés, l'utilisateur NE PEUT PAS modifier les destinataires.
 N'appeler qu'UNE SEULE FOIS par conversation (vérifier le contexte).
 Informations minimales requises : email. Collecter prénom/nom avant d'appeler si possible.`,
     input_schema: {
@@ -334,7 +334,7 @@ Informations minimales requises : email. Collecter prénom/nom avant d'appeler s
     execute: async (_ctx, args) => {
       const email = String(args.email ?? "").trim();
       if (!isValidEmail(email)) {
-        return { textForLLM: JSON.stringify({ saved: false, error: "Email invalide — demander à l'utilisateur de le corriger." }) };
+        return { textForLLM: JSON.stringify({ saved: false, error: "Email invalide, demander à l'utilisateur de le corriger." }) };
       }
       // Anti-abus (flux visiteur anonyme) : borne par lead et au global.
       if (!rateLimit(`socrate:lead:${email.toLowerCase()}`, 3, 86_400_000) || !rateLimit("socrate:lead:global", 100, 86_400_000)) {

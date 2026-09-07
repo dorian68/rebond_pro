@@ -4,15 +4,15 @@
     "generatedAt": "2026-08-15T12:00:00.000Z",
     "warning": "Registre documentaire de prototype. VERIFIED qualifie uniquement l'assertion citée. Il ne confirme ni disponibilité, ni partenariat, ni éligibilité individuelle, ni coût, ni financement accordé.",
     "missingSources": [
-      "LE_BON_REBOND_STRAT*.xlsx — absent du dépôt audité",
-      "Support_BMO26_v5.pdf — absent localement ; seule la source publique officielle est référencée",
-      "Fichiers locaux ACTEURS, ENTREPRISES, CENTRES/CFA, PARTENAIRES, PRESCRIPTEURS, OPPORTUNITES et EMPLOITON — absents du dépôt audité"
+      "LE_BON_REBOND_STRAT*.xlsx, absent du dépôt audité",
+      "Support_BMO26_v5.pdf, absent localement ; seule la source publique officielle est référencée",
+      "Fichiers locaux ACTEURS, ENTREPRISES, CENTRES/CFA, PARTENAIRES, PRESCRIPTEURS, OPPORTUNITES et EMPLOITON, absents du dépôt audité"
     ]
   },
   "sources": [
     {
       "id": "source-cci-langues-carte",
-      "title": "CCI IG — cours de langues à la carte",
+      "title": "CCI IG, cours de langues à la carte",
       "publisher": "CCI des Îles de Guadeloupe",
       "url": "https://www.guadeloupe.cci.fr/produit/cours-de-langues-la-carte",
       "kind": "PUBLIC_OFFICIAL",
@@ -37,7 +37,7 @@
     },
     {
       "id": "source-mission-locale-guadeloupe",
-      "title": "Mission Locale de Guadeloupe — services aux jeunes",
+      "title": "Mission Locale de Guadeloupe, services aux jeunes",
       "publisher": "Mission Locale de Guadeloupe",
       "url": "https://missionlocaleguadeloupe.fr/jeunes",
       "kind": "PUBLIC_OFFICIAL",
@@ -49,7 +49,7 @@
     },
     {
       "id": "source-plie-cap-excellence",
-      "title": "PLIE Cap Excellence — définition du dispositif",
+      "title": "PLIE Cap Excellence, définition du dispositif",
       "publisher": "Communauté d'agglomération Cap Excellence",
       "url": "https://capexcellence.net/vivre-habiter/social/plan-local-pour-linsertion-et-lemploi-plie/433-qu-est-ce-que-le-dispositif-plie",
       "kind": "PUBLIC_OFFICIAL",
@@ -133,7 +133,7 @@
     },
     {
       "id": "source-akto-guadeloupe",
-      "title": "AKTO — contacts entreprises, Guadeloupe",
+      "title": "AKTO, contacts entreprises, Guadeloupe",
       "publisher": "AKTO",
       "url": "https://www.akto.fr/nous-contacter/entreprises/",
       "kind": "PUBLIC_OFFICIAL",
@@ -145,7 +145,7 @@
     },
     {
       "id": "source-mobilizy",
-      "title": "Mobil'Izy — mobilité solidaire",
+      "title": "Mobil'Izy, mobilité solidaire",
       "publisher": "Mobil'Izy",
       "url": "https://mobilizy.org/",
       "kind": "PUBLIC_OFFICIAL",
@@ -169,7 +169,7 @@
     },
     {
       "id": "source-umih-97",
-      "title": "UMIH 97 — La Guadeloupe",
+      "title": "UMIH 97, La Guadeloupe",
       "publisher": "UMIH",
       "url": "https://www.umih.fr/le-reseau/structures/91/umih-97-la-guadeloupe.html",
       "kind": "PUBLIC_OFFICIAL",
@@ -181,7 +181,7 @@
     },
     {
       "id": "source-cci-formation",
-      "title": "CCI Formation — cours collectifs de langues",
+      "title": "CCI Formation, cours collectifs de langues",
       "publisher": "CCI des Îles de Guadeloupe",
       "url": "https://www.guadeloupe.cci.fr/trouver-ma-solution/business/formation",
       "kind": "PUBLIC_OFFICIAL",
@@ -205,7 +205,7 @@
     },
     {
       "id": "source-rsma-agent-hotellerie",
-      "title": "RSMA Guadeloupe — Agent d'hôtellerie",
+      "title": "RSMA Guadeloupe, Agent d'hôtellerie",
       "publisher": "RSMA Guadeloupe",
       "url": "https://www.rsma.gp/30-metiers.html?catid=30&id=16&view=formation",
       "kind": "PUBLIC_OFFICIAL",
@@ -229,7 +229,7 @@
     },
     {
       "id": "source-bmo-2026",
-      "title": "Besoins en main-d'œuvre 2026 — Guadeloupe",
+      "title": "Besoins en main-d'œuvre 2026, Guadeloupe",
       "publisher": "France Travail",
       "url": "https://statistiques.francetravail.org/bmo/bmo?fa=01&fg=IZ&lc=0&pp=2026&ss=1",
       "kind": "PUBLIC_OFFICIAL",
@@ -241,7 +241,7 @@
     },
     {
       "id": "source-bmo-support-2026",
-      "title": "Support BMO 2026 — Guadeloupe & Îles du Nord",
+      "title": "Support BMO 2026, Guadeloupe & Îles du Nord",
       "publisher": "France Travail Guadeloupe & Îles du Nord",
       "url": "https://www.francetravail.org/files/live/sites/peorg-gua/files/documents/Statistiques%20%26%20Analyses/Support_BMO26_v5.pdf",
       "kind": "PUBLIC_OFFICIAL",
@@ -253,7 +253,7 @@
     },
     {
       "id": "source-ft-offer-209wmfb",
-      "title": "Offre France Travail 209WMFB — Réceptionniste",
+      "title": "Offre France Travail 209WMFB, Réceptionniste",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/209WMFB",
       "kind": "PUBLIC_OFFICIAL",
@@ -265,7 +265,7 @@
     },
     {
       "id": "source-ft-offer-210qcnl",
-      "title": "Offre France Travail 210QCNL — Conseiller vendeur en voyages",
+      "title": "Offre France Travail 210QCNL, Conseiller vendeur en voyages",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/210QCNL",
       "kind": "PUBLIC_OFFICIAL",
@@ -277,7 +277,7 @@
     },
     {
       "id": "source-ft-offer-211dfsx",
-      "title": "Offre France Travail 211DFSX — Extra serveur",
+      "title": "Offre France Travail 211DFSX, Extra serveur",
       "publisher": "France Travail",
       "url": "https://candidat.francetravail.fr/offres/recherche/detail/211DFSX",
       "kind": "PUBLIC_OFFICIAL",
@@ -302,7 +302,7 @@
     {
       "id": "source-budget-internal",
       "title": "Budgets AAP Le Bon Rebond",
-      "publisher": "Le Bon Rebond — document interne",
+      "publisher": "Le Bon Rebond, document interne",
       "url": null,
       "kind": "INTERNAL_FILE",
       "checkedAt": "2026-08-15T12:00:00.000Z",
@@ -314,7 +314,7 @@
     {
       "id": "source-cofunding-internal",
       "title": "Cofinancements Partenaires AAP",
-      "publisher": "Le Bon Rebond — document interne",
+      "publisher": "Le Bon Rebond, document interne",
       "url": null,
       "kind": "INTERNAL_FILE",
       "checkedAt": "2026-08-15T12:00:00.000Z",
@@ -326,7 +326,7 @@
     {
       "id": "source-evidence-internal",
       "title": "Matrice Prestations Financeurs Preuve",
-      "publisher": "Le Bon Rebond — document interne",
+      "publisher": "Le Bon Rebond, document interne",
       "url": null,
       "kind": "INTERNAL_FILE",
       "checkedAt": "2026-08-15T12:00:00.000Z",
@@ -342,7 +342,7 @@
       "label": "Projets de recrutement hébergement-restauration",
       "value": 1994,
       "unit": "projets",
-      "scope": "Guadeloupe — hébergement et restauration",
+      "scope": "Guadeloupe, hébergement et restauration",
       "period": "BMO 2026",
       "sourceId": "source-bmo-support-2026",
       "caveat": "Valeur exacte du PDF officiel ; l'interface BMO arrondit à 2 000. Signal agrégé, jamais une opportunité activable."
@@ -352,7 +352,7 @@
       "label": "Part des projets jugés difficiles",
       "value": 38.5,
       "unit": "%",
-      "scope": "Guadeloupe — hébergement et restauration",
+      "scope": "Guadeloupe, hébergement et restauration",
       "period": "BMO 2026",
       "sourceId": "source-bmo-2026",
       "caveat": "Perception agrégée des employeurs, pas prédiction de réussite individuelle."
@@ -362,7 +362,7 @@
       "label": "Part des projets saisonniers",
       "value": 59,
       "unit": "%",
-      "scope": "Guadeloupe — hébergement et restauration",
+      "scope": "Guadeloupe, hébergement et restauration",
       "period": "BMO 2026",
       "sourceId": "source-bmo-2026",
       "caveat": "Signal sectoriel uniquement ; le statut de chaque offre doit être vérifié."
@@ -372,14 +372,14 @@
       "label": "Offres enregistrées dans le tourisme",
       "value": 2799,
       "unit": "offres",
-      "scope": "Guadeloupe — secteur du tourisme",
+      "scope": "Guadeloupe, secteur du tourisme",
       "period": "12 mois à fin novembre 2025",
       "sourceId": "source-tourisme-2026",
       "caveat": "Volume historique ; ne reflète pas un stock d'offres actives."
     },
     {
       "id": "signal-bmo-basin-iles-du-nord",
-      "label": "Projets de recrutement — Îles du Nord",
+      "label": "Projets de recrutement, Îles du Nord",
       "value": 940,
       "unit": "projets",
       "scope": "Bassin Îles du Nord",
@@ -389,7 +389,7 @@
     },
     {
       "id": "signal-bmo-basin-centre",
-      "label": "Projets de recrutement — Centre",
+      "label": "Projets de recrutement, Centre",
       "value": 510,
       "unit": "projets",
       "scope": "Bassin Centre",
@@ -399,7 +399,7 @@
     },
     {
       "id": "signal-bmo-basin-basse-terre",
-      "label": "Projets de recrutement — Basse-Terre",
+      "label": "Projets de recrutement, Basse-Terre",
       "value": 330,
       "unit": "projets",
       "scope": "Bassin Basse-Terre",
@@ -409,7 +409,7 @@
     },
     {
       "id": "signal-bmo-basin-grande-terre",
-      "label": "Projets de recrutement — Grande-Terre",
+      "label": "Projets de recrutement, Grande-Terre",
       "value": 180,
       "unit": "projets",
       "scope": "Bassin Grande-Terre",
@@ -419,7 +419,7 @@
     },
     {
       "id": "signal-bmo-basin-marie-galante",
-      "label": "Projets de recrutement — Marie-Galante",
+      "label": "Projets de recrutement, Marie-Galante",
       "value": 40,
       "unit": "projets",
       "scope": "Bassin Marie-Galante",
@@ -485,7 +485,7 @@
   "budgetScenarios": [
     {
       "id": "budget-aap1-jeunes",
-      "name": "AAP 1 — Jeunes",
+      "name": "AAP 1, Jeunes",
       "participants": 150,
       "durationMonths": 18,
       "totalCents": 38000000,
@@ -497,7 +497,7 @@
     },
     {
       "id": "budget-aap2-decrochage",
-      "name": "AAP 2 — Décrochage",
+      "name": "AAP 2, Décrochage",
       "participants": 90,
       "durationMonths": 12,
       "totalCents": 23190000,
@@ -509,7 +509,7 @@
     },
     {
       "id": "budget-aap3-as-rup",
-      "name": "AAP 3 — AS RUP",
+      "name": "AAP 3, AS RUP",
       "participants": 180,
       "durationMonths": 24,
       "totalCents": 54800000,
@@ -821,10 +821,10 @@
     {
       "id": "service-cci-anglais-collectif",
       "actorId": "actor-cci-iles-guadeloupe",
-      "name": "Cours d'anglais à la carte — tourisme et hôtellerie",
+      "name": "Cours d'anglais à la carte, tourisme et hôtellerie",
       "description": "Cours d'anglais individuel ou en groupe de deux à quatre, adaptable aux situations de tourisme, d'hôtellerie, d'accueil client, de réservation et de restauration publiées par la CCI.",
       "capabilitiesProvided": ["DELIVER_TRAINING"],
-      "skillsDeveloped": ["Anglais professionnel — tourisme, hôtellerie et accueil client"],
+      "skillsDeveloped": ["Anglais professionnel, tourisme, hôtellerie et accueil client"],
       "needsResolved": ["LANGUAGE", "SKILL_GAP"],
       "targetPublic": [],
       "territory": ["Guadeloupe"],
@@ -890,7 +890,7 @@
       "id": "opportunity-ft-209wmfb",
       "providerActorId": "actor-provider-unresolved-209wmfb",
       "type": "OTHER",
-      "title": "Réceptionniste — offre 209WMFB archivée",
+      "title": "Réceptionniste, offre 209WMFB archivée",
       "occupationId": "demo-occupation-receptionniste-hotellerie",
       "location": "Terre-de-Haut",
       "schedule": "39 h ; horaires variables, week-ends et jours fériés selon l'offre consultée.",
@@ -916,9 +916,9 @@
       "id": "opportunity-ft-210qcnl",
       "providerActorId": "actor-provider-unresolved-210qcnl",
       "type": "CDD",
-      "title": "Conseiller vendeur en voyages — offre 210QCNL archivée",
+      "title": "Conseiller vendeur en voyages, offre 210QCNL archivée",
       "occupationId": null,
-      "location": "Guadeloupe — lieu précis à vérifier sur la fiche",
+      "location": "Guadeloupe, lieu précis à vérifier sur la fiche",
       "schedule": "35 h avec samedi selon l'offre consultée.",
       "startDate": null,
       "endDate": null,
@@ -941,7 +941,7 @@
       "id": "opportunity-ft-211dfsx",
       "providerActorId": "actor-provider-unresolved-211dfsx",
       "type": "CDD",
-      "title": "Extra serveur — offre 211DFSX archivée",
+      "title": "Extra serveur, offre 211DFSX archivée",
       "occupationId": null,
       "location": "Le Gosier",
       "schedule": "35 h ; week-ends et jours fériés selon l'offre consultée.",

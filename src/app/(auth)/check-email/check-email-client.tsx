@@ -20,7 +20,7 @@ export function CheckEmailClient({ email, deliveryFailed }: { email: string; del
         <button className="btn btn-secondary btn-block" disabled={pending}>{pending ? "Envoi..." : "Renvoyer l'email"}</button>
       </form>
 
-      {/* Sorties — le parcours n'est jamais bloqué */}
+      {/* Sorties, le parcours n'est jamais bloqué */}
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 9, textAlign: "center" }}>
         <Link href="/login" style={{ color: "var(--primary)", fontWeight: 700, fontSize: 13 }}>
           J&apos;ai déjà confirmé → me connecter

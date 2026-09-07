@@ -45,7 +45,7 @@ export function EnrollPanel({ sessionId, learners }: { sessionId: string; learne
     <form action={add} style={{ display: "flex", gap: 8, alignItems: "center" }}>
       <select className="select" name="learnerId" required style={{ height: 34, fontSize: 13 }}>
         <option value="">Choisir un apprenant…</option>
-        {learners.map((l) => <option key={l.id} value={l.id}>{l.firstName} {l.lastName}{l.company ? ` — ${l.company}` : ""}</option>)}
+        {learners.map((l) => <option key={l.id} value={l.id}>{l.firstName} {l.lastName}{l.company ? `, ${l.company}` : ""}</option>)}
       </select>
       <button type="submit" className="btn btn-secondary btn-sm" disabled={pending}><Icon name="plus" size={15} /> Inscrire</button>
     </form>

@@ -230,7 +230,7 @@ function AbonnementTab({ billing, role }: { billing: BillingState; role: string 
             <h3 style={{ fontWeight: 700, fontSize: 15 }}>Votre abonnement</h3>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 14 }}>
               <KV label="Plan actuel" value={billing.planName} />
-              <KV label="Statut" value={billing.billingStatus ?? "—"} />
+              <KV label="Statut" value={billing.billingStatus ?? ""} />
               {billing.trialEndsAt && <KV label="Fin d'essai" value={new Date(billing.trialEndsAt).toLocaleDateString("fr-FR")} />}
               {billing.currentPeriodEnd && <KV label="Prochaine échéance" value={new Date(billing.currentPeriodEnd).toLocaleDateString("fr-FR")} />}
             </div>

@@ -201,7 +201,7 @@ NEXT STEPS
 - Action 3
 
 DÉCISIONS
-Date — décision prise — justification.
+Date, décision prise, justification.
 
 QUESTIONS OUVERTES
 - Question 1

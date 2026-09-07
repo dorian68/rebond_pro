@@ -30,7 +30,7 @@ export async function listDocuments(ctx: TenantContext) {
   return docs.map((d) => {
     const target = d.enrollment
       ? `${d.enrollment.learner.firstName} ${d.enrollment.learner.lastName}`
-      : d.session?.formation.title ?? d.formation?.title ?? "—";
+      : d.session?.formation.title ?? d.formation?.title ?? "";
     return {
       id: d.id, type: d.type, status: d.status, fileUrl: d.fileUrl, fileName: d.fileName, mimeType: d.mimeType,
       target, generatedAt: d.generatedAt, sentAt: d.sentAt,
@@ -107,7 +107,7 @@ export async function documentSuggestions(ctx: TenantContext) {
       ]);
       return {
         sessionId: candidate.sessionId,
-        label: `${DOC_LABELS[candidate.type] ?? candidate.type} — ${candidate.formationTitle}`,
+        label: `${DOC_LABELS[candidate.type] ?? candidate.type}, ${candidate.formationTitle}`,
         type: candidate.type,
         count: candidate.count,
         reason: candidate.reason,
