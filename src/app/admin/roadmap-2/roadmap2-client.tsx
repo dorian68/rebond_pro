@@ -65,6 +65,8 @@ type ReviewPreset = "overview" | "weekly" | "decisions" | "dueSoon";
 
 const VIEW_PREFERENCES_PREFIX = "rebondpro:roadmap2:view:v1";
 const LAST_WORKSPACE_STORAGE_KEY = "rebondpro:roadmap2:last-workspace:v1";
+const DRIVE_STATUS_TIMEOUT_MS = 15_000;
+const DRIVE_STATUS_TIMEOUT_MESSAGE = "La vérification de Google Drive prend trop de temps. Réessayez sans fermer la roadmap.";
 
 function isDefaultRoadmap2Filters(filters: Roadmap2Filters) {
   return JSON.stringify(filters) === JSON.stringify(EMPTY_FILTERS);
@@ -140,6 +142,8 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false, workspace
   const modalPanelRef = useRef<HTMLElement>(null);
   const modalReturnFocusRef = useRef<HTMLElement | null>(null);
   const permissionOperationRef = useRef<{ signature: string; key: string } | null>(null);
+  const driveStatusRequestRef = useRef(0);
+  const driveStatusRef = useRef<DriveStatus | null>(null);
   const preferencesWorkspaceRef = useRef<string | null>(null);
   const closeEditor = useCallback(() => setEditor(null), []);
   const driveAccountLabel = roadmap2DriveAccountLabel(driveStatus?.account);
@@ -147,6 +151,10 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false, workspace
   const driveReconnect = roadmap2DriveNeedsReconnect(driveStatus?.status);
   const driveStatusText = roadmap2DriveStatusLabel(driveStatus?.status);
   const driveUnavailable = Boolean(driveStatusError || driveStatus?.enabled === false || driveStatus?.status === "UNKNOWN");
+
+  useEffect(() => {
+    driveStatusRef.current = driveStatus;
+  }, [driveStatus]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -213,17 +221,34 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false, workspace
   }, [toast]);
 
   const refreshDriveStatus = useCallback(async (showError = false, background = false) => {
-    if (!background) setDriveStatusLoading(true);
-    const result = await getRoadmap2DriveStatus(workspace.key);
+    const requestId = ++driveStatusRequestRef.current;
+    const hasKnownStatus = Boolean(driveStatusRef.current);
+    if (!background && !hasKnownStatus) setDriveStatusLoading(true);
+    let result: Awaited<ReturnType<typeof getRoadmap2DriveStatus>>;
+    try {
+      result = await Promise.race([
+        getRoadmap2DriveStatus(workspace.key),
+        new Promise<typeof result>((resolve) => window.setTimeout(() => resolve({ ok: false, code: "UNAVAILABLE", error: DRIVE_STATUS_TIMEOUT_MESSAGE }), DRIVE_STATUS_TIMEOUT_MS)),
+      ]);
+    } catch {
+      result = { ok: false, code: "UNAVAILABLE", error: "La vérification de Google Drive a échoué. Réessayez." };
+    }
+    if (requestId !== driveStatusRequestRef.current) return result;
     if (result.ok) {
+      driveStatusRef.current = result.data;
       setDriveStatus(result.data);
       setDriveStatusError(null);
-    } else if (!background) {
+    } else if (!driveStatusRef.current) {
       setDriveStatus(null);
       setDriveStatusError(result.error);
       if (showError) setDriveError(result.error);
+    } else if (showError) {
+      // La dernière connexion connue reste utilisable pendant une panne de
+      // vérification. L'action fournisseur revalidera toujours le compte côté
+      // serveur avant d'écrire dans Drive.
+      setDriveError(result.error);
     }
-    if (!background) setDriveStatusLoading(false);
+    setDriveStatusLoading(false);
     return result;
   }, [workspace.key]);
 
@@ -464,13 +489,18 @@ export function Roadmap2Client({ initialData, openDriveOnLoad = false, workspace
   async function connectDrive() {
     setDriveBusy("connect");
     setDriveError(null);
-    const result = await connectRoadmap2Drive(workspace.key);
-    if (result.ok) {
-      window.location.assign(result.data.url);
-      return;
+    try {
+      const result = await connectRoadmap2Drive(workspace.key);
+      if (result.ok) {
+        window.location.assign(result.data.url);
+        return;
+      }
+      setDriveError(result.error);
+    } catch {
+      setDriveError("La demande de connexion Google Drive n’a pas abouti. Réessayez.");
+    } finally {
+      setDriveBusy(null);
     }
-    setDriveError(result.error);
-    setDriveBusy(null);
   }
 
   async function loadDriveFolder(folderId?: string, pushHistory = false) {

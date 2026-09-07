@@ -38,8 +38,8 @@ function refresh() {
 }
 
 export async function getRoadmap2DriveStatus(workspaceKey: string): Promise<Roadmap2DriveActionResult<Roadmap2DriveStatus>> {
-  const { workspaceId } = await resolveRoadmap2Context(workspaceKey);
   try {
+    const { workspaceId } = await resolveRoadmap2Context(workspaceKey);
     return { ok: true, data: await roadmap2DriveAutomation.status(workspaceId) };
   } catch (error) {
     return failure(error);
@@ -47,8 +47,8 @@ export async function getRoadmap2DriveStatus(workspaceKey: string): Promise<Road
 }
 
 export async function connectRoadmap2Drive(workspaceKey: string): Promise<Roadmap2DriveActionResult<{ url: string }>> {
-  const { workspaceId } = await resolveRoadmap2Context(workspaceKey);
   try {
+    const { workspaceId } = await resolveRoadmap2Context(workspaceKey);
     return { ok: true, data: { url: await roadmap2DriveAutomation.authLink(workspaceId, workspaceKey) } };
   } catch (error) {
     return failure(error);

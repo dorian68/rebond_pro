@@ -152,6 +152,7 @@ export type Roadmap2DriveDriver = {
 export type Roadmap2DriveConnectionStore = {
   get(workspaceId: string): Promise<string | null>;
   pin(workspaceId: string, connectedAccountId: string): Promise<void>;
+  clear?(workspaceId: string): Promise<void>;
 };
 
 export class Roadmap2DriveError extends Error {
@@ -229,7 +230,9 @@ function rankRoadmap2DriveConnections(accounts: unknown, preferredAccountId?: st
   const preferred = preferredAccountId
     ? candidates.find((candidate) => candidate.id === preferredAccountId && normalizeConnectionStatus(candidate.status) === "ACTIVE")
     : null;
-  return preferred ? [preferred, ...candidates.filter((candidate) => candidate !== preferred)] : candidates;
+  // Une connexion déjà enregistrée est une frontière d'identité : si elle
+  // expire ou disparaît, ne basculez jamais silencieusement sur un autre compte.
+  return preferredAccountId ? (preferred ? [preferred] : candidates.filter((candidate) => candidate.id === preferredAccountId)) : candidates;
 }
 
 export function selectRoadmap2DriveConnection(accounts: unknown, preferredAccountId?: string | null): { accountId: string | null; connected: boolean; status: Roadmap2DriveConnectionStatus; alias: string | null } {
@@ -324,9 +327,17 @@ const composioDriver: Roadmap2DriveDriver = {
     if (!request.redirectUrl) throw new Roadmap2DriveError("Le fournisseur OAuth n’a pas retourné de lien d’autorisation.");
     return request.redirectUrl;
   },
-  execute: (entityId, tool, args) => {
-    const connectedAccountId = activeComposioConnections.get(entityId);
-    return composio().tools.execute(tool, { userId: entityId, ...(connectedAccountId ? { connectedAccountId } : {}), arguments: args });
+  execute: async (entityId, tool, args) => {
+    const workspaceId = entityId.startsWith("lbr_roadmap2_") ? entityId.slice("lbr_roadmap2_".length) : "";
+    // Le cache mémoire accélère le chemin chaud, mais la base reste la source
+    // de vérité afin qu'un redémarrage ou un autre conteneur conserve le même
+    // compte Google. Aucun appel Drive ne doit partir sur un compte implicite.
+    const persisted = workspaceId
+      ? await persistentConnectionStore.get(workspaceId)
+      : null;
+    const connectedAccountId = persisted ?? activeComposioConnections.get(entityId);
+    if (!connectedAccountId) throw new Roadmap2DriveAuthRequiredError();
+    return composio().tools.execute(tool, { userId: entityId, connectedAccountId, arguments: args });
   },
   async uploadText(name, content) {
     const file = new File([content], `${name}.txt`, { type: "text/plain;charset=utf-8" });
@@ -342,9 +353,19 @@ const persistentConnectionStore: Roadmap2DriveConnectionStore = {
     return workspace.driveConnectedAccountId;
   },
   async pin(workspaceId, connectedAccountId) {
+    await prisma.roadmap2Workspace.updateMany({
+      where: { id: workspaceId, driveConnectedAccountId: null },
+      data: { driveConnectedAccountId: connectedAccountId },
+    });
+    const persisted = await this.get(workspaceId);
+    if (persisted !== connectedAccountId) {
+      throw new Roadmap2DriveError("Un autre compte Drive a été associé à cette roadmap. Rechargez sa configuration avant de continuer.");
+    }
+  },
+  async clear(workspaceId) {
     await prisma.roadmap2Workspace.update({
       where: { id: workspaceId },
-      data: { driveConnectedAccountId: connectedAccountId },
+      data: { driveConnectedAccountId: null },
     });
   },
 };
@@ -473,7 +494,11 @@ async function resolveConnectedStatus(driver: Roadmap2DriveDriver, workspaceId: 
 async function ensureConnected(driver: Roadmap2DriveDriver, workspaceId: string, connectionStore: Roadmap2DriveConnectionStore | null) {
   if (!driver.enabled()) throw new Roadmap2DriveError("L’intégration Google Drive n’est pas configurée sur le serveur.");
   const status = await resolveConnectedStatus(driver, workspaceId, connectionStore);
-  if (!status.connected) throw new Roadmap2DriveAuthRequiredError();
+  if (!status.connected) {
+    const persisted = await connectionStore?.get(workspaceId);
+    if (persisted) throw new Roadmap2DriveError("Le compte Google Drive enregistré n’est plus accessible. Reconnectez ce même compte pour continuer.");
+    throw new Roadmap2DriveAuthRequiredError();
+  }
 }
 
 async function metadata(driver: Roadmap2DriveDriver, workspaceId: string, fileId: string, fields = "id,name,mimeType,parents,trashed,webViewLink,modifiedTime,size") {
@@ -744,6 +769,9 @@ export function createRoadmap2DriveAutomation(
       const callback = `${base}/admin/roadmap-2/google-drive/callback?roadmap=${encodeURIComponent(workspaceKey)}`;
       const url = new URL(await driver.authLink(entityId(workspaceId), callback));
       if (url.protocol !== "https:" || !/(^|\.)(composio\.dev|composio\.ai|google\.com)$/.test(url.hostname.toLowerCase())) throw new Roadmap2DriveError("Lien d’autorisation Google invalide.");
+      // Une reconnexion explicite autorise le fournisseur à créer une nouvelle
+      // connexion. La prochaine vérification la sélectionnera et la repinchera.
+      await connectionStore?.clear?.(workspaceId);
       return url.toString();
     },
 

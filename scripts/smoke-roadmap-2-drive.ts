@@ -189,9 +189,11 @@ runner("roadmap_2_drive_smoke", async () => {
   const driver = new FakeDrive();
   let pinnedAccountId: string | null = null;
   let pinCount = 0;
+  let clearCount = 0;
   const connectionStore = {
     get: async () => pinnedAccountId,
     pin: async (_workspaceId: string, connectedAccountId: string) => { pinnedAccountId = connectedAccountId; pinCount += 1; },
+    clear: async () => { pinnedAccountId = null; clearCount += 1; },
   };
   const drive = createRoadmap2DriveAutomation(driver, undefined, connectionStore);
   const workspaceId = "workspace-drive-smoke";
@@ -215,7 +217,7 @@ runner("roadmap_2_drive_smoke", async () => {
     { id: "active-fallback", status: "ACTIVE", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-12T12:00:00.000Z" },
     { id: "expired-pinned", status: "EXPIRED", toolkit: { slug: "googledrive" }, updatedAt: "2026-08-13T12:00:00.000Z" },
   ] }, "expired-pinned");
-  assert(expiredPreferred.accountId === "active-fallback" && expiredPreferred.connected, "Un compte épinglé expiré doit céder la place à une connexion active disponible.");
+  assert(expiredPreferred.accountId === "expired-pinned" && !expiredPreferred.connected && expiredPreferred.status === "EXPIRED", "Un compte Drive épinglé expiré doit rester associé et demander une reconnexion explicite.");
   const expiredSelected = selectRoadmap2DriveConnection({ items: [{ id: "expired", status: "EXPIRED", toolkit: { slug: "googledrive" } }] });
   assert(!expiredSelected.connected && expiredSelected.status === "EXPIRED", "Une autorisation expirée doit rester distincte d’une absence de connexion.");
   assert(selectRoadmap2DriveConnection({ items: [] }).status === "NOT_CONNECTED", "L’absence de compte doit seule produire NOT_CONNECTED.");
@@ -223,6 +225,7 @@ runner("roadmap_2_drive_smoke", async () => {
   step("oauth_status_machine_and_identity");
   assert((await drive.authLink(workspaceId, "roadmap-test")).startsWith("https://auth.composio.dev/"), "Le lien OAuth doit être HTTPS et limité à un hôte autorisé.");
   step("oauth_status_and_redirect_validated");
+  assert(clearCount === 1 && pinnedAccountId === null, "Une reconnexion OAuth explicite doit libérer l’ancien identifiant pour accepter la nouvelle connexion du même compte.");
 
   const first = await drive.provisionWorkspace({ workspaceId, workspaceName: "LE BON REBOND", rootDriveUrl: null });
   const expectedFolders = ROADMAP2_DRIVE_STRUCTURE.reduce((count, entry) => count + 1 + ("children" in entry ? entry.children.length : 0), 0);
@@ -285,7 +288,7 @@ runner("roadmap_2_drive_smoke", async () => {
   const rootFolder = driver.items.get(extractRoadmap2DriveFolderId(rootResources.driveFolderUrl)!);
   const phaseFolder = driver.items.get(extractRoadmap2DriveFolderId(phaseResources.driveFolderUrl)!);
   const initiativeFolder = driver.items.get(extractRoadmap2DriveFolderId(initiativeResources.driveFolderUrl)!);
-  assert(rootFolder?.name.startsWith("ROADMAP —") && phaseFolder?.name.startsWith("PHASE —") && initiativeFolder?.parents.includes(phaseFolder!.id), "Le root, la phase et son initiative doivent suivre la hiérarchie canonique.");
+  assert(rootFolder?.name.startsWith("ROADMAP,") && phaseFolder?.name.startsWith("PHASE,") && initiativeFolder?.parents.includes(phaseFolder!.id), "Le root, la phase et son initiative doivent suivre la hiérarchie canonique.");
   const movedNode = { ...initiativeNode, title: "Offre achetable", category: "strategy_governance" as const, parentId: null, driveFolderUrl: initiativeResources.driveFolderUrl, trackingDocUrl: initiativeResources.trackingDocUrl };
   const drift = await drive.previewNodeLayout({ workspaceId, rootDriveUrl: first.rootDriveUrl, node: movedNode, allNodes: [rootNode, phaseNode, movedNode] });
   assert(!drift.inSync && drift.willMove && drift.willRename, "Un reparenting et renommage doivent produire un aperçu sans déplacer silencieusement le dossier.");
@@ -496,7 +499,7 @@ runner("roadmap_2_drive_smoke", async () => {
   assert(driveService.includes("activeComposioConnections") && driveService.includes("connectedAccountId"), "Toutes les mutations doivent être épinglées sur le même compte que l’identité Drive affichée.");
   assert(driveService.includes("persistentConnectionStore") && driveService.includes("driveConnectedAccountId") && driveService.includes("preferredAccountId"), "Le compte Composio sain doit être persisté par roadmap et restauré après un redémarrage du processus.");
   assert(driveService.includes("inspectComposioDriveAccount") && driveService.includes("activeCandidates") && driveService.includes('status: "FAILED" as const'), "Un doublon marqué ACTIVE mais inutilisable doit être testé, ignoré et ne jamais devenir le compte persistant.");
-  assert(client.includes("background = false") && client.includes("refreshDriveStatus(false, true)") && client.includes("else if (!background)"), "Un échec de rafraîchissement silencieux ne doit pas effacer une connexion Drive précédemment valide ni désactiver la zone d’upload.");
+  assert(client.includes("DRIVE_STATUS_TIMEOUT_MS") && client.includes("driveStatusRequestRef") && client.includes("driveStatusRef.current") && client.includes("La dernière connexion connue reste utilisable"), "Une vérification lente ou en échec doit sortir du chargement, conserver la connexion connue et éviter de griser durablement la zone d’upload.");
   assert(callback.includes("drive=setup") && callback.includes("Créer l’arborescence Drive"), "Après OAuth, l’utilisateur doit revenir directement dans le parcours de configuration Drive.");
   assert(callback.includes("getRoadmap2DriveStatus") && callback.includes("verified.data.connected") && callback.includes("{0,119}"), "Le callback doit vérifier la connexion active et accepter toute clé de workspace valide avant d’annoncer un succès.");
   for (const statusLabel of ["Connexion en cours", "Connexion échouée", "Autorisation expirée", "Connexion inactive", "Autorisation révoquée"]) {
