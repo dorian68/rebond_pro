@@ -32,6 +32,8 @@ async function main() {
     ["consentement", { ...valid, consent: false }],
     ["autorisation de partage invalide", { ...valid, shareEmail: "oui" }],
     ["email", { ...valid, email: "invalid" }],
+    ["email obligatoire", { ...valid, email: "" }],
+    ["téléphone obligatoire", { ...valid, phone: "" }],
     ["âge", { ...valid, age: "abc" }],
     ["âge hors critères", { ...valid, age: "26" }],
     ["motivation", { ...valid, motivation: "court" }],
