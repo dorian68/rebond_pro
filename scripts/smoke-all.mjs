@@ -41,6 +41,7 @@ export const HEADLESS_SMOKE_SUITES = [
   "smoke:public-purchase",
   "smoke:public-forms",
   "smoke:commercial-trust",
+  "smoke:sainte-lucie",
   "smoke:business",
   "smoke:business-marketplace",
   "smoke:business-google-oauth",

@@ -38,7 +38,7 @@ const labelStyle: CSSProperties = {
 
 const PHONE_DISPLAY = "+33 7 83 96 01 92";
 const PHONE_WA = "33783960192";
-const CONTACT_EMAIL = "contact.lebondrebond@gmail.com";
+const CONTACT_EMAIL = "contact.lebonrebond@gmail.com";
 
 const WA_MESSAGE = encodeURIComponent(
   "Bonjour, je suis intéressé(e) par vos services de reconversion professionnelle (Le Bon Rebond). Pourriez-vous me recontacter pour en discuter ? Merci !"

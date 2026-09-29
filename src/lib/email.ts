@@ -83,6 +83,11 @@ const SOCRATE_ADMIN_EMAILS: string[] = (() => {
 })();
 
 const SOCRATE_FROM = process.env.EMAIL_FROM ?? "Le Bon Rebond <no-reply@optiquant-ia.com>";
+const PUBLIC_CONTACT_EMAIL = "contact.lebonrebond@gmail.com";
+
+export function leadNotificationRecipients(recipient: "admin" | "public-contact" = "admin"): string | string[] {
+  return recipient === "public-contact" ? PUBLIC_CONTACT_EMAIL : SOCRATE_ADMIN_EMAILS;
+}
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] ?? c));
@@ -170,6 +175,7 @@ export async function sendLeadNotificationEmail(opts: {
   message?: string;
   conversationSummary?: string;
   source?: string;
+  recipient?: "admin" | "public-contact";
 }): Promise<void> {
   const displayName = [opts.firstName, opts.lastName].filter(Boolean).join(" ") || opts.email || opts.phone || "Nouveau lead";
   const source = opts.source ?? "Socrate chatbot";
@@ -197,8 +203,10 @@ export async function sendLeadNotificationEmail(opts: {
 
   await sendEmail({
     from: SOCRATE_FROM,
-    to: SOCRATE_ADMIN_EMAILS,
-    subject: `[Le Bon Rebond] Nouveau lead à recontacter, ${displayName}`,
+    to: leadNotificationRecipients(opts.recipient),
+    subject: opts.recipient === "public-contact"
+      ? `[Le Bon Rebond] Sainte-Lucie — demande de rappel, ${displayName}`
+      : `[Le Bon Rebond] Nouveau lead à recontacter, ${displayName}`,
     html: brandedEmail(
       "Nouveau lead",
       `<p style="background:#e8f4fd;border-left:3px solid #2469a6;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:20px;font-weight:600">

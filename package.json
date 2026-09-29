@@ -80,6 +80,7 @@
     "smoke:public-forms": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-public-forms.ts",
     "smoke:email-transport": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-email-transport.ts",
     "smoke:commercial-trust": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-commercial-trust.ts",
+    "smoke:sainte-lucie": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-sainte-lucie.ts",
     "smoke:accessibility": "node scripts/smoke-accessibility.mjs",
     "smoke:business": "node scripts/smoke-business-lot5.mjs",
     "smoke:business-marketplace": "node scripts/smoke-business-marketplace.mjs",

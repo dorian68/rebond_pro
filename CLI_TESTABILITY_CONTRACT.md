@@ -50,6 +50,7 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 | `npm run smoke:public-purchase` | Vérifie l'achat public (sans compte) : appelable sans session, gating public/publié/prix>0, dégradation propre si Stripe non configuré. Nettoyage. |
 | `npm run smoke:public-forms` | Vérifie honeypots, quotas anonymisés et absence de faux succès sur les formulaires publics. |
 | `npm run smoke:commercial-trust` | Vérifie l'absence de faux témoignages et de promesses CPF/Qualiopi non justifiées, ainsi que les garde-fous d'activation des paiements publics. |
+| `npm run smoke:sainte-lucie` | Sans envoi externe : vérifie ouverture/fermeture de l'offre, validation du formulaire, accord CARL facultatif, destination `contact.lebonrebond@gmail.com`, consigne de non-transfert à la CARL et absence de faux succès en cas d'échec email. |
 | `npm run smoke:email-transport` | Vérifie sur un SMTP de test l'email HTML/texte et les pièces jointes. Requiert Mailpit ou un serveur SMTP jetable. |
 | `npm run smoke:accessibility` | Serveur local requis : contrôle Axe et débordements horizontaux sur 14 routes publiques, en desktop et mobile. `SMOKE_BASE_URL` permet de changer le port. |
 | `npm run smoke:business` | Vérifie les éléments de compréhension/activation/conversion (promesse landing, marketplace, onboarding, CTA public, dashboard honnête). |

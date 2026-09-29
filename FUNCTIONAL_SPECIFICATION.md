@@ -22,10 +22,17 @@ Rôles tenant (enum `Role`) : `OWNER`, `ADMIN`, `ASSISTANT`, `COMMERCIAL`, `TRAI
 4. **Centre partenaire** : `/centres` → inscription → onboarding → publication → demandes publiques → CRM → sessions et suivi.
 5. **Formateur** : `/trainer` → disponibilités → planning → demandes d'animation.
 6. **Propriétaire plateforme** : `/admin` → centres/formateurs/bénéficiaires + `/admin/finances` (traçabilité de chaque transaction).
+7. **Candidat Service Civique Sainte-Lucie** : accueil → page de mission → demande de rappel à `contact.lebonrebond@gmail.com` → échange et accompagnement par Le Bon Rebond → transmission humaine de la seule adresse e-mail à la CARL avec accord distinct → démarches puis suivi jusqu'à la fin de la mission si la personne est sélectionnée. Le formulaire ne vaut pas candidature officielle et la sélection relève des organismes responsables.
 
 ## 5. Functional modules
 
 Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orientation, marketplace cross-centres, pages centres/formateurs/formations, auth et tenant, espace partenaires, dashboard, formations, sessions, planning, formateurs, apprenants, CRM, documents, IA, qualité, espace bénéficiaire, portail formateur, admin plateforme, flux financiers et paramètres.
+
+### Offre ponctuelle : Service Civique international à Sainte-Lucie
+
+- La page `/opportunites/service-civique-sainte-lucie` expose la mission, ses critères et sa source officielle. La date limite du 11 octobre 2026 ferme le formulaire côté page et côté serveur.
+- Le formulaire valide les données côté serveur, exige l'accord de rappel, applique un honeypot et des quotas anonymisés. L'autorisation de communiquer l'adresse e-mail à la CARL est facultative et séparée. Le succès n'apparaît qu'après notification à `contact.lebonrebond@gmail.com`.
+- La notification interne comporte le choix du candidat et interdit son transfert brut à la CARL. L'équipe doit vérifier l'accord, rédiger un nouveau message ne contenant que l'adresse e-mail autorisée et conserver une trace de l'accord, de la date et du destinataire. Aucun envoi automatique à la CARL n'est effectué.
 
 ### Orchestration des parcours — prototype admin
 

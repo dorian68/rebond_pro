@@ -49,7 +49,7 @@ export default function TermsPage() {
         <p>Le Bon Rebond se réserve le droit de modifier les présentes CGU. Les utilisateurs seront informés par email avec un préavis de 30 jours. La poursuite de l&apos;utilisation vaut acceptation des nouvelles conditions.</p>
 
         <p style={{ marginTop: 40, padding: "16px 20px", background: "#f3f4f6", borderRadius: 10, fontSize: 14 }}>
-          Éditeur et contact : <Link href="/legal/mentions">mentions légales</Link> · <a href="mailto:contact.lebondrebond@gmail.com">contact.lebondrebond@gmail.com</a>
+          Éditeur et contact : <Link href="/legal/mentions">mentions légales</Link> · <a href="mailto:contact.lebonrebond@gmail.com">contact.lebonrebond@gmail.com</a>
         </p>
       </article>
     </main>

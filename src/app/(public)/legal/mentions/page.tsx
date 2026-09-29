@@ -20,7 +20,7 @@ export default function LegalNoticePage() {
           <li>SIRET du siège : 943 812 297 00019.</li>
           <li>RCS Basse-Terre : 943 812 297.</li>
           <li>TVA intracommunautaire : FR16 943812297.</li>
-          <li>Contact : <a href="mailto:contact.lebondrebond@gmail.com">contact.lebondrebond@gmail.com</a> · +33 7 83 96 01 92.</li>
+          <li>Contact : <a href="mailto:contact.lebonrebond@gmail.com">contact.lebonrebond@gmail.com</a> · +33 7 83 96 01 92.</li>
         </ul>
 
         <h2>2. Direction de la publication</h2>
@@ -37,7 +37,7 @@ export default function LegalNoticePage() {
         <p>Les marques, textes, interfaces et éléments graphiques du service sont protégés. Toute reproduction non autorisée est interdite, hors exceptions prévues par la loi.</p>
 
         <h2>6. Contact juridique</h2>
-        <p>Pour toute notification : <a href="mailto:contact.lebondrebond@gmail.com">contact.lebondrebond@gmail.com</a> ou à l&apos;adresse du siège social indiquée ci-dessus.</p>
+        <p>Pour toute notification : <a href="mailto:contact.lebonrebond@gmail.com">contact.lebonrebond@gmail.com</a> ou à l&apos;adresse du siège social indiquée ci-dessus.</p>
       </article>
     </main>
   );

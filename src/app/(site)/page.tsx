@@ -109,6 +109,11 @@ export default function Home() {
                   </span>
                 ))}
               </motion.div>
+              <motion.p initial="hidden" animate="visible" custom={5} variants={fadeUp} style={{ marginTop: 26, marginBottom: 0, fontSize: ".94rem" }}>
+                <Link href="/opportunites/service-civique-sainte-lucie" style={{ color: "#07503d", fontWeight: 800, textUnderlineOffset: 4 }}>
+                  Service Civique à Sainte-Lucie : comprendre la mission ↗
+                </Link>
+              </motion.p>
             </div>
 
             {/* Visuel droit */}

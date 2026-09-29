@@ -9,6 +9,7 @@ const ROUTES = [
   "/a-propos",
   "/blog",
   "/contact",
+  "/opportunites/service-civique-sainte-lucie",
   "/centres",
   "/marketplace",
   "/legal/mentions",

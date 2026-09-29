@@ -1,5 +1,9 @@
 # Production Readiness
 
+## Offre Sainte-Lucie — release isolée du 29 septembre 2026
+
+La page, le formulaire et l'image ont été portés sur une branche créée depuis le commit en production `0651e69`, sans migration ni changement des parcours privés. La demande arrive à `contact.lebonrebond@gmail.com` ; l'accord facultatif de mise en relation avec la CARL est distinct et la transmission demeure humaine. Smoke ciblé, lint global, TypeScript, build, rendu et Axe desktop/mobile : **PASS**. La suite `smoke:all:local` s'arrête sur `smoke:health` car PostgreSQL local n'écoute pas sur `localhost:5432` ; aucun résultat complet ne peut en être déduit. `npm audit --omit=dev` signale sept vulnérabilités sur les dépendances déjà présentes dans la base de production, dont une critique sur Next ; leur exposition et leur correction demandent un traitement séparé. La réception réelle de l'email et le suivi humain restent à vérifier après publication. Le verdict business global de l'offre reste **PARTIAL** malgré le PASS visuel.
+
 Dernière mise à jour : 15 août 2026. Périmètre évalué : site public, marketplace modérée, cockpit multi-tenant, parcours de contact, Roadmap 2 agentique et gestion des super-admins déployées. Les paiements publics restent volontairement désactivés. Le lot BMO complet d’Orchestration est validé localement mais n’est pas inclus dans le déploiement de production décrit ci-dessous.
 
 | Domaine | Verdict | Preuve / condition |
