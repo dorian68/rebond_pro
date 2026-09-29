@@ -64,7 +64,7 @@ Dernière mise à jour : 15 août 2026. Périmètre évalué : site public, mark
 - `npm run lint`, `npx tsc --noEmit`, `npm run build` : PASS ;
 - `npm audit --audit-level=low` : 0 vulnérabilité.
 
-## CV facultatif — offre Sainte-Lucie, candidat au déploiement du 29 septembre 2026
+## CV facultatif — offre Sainte-Lucie, déployé le 29 septembre 2026
 
 Le formulaire accepte désormais un CV PDF ou DOCX jusqu'à 5 Mio, vérifié côté serveur et joint à l'e-mail envoyé à `contact.lebonrebond@gmail.com`. Il n'est pas stocké par l'application et n'est jamais transmis à la CARL. La mise en relation CARL reste distincte et ne peut communiquer que l'adresse e-mail du candidat après son accord séparé. Le champ reste facultatif. La politique de confidentialité décrit le traitement et la conservation en messagerie pendant l'accompagnement.
 
@@ -72,4 +72,4 @@ Le formulaire accepte désormais un CV PDF ou DOCX jusqu'à 5 Mio, vérifié cô
 
 **Suite globale : PARTIAL pour une anomalie indépendante préexistante.** `npm run smoke:all:local`, après exécution des suites précédentes, s'arrête sur `smoke:roadmap-2:agentic-gmail` : le contrôle attend un séparateur `—` dans le corps du courriel approuvé et la sortie actuelle ne le contient pas. Cette anomalie concerne le parcours Gmail Roadmap 2, hors du diff Sainte-Lucie. Le lot CV n'est donc pas certifié par la suite globale.
 
-**Verdict Business Client Mystère ciblé CV : PASS local (4,3/5)** après correction des deux blocages P1. Le verdict business global de l'offre reste PARTIAL pour les points de suivi humain décrits dans le rapport métier. **Déploiement : en attente.** Après bascule, vérifier l'URL de santé et le formulaire public ; aucun CV fictif ne sera envoyé à la boîte de production, puisque l'E2E de l'image Docker a validé le transport SMTP et la pièce jointe dans Mailpit.
+**Verdicts ciblés Technical RL et Business Client Mystère : PASS.** Le score métier CV est 4,3/5 après correction des deux blocages P1. L'image `rebondpro-app:5ff2018` est déployée et active sur le VPS ; son SHA-256 Docker est `c9e6bbd52b1b6a77174a47b170263abda80c4374f9f45c8ad4b794613500253e`. Après bascule, `/api/health` retourne `ok:true`, DB `up`; la page publique retourne HTTP 200 et le HTML contient le champ CV et sa limite de 5 Mo. PostgreSQL est resté actif. Aucun CV fictif n'a été envoyé à la boîte de production : l'E2E de l'image Docker a validé l'envoi avec et sans pièce jointe vers Mailpit local. Le verdict business global de l'offre reste PARTIAL pour les points de suivi humain décrits dans le rapport métier.
