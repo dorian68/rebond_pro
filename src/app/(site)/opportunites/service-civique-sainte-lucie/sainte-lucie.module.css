@@ -95,6 +95,8 @@
 .fieldHint { color: #5b6b70; font-size: .74rem; line-height: 1.5; }
 .fieldHint a { color: var(--pine); font-weight: 800; }
 .field :is(input, select, textarea) { width: 100%; box-sizing: border-box; padding: 12px 14px; min-height: 49px; border: 1.5px solid #b8c7c1; border-radius: 10px; background: #fff; color: var(--ink); font: inherit; font-size: .94rem; }
+.field input[type="file"] { padding: 7px; }
+.field input[type="file"]::file-selector-button { margin-inline-end: 12px; padding: 9px 12px; border: 0; border-radius: 7px; background: #e8f2ee; color: var(--pine); font: inherit; font-weight: 800; cursor: pointer; }
 .field textarea { resize: vertical; line-height: 1.5; }
 .field :is(input, select, textarea):focus-visible, .consent input:focus-visible { outline: 3px solid #f2ba3e; outline-offset: 2px; border-color: var(--pine); }
 .field :is(input, textarea)::placeholder { color: #657579; opacity: 1; }

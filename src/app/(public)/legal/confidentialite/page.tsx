@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <article className="legal-page">
         <span className="eyebrow">Vie privée & RGPD</span>
         <h1>Politique de confidentialité</h1>
-        <p style={{ color: "#6b7280", marginBottom: 32 }}>En vigueur au 12 juillet 2026</p>
+        <p style={{ color: "#6b7280", marginBottom: 32 }}>En vigueur au 29 septembre 2026</p>
 
         <h2>1. Responsable du traitement</h2>
         <p><strong>OPTIQUANT IA</strong>, SASU, SIREN 943 812 297, 53 secteur 32 Réduit, 53 chemin de Petit Jardin, 97114 Trois-Rivières, est responsable du traitement pour le service Le Bon Rebond. Contact vie privée : <a href="mailto:contact.lebonrebond@gmail.com">contact.lebonrebond@gmail.com</a>.</p>
@@ -21,6 +21,7 @@ export default function PrivacyPage() {
           <li><strong>Données métier :</strong> informations sur les formations, sessions, apprenants, formateurs, prospects, saisies par l&apos;utilisateur dans le cadre de son activité professionnelle.</li>
           <li><strong>Données de navigation :</strong> logs d&apos;accès (IP, user-agent, timestamp) à des fins de sécurité.</li>
           <li><strong>Demandes de rappel pour l&apos;offre Sainte-Lucie :</strong> identité, âge, commune, coordonnées, niveau d&apos;anglais, disponibilité, motivation et choix de mise en relation transmis à l&apos;équipe Le Bon Rebond.</li>
+          <li><strong>CV facultatif pour l&apos;offre Sainte-Lucie :</strong> fichier PDF ou DOCX joint à la demande, transmis à l&apos;équipe Le Bon Rebond pour étudier la demande d&apos;accompagnement.</li>
           <li><strong>Données de facturation :</strong> coordonnées de facturation, historique des paiements (via Stripe, certifié PCI-DSS).</li>
         </ul>
 
@@ -34,10 +35,10 @@ export default function PrivacyPage() {
         </ul>
 
         <h2>4. Base légale</h2>
-        <p>Les traitements reposent sur : (a) l&apos;exécution du contrat d&apos;abonnement, (b) nos intérêts légitimes (sécurité, amélioration du service), (c) le consentement pour les communications marketing et, lorsqu&apos;il est donné séparément, pour la transmission de l&apos;adresse e-mail à la CARL dans le cadre de la mise en relation relative à l&apos;offre Sainte-Lucie.</p>
+        <p>Les traitements reposent sur : (a) l&apos;exécution du contrat d&apos;abonnement, (b) nos intérêts légitimes (sécurité, amélioration du service), (c) l&apos;accord donné via le formulaire pour traiter la demande de rappel et le CV facultatif de l&apos;offre Sainte-Lucie, (d) le consentement pour les communications marketing et, lorsqu&apos;il est donné séparément, pour la transmission de l&apos;adresse e-mail à la CARL dans le cadre de la mise en relation relative à cette offre.</p>
 
         <h2>5. Durée de conservation</h2>
-        <p>Les données de compte et métier sont conservées pendant la relation contractuelle, puis le temps nécessaire à l&apos;export, au traitement d&apos;une demande de suppression et aux obligations légales applicables. Les pièces et données de facturation sont conservées 10 ans. Les journaux techniques sont conservés pour une durée proportionnée aux besoins de sécurité.</p>
+        <p>Les données de compte et métier sont conservées pendant la relation contractuelle, puis le temps nécessaire à l&apos;export, au traitement d&apos;une demande de suppression et aux obligations légales applicables. Les CV reçus pour l&apos;offre Sainte-Lucie restent dans la messagerie de contact pendant le traitement de la demande et l&apos;accompagnement, puis sont supprimés lorsqu&apos;ils ne sont plus nécessaires, sous réserve des obligations applicables. Les pièces et données de facturation sont conservées 10 ans. Les journaux techniques sont conservés pour une durée proportionnée aux besoins de sécurité.</p>
 
         <h2>6. Sous-traitants</h2>
         <ul>
@@ -49,7 +50,7 @@ export default function PrivacyPage() {
           <li><strong>Connecteurs optionnels :</strong> Composio, uniquement lorsqu&apos;un utilisateur autorise une connexion externe.</li>
         </ul>
 
-        <p>Pour cette offre, les demandes sont adressées à contact.lebonrebond@gmail.com. Seule l&apos;adresse e-mail peut ensuite être communiquée par l&apos;équipe Le Bon Rebond à la CARL lorsque la personne a autorisé cette mise en relation. Une demande de rappel reste possible sans cette autorisation.</p>
+        <p>Pour cette offre, les demandes et les CV facultatifs sont adressés à contact.lebonrebond@gmail.com via Resend. Le CV est traité par l&apos;équipe Le Bon Rebond et n&apos;est pas transmis à la CARL. Seule l&apos;adresse e-mail peut ensuite être communiquée par l&apos;équipe à la CARL lorsque la personne a autorisé séparément cette mise en relation. Une demande de rappel reste possible sans cette autorisation.</p>
 
         <h2>7. Vos droits</h2>
         <p>Conformément au RGPD, vous disposez des droits d&apos;accès, de rectification, d&apos;effacement, de portabilité, d&apos;opposition et de limitation. L&apos;export CSV de vos données est disponible directement dans Paramètres &gt; Avancé.</p>

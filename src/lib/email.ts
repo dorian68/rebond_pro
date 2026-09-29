@@ -176,6 +176,7 @@ export async function sendLeadNotificationEmail(opts: {
   conversationSummary?: string;
   source?: string;
   recipient?: "admin" | "public-contact";
+  attachments?: Attachment[];
 }): Promise<void> {
   const displayName = [opts.firstName, opts.lastName].filter(Boolean).join(" ") || opts.email || opts.phone || "Nouveau lead";
   const source = opts.source ?? "Socrate chatbot";
@@ -207,6 +208,7 @@ export async function sendLeadNotificationEmail(opts: {
     subject: opts.recipient === "public-contact"
       ? `[Le Bon Rebond] Sainte-Lucie — demande de rappel, ${displayName}`
       : `[Le Bon Rebond] Nouveau lead à recontacter, ${displayName}`,
+    attachments: opts.attachments,
     html: brandedEmail(
       "Nouveau lead",
       `<p style="background:#e8f4fd;border-left:3px solid #2469a6;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:20px;font-weight:600">

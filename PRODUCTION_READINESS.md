@@ -63,3 +63,13 @@ Dernière mise à jour : 15 août 2026. Périmètre évalué : site public, mark
 - Playwright site vitrine : 11/11 PASS ;
 - `npm run lint`, `npx tsc --noEmit`, `npm run build` : PASS ;
 - `npm audit --audit-level=low` : 0 vulnérabilité.
+
+## CV facultatif — offre Sainte-Lucie, candidat au déploiement du 29 septembre 2026
+
+Le formulaire accepte désormais un CV PDF ou DOCX jusqu'à 5 Mio, vérifié côté serveur et joint à l'e-mail envoyé à `contact.lebonrebond@gmail.com`. Il n'est pas stocké par l'application et n'est jamais transmis à la CARL. La mise en relation CARL reste distincte et ne peut communiquer que l'adresse e-mail du candidat après son accord séparé. Le champ reste facultatif. La politique de confidentialité décrit le traitement et la conservation en messagerie pendant l'accompagnement.
+
+**Verdict Technical RL ciblé : PASS.** `npx tsc --noEmit`, `npm run lint`, `npm run build`, build Docker `linux/amd64`, `npm run smoke:sainte-lucie`, `npm run smoke:email-transport` (Mailpit), `npm run smoke:public-forms` et `git diff --check` passent. Le parcours Playwright complet sur le build local vérifie demande sans CV, refus du mauvais format, refus de plus de 5 Mio, refus côté serveur d'une fausse signature en conservant formulaire/fichier/accords, puis demande avec PDF. L'image Docker finale a aussi été démarrée localement : la demande sans CV est acceptée, et le PDF arrive dans Mailpit en pièce jointe avec les octets attendus. Aucune soumission n'a été envoyée à la boîte de production. L'affichage mobile à 390 px ne déborde pas ; le rendu du hero reste pleine largeur.
+
+**Suite globale : PARTIAL pour une anomalie indépendante préexistante.** `npm run smoke:all:local`, après exécution des suites précédentes, s'arrête sur `smoke:roadmap-2:agentic-gmail` : le contrôle attend un séparateur `—` dans le corps du courriel approuvé et la sortie actuelle ne le contient pas. Cette anomalie concerne le parcours Gmail Roadmap 2, hors du diff Sainte-Lucie. Le lot CV n'est donc pas certifié par la suite globale.
+
+**Verdict Business Client Mystère ciblé CV : PASS local (4,3/5)** après correction des deux blocages P1. Le verdict business global de l'offre reste PARTIAL pour les points de suivi humain décrits dans le rapport métier. **Déploiement : en attente.** Après bascule, vérifier l'URL de santé et le formulaire public ; aucun CV fictif ne sera envoyé à la boîte de production, puisque l'E2E de l'image Docker a validé le transport SMTP et la pièce jointe dans Mailpit.

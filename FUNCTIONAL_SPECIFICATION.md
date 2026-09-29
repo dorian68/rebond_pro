@@ -32,6 +32,7 @@ Site public Le Bon Rebond, orientation, bilan de compétences, bilan d’orienta
 
 - La page `/opportunites/service-civique-sainte-lucie` expose la mission, ses critères et sa source officielle. La date limite du 11 octobre 2026 ferme le formulaire côté page et côté serveur.
 - Le formulaire valide les données côté serveur, exige l'accord de rappel, applique un honeypot et des quotas anonymisés. L'autorisation de communiquer l'adresse e-mail à la CARL est facultative et séparée. Le succès n'apparaît qu'après notification à `contact.lebonrebond@gmail.com`.
+- Le candidat peut joindre un CV facultatif en PDF ou DOCX (5 Mo maximum). Le serveur vérifie l'extension, le type, la signature du fichier et sa taille ; le CV est ajouté au courriel interne via Resend, sans stockage applicatif et sans transmission à la CARL.
 - La notification interne comporte le choix du candidat et interdit son transfert brut à la CARL. L'équipe doit vérifier l'accord, rédiger un nouveau message ne contenant que l'adresse e-mail autorisée et conserver une trace de l'accord, de la date et du destinataire. Aucun envoi automatique à la CARL n'est effectué.
 
 ### Orchestration des parcours — prototype admin
