@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_PUBLIC_URL ?? "https://lebonrebond.optiquant-ia.com"),
+  metadataBase: new URL(process.env.APP_PUBLIC_URL ?? "https://lebonrebond.fr"),
   title: "Le Bon Rebond, Orientation, formation et reconversion",
   description:
     "Trouvez votre prochaine direction professionnelle grâce à un bilan de compétences ou une formation adaptée à votre projet.",

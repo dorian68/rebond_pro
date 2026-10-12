@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/app/Logo";
 
-export const metadata = { title: "CGU, Le Bon Rebond" };
+export const metadata = { title: "CGU, Le Bon Rebond", alternates: { canonical: "/legal/cgu" } };
 
 export default function TermsPage() {
   return (

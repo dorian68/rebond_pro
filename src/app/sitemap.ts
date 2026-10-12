@@ -18,11 +18,9 @@ const ROUTES = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (process.env.APP_PUBLIC_URL ?? "https://lebonrebond.optiquant-ia.com").replace(/\/$/, "");
-  const lastModified = new Date();
+  const baseUrl = (process.env.APP_PUBLIC_URL ?? "https://lebonrebond.fr").replace(/\/$/, "");
   return ROUTES.map((path) => ({
     url: `${baseUrl}${path}`,
-    lastModified,
     changeFrequency: path === "/blog" || path === "/marketplace" ? "weekly" : "monthly",
     priority: path === "" ? 1 : path.startsWith("/legal/") ? 0.2 : 0.8,
   }));

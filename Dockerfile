@@ -22,6 +22,7 @@ RUN npx prisma generate
 # Aucune connexion réelle n'est faite au build. Les vraies valeurs sont injectées au runtime.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 ENV AUTH_SECRET="build-time-placeholder-secret-please-override"
+ENV APP_PUBLIC_URL="https://lebonrebond.fr"
 RUN npm run build
 
 # --- Runtime (minimal) ---

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = (process.env.APP_PUBLIC_URL ?? "https://lebonrebond.optiquant-ia.com").replace(/\/$/, "");
+  const baseUrl = (process.env.APP_PUBLIC_URL ?? "https://lebonrebond.fr").replace(/\/$/, "");
   return {
     rules: {
       userAgent: "*",

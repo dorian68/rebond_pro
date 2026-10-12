@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/app/Logo";
 
-export const metadata = { title: "Politique de confidentialité, Le Bon Rebond" };
+export const metadata = { title: "Politique de confidentialité, Le Bon Rebond", alternates: { canonical: "/legal/confidentialite" } };
 
 export default function PrivacyPage() {
   return (

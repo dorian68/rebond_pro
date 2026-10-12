@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "Blog, Le Bon Rebond",
   description:
     "Conseils, témoignages et repères concrets pour s'orienter, se former et reprendre la main sur son parcours professionnel.",
+  alternates: { canonical: "/blog" },
 };
 
 export default function BlogPage() {

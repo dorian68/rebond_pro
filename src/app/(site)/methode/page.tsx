@@ -4,6 +4,12 @@ import { Badge } from "@/components/site/ui/badge";
 import { Button } from "@/components/site/ui/button";
 import { Card, CardContent } from "@/components/site/ui/card";
 
+export const metadata = {
+  title: "La méthode Rebond Clarté, Le Bon Rebond",
+  description: "Découvrez les cinq étapes de la méthode Rebond Clarté pour choisir une direction professionnelle et passer à l’action.",
+  alternates: { canonical: "/methode" },
+};
+
 const phases = [
   { icon: Compass, title: "Clarifier", text: "Comprendre votre situation, le doute actuel, vos attentes et vos contraintes." },
   { icon: Search, title: "Identifier", text: "Faire émerger vos compétences, forces, valeurs, motivations et besoins." },
