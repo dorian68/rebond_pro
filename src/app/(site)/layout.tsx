@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import FloatingCTA from "@/components/site/FloatingCTA";
 import { AgentDock } from "@/components/agent/AgentDock";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 /** Layout du site vitrine public (bilan de compétences, B2C).
  *  La classe `.vitrine` active le thème turquoise/or scopé (cf. globals.css)

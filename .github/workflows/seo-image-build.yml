@@ -3,7 +3,7 @@ name: Build tested SEO image
 on:
   push:
     branches: [seo/sitelinks-20261013]
-    paths: [.github/workflows/seo-image-build.yml, src/app/sitemap.ts]
+    paths: [.github/workflows/seo-image-build.yml, 'src/**']
   workflow_dispatch:
 
 permissions:
