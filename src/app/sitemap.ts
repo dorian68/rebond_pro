@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { blogArticles } from "@/content/blog-data";
 
 const ROUTES = [
   "",
@@ -15,6 +16,7 @@ const ROUTES = [
   "/legal/mentions",
   "/legal/cgu",
   "/legal/confidentialite",
+  ...blogArticles.map((article) => `/blog/${article.slug}`),
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

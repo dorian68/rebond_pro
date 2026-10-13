@@ -3,7 +3,7 @@ name: Build tested SEO image
 on:
   push:
     branches: [seo/sitelinks-20261013]
-    paths: [.github/workflows/seo-image-build.yml]
+    paths: [.github/workflows/seo-image-build.yml, src/app/sitemap.ts]
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 1aa4c43cc04e3667af82451ee2ce42a82f9fd1a0
           persist-credentials: false
       - name: Check public VPS connectivity
         continue-on-error: true
@@ -37,17 +36,17 @@ jobs:
               print("SSH:", type(e).__name__, str(e))
           PY
       - name: Build exact tested source
-        run: docker build -t rebondpro-app:1aa4c43 .
+        run: docker build -t rebondpro-app:${GITHUB_SHA} .
       - name: Export deployable image
         run: |
-          docker save rebondpro-app:1aa4c43 | gzip -1 > rebondpro-app-1aa4c43.tar.gz
-          sha256sum rebondpro-app-1aa4c43.tar.gz > rebondpro-app-1aa4c43.sha256
+          docker save rebondpro-app:${GITHUB_SHA} | gzip -1 > rebondpro-app.tar.gz
+          sha256sum rebondpro-app.tar.gz > rebondpro-app.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: rebondpro-seo-image-1aa4c43
+          name: rebondpro-seo-image-${{ github.sha }}
           path: |
-            rebondpro-app-1aa4c43.tar.gz
-            rebondpro-app-1aa4c43.sha256
+            rebondpro-app.tar.gz
+            rebondpro-app.sha256
           compression-level: 0
           retention-days: 3
 
