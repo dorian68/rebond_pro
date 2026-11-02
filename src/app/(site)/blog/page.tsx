@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PageBreadcrumbs } from "@/components/site/PageBreadcrumbs";
 import { blogArticles } from "@/content/blog-data";
 import { BlogList } from "./blog-list";
 import "./blog.css";
@@ -18,7 +18,7 @@ export default function BlogPage() {
         <div className="blob" style={{ width: 380, height: 380, background: "radial-gradient(circle,rgba(44,142,134,.14),transparent 70%)", top: -120, left: "50%", transform: "translateX(-50%)" }} />
         <div className="wrap">
           <div className="subhero-inner">
-            <div className="crumb"><Link href="/">Accueil</Link> · <b>Le journal</b></div>
+            <PageBreadcrumbs className="crumb" items={[{ name: "Accueil", path: "/" }, { name: "Le journal", path: "/blog" }]} />
             <h1>Le journal du <span className="accent">rebond.</span></h1>
             <p className="lead">Conseils, témoignages et repères concrets pour s&apos;orienter, se former et reprendre la main sur son parcours professionnel.</p>
           </div>

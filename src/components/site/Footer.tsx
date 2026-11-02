@@ -46,6 +46,9 @@ const Footer = () => {
                 { label: "Accueil", to: "/" },
                 { label: "Formations", to: "/formation" },
                 { label: "Bilan de compétences", to: "/bilan-de-competences" },
+                { label: "Bilan d'orientation", to: "/bilan-orientation" },
+                { label: "Méthode Rebond Clarté", to: "/methode" },
+                { label: "Le journal", to: "/blog" },
                 { label: "À propos", to: "/a-propos" },
                 { label: "Contact", to: "/contact" },
               ].map((link) => (

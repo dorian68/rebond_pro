@@ -522,3 +522,12 @@ textarea.input { height: auto; padding: 12px 14px; resize: vertical; line-height
 @media (max-width: 1099px)  { .vitrine-desktop-only { display: none !important; } }
 @media (min-width: 1100px)  { .vitrine-mobile-only  { display: none !important; } }
 @media (max-width: 1219px)  { .vitrine-nav-wide     { display: none !important; } }
+
+.vitrine .site-nav-dropdown > summary::-webkit-details-marker { display: none; }
+.vitrine .site-nav-dropdown > summary svg { transition: transform .2s; }
+.vitrine .site-nav-dropdown[open] > summary svg { transform: rotate(180deg); }
+.vitrine .site-nav-dropdown > summary:focus-visible {
+  outline: 2px solid #23756e;
+  outline-offset: 5px;
+  border-radius: 3px;
+}

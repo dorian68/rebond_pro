@@ -199,6 +199,16 @@ Pour Orchestration : `npm run smoke:orchestration`, `npm run smoke:orchestration
 
 ## 18. Production readiness criteria
 
+### SEO public, identité et découvrabilité (3 novembre 2026)
+
+- Les liens vers les bilans, la méthode et le journal existent dans le HTML initial, même sans survol ni JavaScript. Les menus déroulants s'ouvrent au clavier et conservent la navigation mobile existante.
+- Le balisage `WebSite` nomme Le Bon Rebond ; la marque reste distincte de son éditeur OPTIQUANT IA, conformément aux mentions légales. Aucune certification, association, note, prestation éligible ou promesse de résultat n'est inférée.
+- Les fils d'Ariane visibles et `BreadcrumbList` décrivent les mêmes pages. Les libellés issus de la base sont échappés dans le JSON-LD.
+- Les fiches centre et formation possèdent leur propre canonique. Le sitemap conserve les 21 URL éditoriales et ajoute uniquement les fiches réellement publiables avec le verrou existant (centre approuvé, revue humaine, profil activé ; formation publique, publiée et non supprimée).
+- Le sitemap ne rend pas publiques les données CARIF, démo, personnelles ou administratives. Une formation sans `publicSlug` n'y reçoit pas de fausse URL. L'absence de base de données conserve le sitemap éditorial et produit un avertissement structuré sans secret.
+- Validation : smoke SEO pur, audit HTTP du HTML initial et des métadonnées, TypeScript et build. Aucun changement de base, de formulaire, de paiement ou d'autorisation n'est requis.
+- Ces corrections facilitent la compréhension et l'exploration. L'indexation, les sitelinks et la citation par les moteurs génératifs restent décidés par les moteurs.
+
 Build reproductible, migrations appliquées, secrets hors dépôt, auth et autorisations vérifiées, logs sans secrets, tests CLI passants, emails et stockage configurés, observabilité et sauvegardes documentées.
 
 Le prototype Orchestration reste en repository mémoire et données de démonstration. Son passage en cohorte réelle exige persistance serveur, audit append-only, contrôle fin des vues du Passeport, réservations/capacités, portail partenaire et revue sécurité/IDOR dédiée.

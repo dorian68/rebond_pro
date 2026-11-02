@@ -10,6 +10,8 @@ import { getPublicFormation } from "@/server/public-conversion";
 import { formatDateRange, formatMoney } from "@/lib/utils";
 import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
 import { publicFormationPaymentsEnabled } from "@/lib/payment-readiness";
+import { centerPath, formationPath } from "@/lib/site-seo";
+import { PageBreadcrumbs } from "@/components/site/PageBreadcrumbs";
 
 type Params = Promise<{ orgSlug: string; publicSlug: string }>;
 type Search = Promise<{ achat?: string }>;
@@ -19,10 +21,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const formation = await getPublicFormation(orgSlug, publicSlug);
   if (!formation) return { title: "Formation indisponible" };
   const description = formation.shortDescription || formation.organization.description || undefined;
+  const canonical = formationPath(formation.organization.slug, publicSlug);
   return {
     title: `${formation.title} | ${formation.organization.name}`,
     description,
-    openGraph: { title: formation.title, description, type: "website" },
+    alternates: { canonical },
+    openGraph: { title: formation.title, description, type: "website", url: canonical },
   };
 }
 
@@ -55,6 +59,9 @@ export default async function PublicFormationPage({ params, searchParams }: { pa
   return (
     <main className="public-page">
       <PublicHeader right={<Link href={`/${formation.organization.slug}`} className="btn btn-secondary btn-sm">Voir le centre</Link>} />
+      <div className="marketing-container" style={{ paddingTop: 18 }}>
+        <PageBreadcrumbs items={[{ name: "Accueil", path: "/" }, { name: "Catalogue des formations", path: "/marketplace" }, { name: formation.organization.name, path: centerPath(formation.organization.slug) }, { name: formation.title, path: formationPath(formation.organization.slug, publicSlug) }]} />
+      </div>
 
       {achat === "success" && (
         <div className="marketing-container" style={{ paddingTop: 16 }}>

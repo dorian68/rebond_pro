@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { getCenterProfile } from "@/server/marketplace";
 import { formatMoney } from "@/lib/utils";
 import { MODALITY_LABELS, LEVEL_LABELS } from "@/lib/labels";
+import { centerPath, breadcrumbData } from "@/lib/site-seo";
+import { StructuredData } from "@/components/site/StructuredData";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const org = await getCenterProfile(orgSlug);
   if (!org) return { title: "Centre indisponible" };
   const description = org.tagline || org.description || `Découvrez les formations de ${org.name}.`;
-  return { title: `${org.name}, Centre partenaire · Le Bon Rebond`, description, openGraph: { title: org.name, description, type: "website" } };
+  const canonical = centerPath(org.slug);
+  return { title: `${org.name}, Centre partenaire · Le Bon Rebond`, description, alternates: { canonical }, openGraph: { title: org.name, description, type: "website", url: canonical } };
 }
 
 const sectionPad: CSSProperties = { padding: "92px 0" };
@@ -67,6 +70,7 @@ export default async function CenterProfilePage({ params }: { params: Params }) 
 
   return (
     <div className="vitrine" style={{ background: "#FAF5EC", color: "#1b2b38", fontFamily: "'Plus Jakarta Sans', sans-serif", minHeight: "100vh" }}>
+      <StructuredData data={breadcrumbData([{ name: "Accueil", path: "/" }, { name: "Centres", path: "/marketplace" }, { name: org.name, path: centerPath(org.slug) }])} />
 
       {/* ─── Bandeau partenaire ─── */}
       <div style={{ background: "#091a29", color: "#fff", fontSize: ".88rem" }}>

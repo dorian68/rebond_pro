@@ -1,5 +1,11 @@
 import type { MetadataRoute } from "next";
 import { blogArticles } from "@/content/blog-data";
+import { siteUrl } from "@/lib/site-seo";
+import { logger } from "@/lib/logger";
+import { getPublicCatalogSitemapPaths } from "@/server/marketplace-seo";
+
+// Query the published catalogue at request time, not during a build without DB.
+export const dynamic = "force-dynamic";
 
 const ROUTES = [
   "",
@@ -19,10 +25,17 @@ const ROUTES = [
   ...blogArticles.map((article) => `/blog/${article.slug}`),
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (process.env.APP_PUBLIC_URL ?? "https://lebonrebond.fr").replace(/\/$/, "");
-  return ROUTES.map((path) => ({
-    url: `${baseUrl}${path}`,
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  let catalogPaths: string[] = [];
+  try {
+    catalogPaths = await getPublicCatalogSitemapPaths();
+  } catch (error) {
+    // Keep the known public pages discoverable when the catalogue is unavailable.
+    // Do not log Prisma messages, connection strings, or unpublished records.
+    logger.warn("public_sitemap_catalogue_unavailable", { errorType: error instanceof Error ? error.name : "UnknownError" });
+  }
+  return [...new Set([...ROUTES, ...catalogPaths])].map((path) => ({
+    url: siteUrl(path || "/"),
     changeFrequency: path === "/blog" || path === "/marketplace" ? "weekly" : "monthly",
     priority: path === "" ? 1 : path.startsWith("/legal/") ? 0.2 : 0.8,
   }));

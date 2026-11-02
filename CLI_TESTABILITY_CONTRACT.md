@@ -67,6 +67,12 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 
 ## Output format
 
+### Public SEO (3 novembre 2026)
+
+`npm run smoke:public-seo` vérifie sans base ni mutation : identité de l'éditeur, échappement JSON-LD, liens HTML initiaux, disclosures natifs, cohérence du fil d'Ariane et verrou de publication du catalogue sitemap. `npm run smoke:public-seo -- --base-url http://127.0.0.1:3763` ajoute le contrôle HTTP de dix pages publiques (H1, canonique, navigation, JSON-LD), du sitemap et d'une vraie 404. Le mode HTTP ne soumet aucun formulaire et ne déclenche aucun paiement ni écriture externe.
+
+La publication du catalogue complet exige une base contenant les vrais centres approuvés. Sans base, le sitemap conserve les pages éditoriales et journalise explicitement l'indisponibilité ; ce repli ne prouve pas la validation de l'intégration catalogue en production.
+
 Les scripts smoke écrivent une ligne JSON par étape avec `status: pass|fail`. Aucun secret ne doit être écrit. Un code de sortie non nul signale un échec.
 
 ## Environment loading

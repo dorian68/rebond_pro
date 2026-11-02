@@ -4,6 +4,8 @@ import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import FloatingCTA from "@/components/site/FloatingCTA";
 import { AgentDock } from "@/components/agent/AgentDock";
+import { StructuredData } from "@/components/site/StructuredData";
+import { siteIdentity } from "@/lib/site-seo";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="vitrine min-h-screen bg-background flex flex-col">
+      <StructuredData data={siteIdentity()} />
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />

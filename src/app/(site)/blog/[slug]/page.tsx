@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { blogArticles, blogBySlug } from "@/content/blog-data";
+import { PageBreadcrumbs } from "@/components/site/PageBreadcrumbs";
 import "../blog.css";
 
 export function generateStaticParams() {
@@ -29,9 +30,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
     <div className="blog-scope">
       <article className="article">
         <div className="article-wrap article-head">
-          <div className="crumb">
-            <Link href="/">Accueil</Link> · <Link href="/blog">Le journal</Link> · <b>{a.category}</b>
-          </div>
+          <PageBreadcrumbs className="crumb" items={[{ name: "Accueil", path: "/" }, { name: "Le journal", path: "/blog" }, { name: a.title, path: `/blog/${a.slug}` }]} />
           <div className="post-meta center">
             <span className="cat">{a.category}</span>
             <span className="dot" />

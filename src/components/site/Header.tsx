@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
     children: [
       { label: "Bilan de compétences", to: "/bilan-de-competences" },
       { label: "Bilan d'orientation", to: "/bilan-orientation" },
+      { label: "Méthode Rebond Clarté", to: "/methode" },
     ],
   },
   { label: "Trouver une formation", to: "/formation" },
@@ -46,10 +47,8 @@ const linkStyle = (active: boolean): React.CSSProperties => ({
   border: "none",
 });
 
-/** Onglet desktop : lien simple ou menu déroulant (au survol). */
+/** Native disclosure keeps links in the initial HTML and works without a hover. */
 function DesktopNavItem({ item, pathname }: { item: NavItem; pathname: string }) {
-  const [hover, setHover] = useState(false);
-
   if (!item.children) {
     return (
       <Link href={item.to!} style={linkStyle(pathname === item.to)}>
@@ -61,19 +60,29 @@ function DesktopNavItem({ item, pathname }: { item: NavItem; pathname: string })
   const active = item.children.some((c) => pathname === c.to);
 
   return (
-    <div style={{ position: "relative" }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <span style={linkStyle(active)}>
+    <details
+      className="site-nav-dropdown"
+      style={{ position: "relative" }}
+      onMouseEnter={(event) => { event.currentTarget.open = true; }}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.contains(document.activeElement)) event.currentTarget.open = false;
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector("summary")?.focus();
+        }
+      }}
+    >
+      <summary style={{ ...linkStyle(active), listStyle: "none" }}>
         {item.label}
-        <ChevronDown size={15} style={{ transition: "transform .2s", transform: hover ? "rotate(180deg)" : "none" }} />
-      </span>
-      <AnimatePresence>
-        {hover && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-            // paddingTop garde la zone de survol continue (pas de "trou" qui referme le menu)
+        <ChevronDown size={15} aria-hidden="true" />
+      </summary>
+          <div
+            // Keep the hover target continuous between summary and submenu.
             style={{ position: "absolute", top: "100%", left: 0, paddingTop: 10, minWidth: 234, zIndex: 70 }}
           >
             <div
@@ -109,10 +118,8 @@ function DesktopNavItem({ item, pathname }: { item: NavItem; pathname: string })
                 </Link>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          </div>
+    </details>
   );
 }
 
@@ -155,6 +162,7 @@ const Header = () => {
 
         {/* Nav desktop, cachée sous 1024px */}
         <nav
+          aria-label="Navigation principale"
           className="vitrine-desktop-only"
           style={{ display: "flex", gap: 24, marginLeft: 10, flexWrap: "nowrap" }}
         >

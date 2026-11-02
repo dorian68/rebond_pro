@@ -3,6 +3,7 @@ import { ArrowRight, CheckCircle2, Compass, Map, Route, Search, Target } from "l
 import { Badge } from "@/components/site/ui/badge";
 import { Button } from "@/components/site/ui/button";
 import { Card, CardContent } from "@/components/site/ui/card";
+import { PageBreadcrumbs } from "@/components/site/PageBreadcrumbs";
 
 export const metadata = {
   title: "La méthode Rebond Clarté, Le Bon Rebond",
@@ -21,6 +22,7 @@ const phases = [
 export default function MethodePage() {
   return (
     <>
+      <div className="container" style={{ paddingTop: 18 }}><PageBreadcrumbs items={[{ name: "Accueil", path: "/" }, { name: "Méthode Rebond Clarté", path: "/methode" }]} /></div>
       <section className="bg-gradient-hero py-20 lg:py-28">
         <div className="container mx-auto px-4 text-center">
           <Badge className="mb-5 bg-accent/15 text-[#8E3E17] border-accent/30 rounded-full">Notre méthode propriétaire</Badge>
