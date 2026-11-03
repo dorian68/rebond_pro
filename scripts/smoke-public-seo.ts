@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import Home from "../src/app/(site)/page";
 import Header from "../src/components/site/Header";
 import { PageBreadcrumbs } from "../src/components/site/PageBreadcrumbs";
 import { breadcrumbData, centerPath, formationPath, jsonLd, siteIdentity } from "../src/lib/site-seo";
@@ -26,6 +27,17 @@ function structuredData(html: string): Record<string, unknown>[] {
 async function main() {
   const previousOrigin = process.env.APP_PUBLIC_URL;
   process.env.APP_PUBLIC_URL = "https://lebonrebond.fr";
+  await check("homepage_hero_is_visible_before_hydration", () => {
+    const html = renderToStaticMarkup(createElement(Home));
+    const hero = html.match(/<section\b[\s\S]*?<\/section>/)?.[0];
+    assert.ok(hero, "Missing homepage hero");
+    assert.match(hero, /<h1\b[^>]*opacity:1/);
+    assert.match(hero, /<p\b[^>]*opacity:1[^>]*>Le Bon Rebond accompagne/);
+    assert.doesNotMatch(hero, /opacity:0(?:;|")|translateY\(24px\)/);
+    for (const path of ["/marketplace", "/bilan-de-competences"]) {
+      assert.ok(hero.includes(`href="${path}"`), `Missing hero journey: ${path}`);
+    }
+  });
   await check("identity_matches_public_legal_publisher", () => {
     const graph = siteIdentity()["@graph"];
     const publisher = graph.find((item) => item["@type"] === "Organization");

@@ -1,5 +1,11 @@
 # Production Readiness
 
+## Performance accueil — candidat isolé du 3 novembre 2026
+
+Base publiée `b4f3086`, branche `perf/home-lcp-20261103`. Le rapport Lighthouse mobile public réel mesure LCP 6,6 s, performance 75, SEO 100 et accessibilité 100. L'élément LCP est le paragraphe du hero, masqué dans le HTML initial (`opacity:0`) jusqu'à l'hydratation et l'animation. Le candidat rend les sept blocs du premier écran immédiatement visibles avec `initial={false}`, sans modifier les textes, liens, images ou métadonnées. Le smoke SSR ciblé passe 7/7. La comparaison Lighthouse et la preuve de rendu sans JavaScript doivent être exécutées sur le runner Linux via l'option `performance_audit` du workflow existant; les résultats publics et ceux du runner restent des mesures distinctes.
+
+**Publication non effectuée pour ce candidat performance.** Aucune base réelle ni migration n'est nécessaire. La suite globale métier avec écritures DB est hors périmètre et n'est pas revendiquée; les blocages historiques des autres modules restent applicables. Une revue Business Client Mystère indépendante et les preuves CI exactes sont requises avant décision de publication.
+
 ## SEO public — candidat isolé du 3 novembre 2026
 
 Base active `e07e03c`, branche `seo/sitelinks-geo-20261103`. Navigation HTML native, identité factuelle marque/éditeur, fils d'Ariane, canoniques des fiches publiques et sitemap filtré sur la publication existante : **Technical RL PASS local**. Smoke SEO complet 18/18, ESLint ciblé, TypeScript et build Webpack PASS. Les données déjà publiques représentent 10 centres et 63 formations supplémentaires; une lecture SQL READ ONLY puis 73 contrôles HTTP n'a modifié aucun enregistrement.

@@ -5,6 +5,11 @@ on:
     branches: [seo/sitelinks-20261013]
     paths: [.github/workflows/seo-image-build.yml, 'src/**']
   workflow_dispatch:
+    inputs:
+      performance_audit:
+        description: Compare the homepage against the published SEO baseline, on this runner only
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,6 +23,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Check public VPS connectivity
+        if: ${{ !inputs.performance_audit }}
         continue-on-error: true
         run: |
           python3 - <<'PY'
@@ -37,6 +43,52 @@ jobs:
           PY
       - name: Build exact tested source
         run: docker build -t rebondpro-app:${GITHUB_SHA} .
+      - name: Validate candidate without a real database
+        if: inputs.performance_audit
+        run: |
+          docker build --target builder -t rebondpro-builder:${GITHUB_SHA} .
+          docker run --rm rebondpro-builder:${GITHUB_SHA} sh -c "npx tsc --noEmit --incremental false && npx eslint 'src/app/(site)/page.tsx' scripts/smoke-public-seo.ts scripts/audit-home-performance.mjs && npm run smoke:public-seo"
+      - uses: actions/checkout@v4
+        if: inputs.performance_audit
+        with:
+          ref: b4f3086cbba1ba57ea31fe74c935bf20801c01c9
+          path: _perf_baseline
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        if: inputs.performance_audit
+        with:
+          node-version: '22'
+      - name: Prepare isolated baseline and headless audit tools
+        if: inputs.performance_audit
+        run: |
+          docker build -t rebondpro-app:perf-baseline ./_perf_baseline
+          npm install --prefix "$RUNNER_TEMP/rebond-audit-tools" --no-audit --no-fund lighthouse@13.6.0 playwright@1.61.1
+          "$RUNNER_TEMP/rebond-audit-tools/node_modules/.bin/playwright" install --with-deps chromium
+          docker run -d --name rebond-candidate -p 3763:3000 -e DATABASE_URL=postgresql://unavailable:unavailable@127.0.0.1:1/unavailable -e AUTH_SECRET=isolated-ci-placeholder -e APP_PUBLIC_URL=https://lebonrebond.fr rebondpro-app:${GITHUB_SHA}
+          docker run -d --name rebond-baseline -p 3764:3000 -e DATABASE_URL=postgresql://unavailable:unavailable@127.0.0.1:1/unavailable -e AUTH_SECRET=isolated-ci-placeholder -e APP_PUBLIC_URL=https://lebonrebond.fr rebondpro-app:perf-baseline
+          for port in 3763 3764; do
+            for attempt in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:$port/" > /dev/null; then break; fi
+              sleep 1
+            done
+            curl -fsS "http://127.0.0.1:$port/" > /dev/null
+          done
+          docker run --rm --network host rebondpro-builder:${GITHUB_SHA} npm run smoke:public-seo -- --base-url http://127.0.0.1:3763
+      - name: Compare homepage visibility and mobile Lighthouse
+        if: inputs.performance_audit
+        env:
+          PERFORMANCE_AUDIT_TOOLS: ${{ runner.temp }}/rebond-audit-tools
+          PERFORMANCE_OUTPUT_DIR: ${{ runner.temp }}/rebond-home-performance
+          PERFORMANCE_BASELINE_URL: http://127.0.0.1:3764
+          PERFORMANCE_CANDIDATE_URL: http://127.0.0.1:3763
+          PERFORMANCE_BASELINE_SHA: b4f3086cbba1ba57ea31fe74c935bf20801c01c9
+        run: node scripts/audit-home-performance.mjs
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.performance_audit
+        with:
+          name: rebondpro-home-performance-${{ github.sha }}
+          path: ${{ runner.temp }}/rebond-home-performance
+          retention-days: 7
       - name: Export deployable image
         run: |
           docker save rebondpro-app:${GITHUB_SHA} | gzip -1 > rebondpro-app.tar.gz

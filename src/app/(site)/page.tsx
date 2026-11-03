@@ -66,12 +66,13 @@ export default function Home() {
 
             {/* Copie gauche */}
             <div>
-              <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp}>
+              {/* Keep the first screen visible in server HTML, before hydration. */}
+              <motion.div initial={false} animate="visible" custom={0} variants={fadeUp}>
                 <span className="eyebrow">Orientation · Formation · Reconversion</span>
               </motion.div>
 
               <motion.h1
-                initial="hidden" animate="visible" custom={1} variants={fadeUp}
+                initial={false} animate="visible" custom={1} variants={fadeUp}
                 style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "clamp(2.7rem, 5.4vw, 4.5rem)", fontWeight: 400, letterSpacing: "-.03em", margin: "22px 0 0", color: "#15314C", lineHeight: 1.08 }}
               >
                 Trouvez votre prochaine{" "}
@@ -80,14 +81,14 @@ export default function Home() {
               </motion.h1>
 
               <motion.p
-                initial="hidden" animate="visible" custom={2} variants={fadeUp}
+                initial={false} animate="visible" custom={2} variants={fadeUp}
                 style={{ marginTop: 26, fontSize: "1.22rem", color: "#5d6f7c", lineHeight: 1.65, maxWidth: "62ch" }}
               >
                 Le Bon Rebond accompagne les personnes en transition pour transformer une période de doute en projet clair, puis en parcours de formation ou de reconversion concret.
               </motion.p>
 
               <motion.div
-                initial="hidden" animate="visible" custom={3} variants={fadeUp}
+                initial={false} animate="visible" custom={3} variants={fadeUp}
                 style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 38 }}
               >
                 <Link href="/marketplace" className="btn-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "19px 34px", borderRadius: 100, fontWeight: 700, fontSize: "1.05rem", textDecoration: "none", lineHeight: 1 }}>
@@ -99,7 +100,7 @@ export default function Home() {
               </motion.div>
 
               <motion.div
-                initial="hidden" animate="visible" custom={4} variants={fadeUp}
+                initial={false} animate="visible" custom={4} variants={fadeUp}
                 style={{ display: "flex", flexWrap: "wrap", gap: "10px 26px", marginTop: 34 }}
               >
                 {["Centres publiés après validation", "Accompagnement personnalisé", "Décisions fondées sur votre projet"].map((txt) => (
@@ -109,7 +110,7 @@ export default function Home() {
                   </span>
                 ))}
               </motion.div>
-              <motion.p initial="hidden" animate="visible" custom={5} variants={fadeUp} style={{ marginTop: 26, marginBottom: 0, fontSize: ".94rem" }}>
+              <motion.p initial={false} animate="visible" custom={5} variants={fadeUp} style={{ marginTop: 26, marginBottom: 0, fontSize: ".94rem" }}>
                 <Link href="/opportunites/service-civique-sainte-lucie" style={{ color: "#07503d", fontWeight: 800, textUnderlineOffset: 4 }}>
                   Service Civique à Sainte-Lucie : comprendre la mission ↗
                 </Link>
@@ -118,7 +119,7 @@ export default function Home() {
 
             {/* Visuel droit */}
             <motion.div
-              initial="hidden" animate="visible" custom={2} variants={fadeUp}
+              initial={false} animate="visible" custom={2} variants={fadeUp}
               style={{ position: "relative" }}
             >
               {/* Arc décoratif */}

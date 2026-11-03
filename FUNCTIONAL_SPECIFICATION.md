@@ -201,6 +201,7 @@ Pour Orchestration : `npm run smoke:orchestration`, `npm run smoke:orchestration
 
 ### SEO public, identité et découvrabilité (3 novembre 2026)
 
+- Le premier écran de l'accueil (titre, introduction, choix formation/bilan et visuel) est visible dès le HTML serveur, sans attendre le téléchargement de JavaScript ni une animation d'entrée. Le contenu, les parcours et les métadonnées restent identiques.
 - Les liens vers les bilans, la méthode et le journal existent dans le HTML initial, même sans survol ni JavaScript. Les menus déroulants s'ouvrent au clavier et conservent la navigation mobile existante.
 - Le balisage `WebSite` nomme Le Bon Rebond ; la marque reste distincte de son éditeur OPTIQUANT IA, conformément aux mentions légales. Aucune certification, association, note, prestation éligible ou promesse de résultat n'est inférée.
 - Les fils d'Ariane visibles et `BreadcrumbList` décrivent les mêmes pages. Les libellés issus de la base sont échappés dans le JSON-LD.
