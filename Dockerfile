@@ -1,7 +1,8 @@
 # Image de production RebondPro Formation (Next.js 16, sortie "standalone").
 # Build multi-étapes : deps -> builder -> runner (image finale minimale).
 
-FROM node:22-bookworm-slim AS base
+ARG NODE_BASE_IMAGE=node:22-bookworm-slim
+FROM ${NODE_BASE_IMAGE} AS base
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 

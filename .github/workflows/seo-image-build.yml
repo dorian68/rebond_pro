@@ -14,6 +14,10 @@ on:
         description: Validate public SEO and sitemap XML on this runner without a real database
         type: boolean
         default: false
+      node_base_digest:
+        description: Optional verified Node base digest (sha256 plus 64 lowercase hex characters); empty uses the current tag
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -26,6 +30,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Select optional reproducible Node base
+        env:
+          REQUESTED_NODE_BASE_DIGEST: ${{ inputs.node_base_digest }}
+        run: |
+          if [[ -n "$REQUESTED_NODE_BASE_DIGEST" ]]; then
+            if [[ ${#REQUESTED_NODE_BASE_DIGEST} -ne 71 || ! "$REQUESTED_NODE_BASE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "Invalid node_base_digest: expected sha256: followed by 64 lowercase hex characters" >&2
+              exit 1
+            fi
+            node_base_image="node:22-bookworm-slim@$REQUESTED_NODE_BASE_DIGEST"
+          else
+            node_base_image="node:22-bookworm-slim"
+          fi
+          printf 'NODE_BASE_IMAGE=%s\n' "$node_base_image" >> "$GITHUB_ENV"
+          printf 'NODE_BASE_DIGEST_INPUT=%s\n' "$REQUESTED_NODE_BASE_DIGEST" >> "$GITHUB_ENV"
+          echo "Selected Node base: $node_base_image"
       - name: Check public VPS connectivity
         if: ${{ !inputs.performance_audit && !inputs.seo_audit }}
         continue-on-error: true
@@ -46,11 +66,11 @@ jobs:
               print("SSH:", type(e).__name__, str(e))
           PY
       - name: Build exact tested source
-        run: docker build -t rebondpro-app:${GITHUB_SHA} .
+        run: docker build --build-arg NODE_BASE_IMAGE="$NODE_BASE_IMAGE" -t rebondpro-app:${GITHUB_SHA} .
       - name: Validate candidate without a real database
         if: inputs.performance_audit || inputs.seo_audit
         run: |
-          docker build --target builder -t rebondpro-builder:${GITHUB_SHA} .
+          docker build --build-arg NODE_BASE_IMAGE="$NODE_BASE_IMAGE" --target builder -t rebondpro-builder:${GITHUB_SHA} .
           docker run --rm rebondpro-builder:${GITHUB_SHA} sh -c "npx tsc --noEmit --incremental false && npx eslint 'src/app/(site)/page.tsx' src/app/sitemap.ts src/lib/sitemap-lastmod.ts scripts/smoke-public-seo.ts scripts/audit-home-performance.mjs && npm run smoke:public-seo"
       - name: Validate public sitemap XML on the isolated runner
         if: inputs.seo_audit
@@ -95,7 +115,8 @@ jobs:
       - name: Prepare isolated baseline and headless audit tools
         if: inputs.performance_audit
         run: |
-          docker build -t rebondpro-app:perf-baseline ./_perf_baseline
+          # Use the same parameterized packaging recipe for both app revisions.
+          docker build --build-arg NODE_BASE_IMAGE="$NODE_BASE_IMAGE" -f "$GITHUB_WORKSPACE/Dockerfile" -t rebondpro-app:perf-baseline ./_perf_baseline
           npm install --prefix "$RUNNER_TEMP/rebond-audit-tools" --no-audit --no-fund lighthouse@13.6.0 playwright@1.61.1
           "$RUNNER_TEMP/rebond-audit-tools/node_modules/.bin/playwright" install --with-deps chromium
           docker run -d --name rebond-candidate -p 3763:3000 -e DATABASE_URL=postgresql://unavailable:unavailable@127.0.0.1:1/unavailable -e AUTH_SECRET=isolated-ci-placeholder -e APP_PUBLIC_URL=https://lebonrebond.fr rebondpro-app:${GITHUB_SHA}
@@ -142,7 +163,7 @@ jobs:
           with archive.open('rb') as source:
               for block in iter(lambda: source.read(1024 * 1024), b''):
                   digest.update(block)
-          budget = {'commit': sha, 'imageId': image['Id'], 'tags': manifest['RepoTags'], 'gzipBytes': archive.stat().st_size, 'gzipSha256': digest.hexdigest(), 'dockerReportedSizeBytes': image['Size'], 'layerArchiveBytes': sum(layer['archiveBytes'] for layer in layers), 'layers': layers, 'scope': 'Measured CI image and saved layer members. VPS preflight must compare shared diffIds and allow for transfer, Docker loading and filesystem overhead; this is not deployment approval.'}
+          budget = {'commit': sha, 'imageId': image['Id'], 'tags': manifest['RepoTags'], 'nodeBaseImage': os.environ['NODE_BASE_IMAGE'], 'nodeBaseDigestInput': os.environ.get('NODE_BASE_DIGEST_INPUT', ''), 'gzipBytes': archive.stat().st_size, 'gzipSha256': digest.hexdigest(), 'dockerReportedSizeBytes': image['Size'], 'layerArchiveBytes': sum(layer['archiveBytes'] for layer in layers), 'layers': layers, 'scope': 'Measured CI image and saved layer members. VPS preflight must compare shared diffIds and allow for transfer, Docker loading and filesystem overhead; this is not deployment approval.'}
           pathlib.Path('rebondpro-image-budget.json').write_text(json.dumps(budget, indent=2) + '\n')
           print(json.dumps({key: value for key, value in budget.items() if key != 'layers'}))
           PY

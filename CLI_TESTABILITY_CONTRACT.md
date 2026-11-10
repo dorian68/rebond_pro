@@ -77,6 +77,8 @@ L'option `performance_audit=true` du workflow `Build tested SEO image` construit
 
 L'option distincte `seo_audit=true` construit et contrôle le candidat sur le runner Linux sans lancer Lighthouse ni navigateur. Elle conserve le XML réellement servi, son résumé (21 URL éditoriales sans base joignable, 17 dates vérifiées et 4 omissions), les contrôles HTTP SEO, l'image exacte et un budget mesuré de ses couches. Le budget liste les diffIds, les tailles des membres de l'archive, la taille d'image Docker et celle du fichier transférable; le préflight VPS et la publication restent séparés.
 
+L'input optionnel `node_base_digest` accepte uniquement `sha256:` suivi de 64 caractères hexadécimaux minuscules. Vide par défaut, il conserve le tag `node:22-bookworm-slim`; renseigné, il sélectionne explicitement ce tag avec digest immuable et transmet `NODE_BASE_IMAGE` aux builds candidat, builder et éventuel baseline performance. Le baseline utilise alors la même recette Docker paramétrée avec son propre contexte applicatif. Le budget conserve l'input et l'image de base sélectionnée. Le choix d'un digest exige une preuve de provenance et de compatibilité avec la production; il ne constitue pas une autorisation de déploiement.
+
 Les scripts smoke écrivent une ligne JSON par étape avec `status: pass|fail`. Aucun secret ne doit être écrit. Un code de sortie non nul signale un échec.
 
 ## Environment loading

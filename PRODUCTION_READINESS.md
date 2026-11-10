@@ -1,5 +1,11 @@
 # Production Readiness
 
+## Variante de build reproductible — 10 novembre 2026
+
+Branche `seo/sitemap-lastmod-repro-20261110`, base `ec83dce`. Aucun fichier applicatif, test de date, URL, contenu ou requête DB ne diffère du correctif XML précédent. Seule la recette Docker accepte une base optionnelle, vide par défaut dans le workflow, afin de construire explicitement sur la base Node déjà active. Le tag courant reste le comportement par défaut. Le digest choisi pour la validation, `sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da`, est celui du build publié le 3 novembre; son manifeste linux/amd64 et ses cinq couches correspondent à la production actuelle, Node 22.23.4. La preuve est conservée dans `seo-operations/resume-20261110/production-base-layers.json` et les métadonnées officielles du registre.
+
+Le candidat `ec83dce` garde ses deux PASS XML mais son préflight disque a été refusé sans importation. Cette variante doit obtenir son propre build, XML, budget mesuré et ses verdicts exacts avant le préflight de l'orchestrateur. Aucune réserve disque ne doit être réduite et aucun build/prune/migration VPS n'est effectué par cet agent. **Publication non effectuée; CI et revue métier de la variante en attente.**
+
 ## Sitemap lastmod — candidat isolé du 10 novembre 2026
 
 Base publiée `14b232b06505ef673a9a4bebf0446c1692f0cc2f`, branche `seo/sitemap-lastmod-20261110`. Le correctif ajoute `2026-11-03` aux seules 17 URL éditoriales d'une liste explicite : elles ont réellement reçu les données structurées/liens du layout vitrine publiés ce jour-là. Les quatre autres URL éditoriales et les 73 fiches catalogue gardent une date omise. Aucun contenu, URL, canonique, date d'article, verrou de publication ou requête DB n'est modifié. La génération dynamique et son repli restent identiques.
