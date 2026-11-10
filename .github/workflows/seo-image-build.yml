@@ -10,6 +10,10 @@ on:
         description: Compare the homepage against the published SEO baseline, on this runner only
         type: boolean
         default: false
+      seo_audit:
+        description: Validate public SEO and sitemap XML on this runner without a real database
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,7 +27,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Check public VPS connectivity
-        if: ${{ !inputs.performance_audit }}
+        if: ${{ !inputs.performance_audit && !inputs.seo_audit }}
         continue-on-error: true
         run: |
           python3 - <<'PY'
@@ -44,10 +48,40 @@ jobs:
       - name: Build exact tested source
         run: docker build -t rebondpro-app:${GITHUB_SHA} .
       - name: Validate candidate without a real database
-        if: inputs.performance_audit
+        if: inputs.performance_audit || inputs.seo_audit
         run: |
           docker build --target builder -t rebondpro-builder:${GITHUB_SHA} .
-          docker run --rm rebondpro-builder:${GITHUB_SHA} sh -c "npx tsc --noEmit --incremental false && npx eslint 'src/app/(site)/page.tsx' scripts/smoke-public-seo.ts scripts/audit-home-performance.mjs && npm run smoke:public-seo"
+          docker run --rm rebondpro-builder:${GITHUB_SHA} sh -c "npx tsc --noEmit --incremental false && npx eslint 'src/app/(site)/page.tsx' src/app/sitemap.ts src/lib/sitemap-lastmod.ts scripts/smoke-public-seo.ts scripts/audit-home-performance.mjs && npm run smoke:public-seo"
+      - name: Validate public sitemap XML on the isolated runner
+        if: inputs.seo_audit
+        run: |
+          mkdir -p "$RUNNER_TEMP/rebond-seo-validation"
+          docker run -d --name rebond-seo-candidate -p 3763:3000 -e DATABASE_URL=postgresql://unavailable:unavailable@127.0.0.1:1/unavailable -e AUTH_SECRET=isolated-ci-placeholder -e APP_PUBLIC_URL=https://lebonrebond.fr rebondpro-app:${GITHUB_SHA}
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3763/ > /dev/null; then break; fi
+            sleep 1
+          done
+          docker run --rm --network host rebondpro-builder:${GITHUB_SHA} npm run smoke:public-seo -- --base-url http://127.0.0.1:3763
+          curl -fsS http://127.0.0.1:3763/sitemap.xml > "$RUNNER_TEMP/rebond-seo-validation/sitemap.xml"
+          python3 - <<'PY'
+          import json, os, pathlib, xml.etree.ElementTree as ET
+          output = pathlib.Path(os.environ['RUNNER_TEMP']) / 'rebond-seo-validation'
+          ns = {'s': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          entries = [{'url': item.findtext('s:loc', namespaces=ns), 'lastmod': item.findtext('s:lastmod', namespaces=ns)} for item in ET.parse(output / 'sitemap.xml').getroot()]
+          assert len(entries) == 21 and len({entry['url'] for entry in entries}) == 21
+          assert sum(entry['lastmod'] == '2026-11-03' for entry in entries) == 17
+          assert sum(entry['lastmod'] is None for entry in entries) == 4
+          summary = {'commit': os.environ['GITHUB_SHA'], 'passed': True, 'scope': 'Runner-local editorial fallback; no reachable DB or catalogue integration claim.', 'entries': entries}
+          (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+          print(json.dumps({'step': 'sitemap_xml', 'status': 'pass', 'editorialUrls': 21, 'verifiedLastmod': 17, 'omittedLastmod': 4}))
+          PY
+          docker stop rebond-seo-candidate
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.seo_audit
+        with:
+          name: rebondpro-seo-validation-${{ github.sha }}
+          path: ${{ runner.temp }}/rebond-seo-validation
+          retention-days: 7
       - uses: actions/checkout@v4
         if: inputs.performance_audit
         with:
@@ -93,12 +127,37 @@ jobs:
         run: |
           docker save rebondpro-app:${GITHUB_SHA} | gzip -1 > rebondpro-app.tar.gz
           sha256sum rebondpro-app.tar.gz > rebondpro-app.sha256
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, tarfile
+          archive = pathlib.Path('rebondpro-app.tar.gz')
+          sha = os.environ['GITHUB_SHA']
+          image = json.loads(subprocess.check_output(['docker', 'image', 'inspect', f'rebondpro-app:{sha}']))[0]
+          with tarfile.open(archive, 'r:gz') as saved:
+              manifest = json.load(saved.extractfile('manifest.json'))[0]
+              config = json.load(saved.extractfile(manifest['Config']))
+              diff_ids = config['rootfs']['diff_ids']
+              assert len(diff_ids) == len(manifest['Layers'])
+              layers = [{'diffId': diff_id, 'archivePath': path, 'archiveBytes': saved.getmember(path).size} for diff_id, path in zip(diff_ids, manifest['Layers'])]
+          digest = hashlib.sha256()
+          with archive.open('rb') as source:
+              for block in iter(lambda: source.read(1024 * 1024), b''):
+                  digest.update(block)
+          budget = {'commit': sha, 'imageId': image['Id'], 'tags': manifest['RepoTags'], 'gzipBytes': archive.stat().st_size, 'gzipSha256': digest.hexdigest(), 'dockerReportedSizeBytes': image['Size'], 'layerArchiveBytes': sum(layer['archiveBytes'] for layer in layers), 'layers': layers, 'scope': 'Measured CI image and saved layer members. VPS preflight must compare shared diffIds and allow for transfer, Docker loading and filesystem overhead; this is not deployment approval.'}
+          pathlib.Path('rebondpro-image-budget.json').write_text(json.dumps(budget, indent=2) + '\n')
+          print(json.dumps({key: value for key, value in budget.items() if key != 'layers'}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rebondpro-image-budget-${{ github.sha }}
+          path: rebondpro-image-budget.json
+          retention-days: 3
       - uses: actions/upload-artifact@v4
         with:
           name: rebondpro-seo-image-${{ github.sha }}
           path: |
             rebondpro-app.tar.gz
             rebondpro-app.sha256
+            rebondpro-image-budget.json
           compression-level: 0
           retention-days: 3
 

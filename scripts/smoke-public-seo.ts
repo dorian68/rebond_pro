@@ -7,6 +7,7 @@ import { PageBreadcrumbs } from "../src/components/site/PageBreadcrumbs";
 import { breadcrumbData, centerPath, formationPath, jsonLd, siteIdentity } from "../src/lib/site-seo";
 import { CATALOG_SITEMAP_FORMATION_LIMIT, publicCatalogSitemapPaths, publicCatalogSitemapQuery } from "../src/lib/catalog-sitemap";
 import { VERIFIED_MARKETPLACE_ORGANIZATION } from "../src/lib/marketplace-publication";
+import { editorialLastModified } from "../src/lib/sitemap-lastmod";
 
 let failures = 0;
 async function check(step: string, run: () => unknown | Promise<unknown>) {
@@ -27,6 +28,18 @@ function structuredData(html: string): Record<string, unknown>[] {
 async function main() {
   const previousOrigin = process.env.APP_PUBLIC_URL;
   process.env.APP_PUBLIC_URL = "https://lebonrebond.fr";
+  await check("sitemap_dates_exclude_unverified_pages_and_future_articles", () => {
+    for (const path of ["/", "/methode", "/blog/changer-de-voie-a-40-ans"]) {
+      assert.equal(editorialLastModified(path), "2026-11-03");
+    }
+    for (const path of ["/marketplace", "/legal/mentions", "/legal/cgu", "/legal/confidentialite", "/blog/futur-article", "/nouvelle-page"]) {
+      assert.equal(editorialLastModified(path), undefined, `Unverified lastmod: ${path}`);
+    }
+    for (let index = 0; index < 73; index++) {
+      const path = index < 10 ? `/centre-${index}` : `/centre-0/f/formation-${index}`;
+      assert.equal(editorialLastModified(path), undefined, `Invented catalogue lastmod: ${path}`);
+    }
+  });
   await check("homepage_hero_is_visible_before_hydration", () => {
     const html = renderToStaticMarkup(createElement(Home));
     const hero = html.match(/<section\b[\s\S]*?<\/section>/)?.[0];
@@ -130,6 +143,16 @@ async function main() {
         assert.doesNotMatch(url.pathname, /^\/(admin|api|espace|trainer|onboarding)(\/|$)/);
       }
       for (const path of ["/", "/methode", "/bilan-orientation", "/blog/changer-de-voie-a-40-ans"]) assert.ok(urls.some((url) => url.pathname === path));
+      const entries = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)];
+      assert.equal(entries.length, urls.length);
+      assert.equal([...xml.matchAll(/<lastmod>/g)].length, 17, "Only the 17 verified editorial pages receive a date");
+      for (const [, entry] of entries) {
+        const location = entry.match(/<loc>(.*?)<\/loc>/)?.[1];
+        assert.ok(location);
+        const expected = editorialLastModified(new URL(location).pathname);
+        const dates = [...entry.matchAll(/<lastmod>(.*?)<\/lastmod>/g)].map((match) => match[1]);
+        assert.deepEqual(dates, expected ? [expected] : [], `Unexpected lastmod for ${location}`);
+      }
     });
     await check("http_unknown_article_remains_a_real_404", async () => {
       const response = await fetch(new URL("/blog/seo-smoke-article-inexistant", base), { signal: AbortSignal.timeout(25_000) });

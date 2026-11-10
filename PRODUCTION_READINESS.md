@@ -1,5 +1,11 @@
 # Production Readiness
 
+## Sitemap lastmod — candidat isolé du 10 novembre 2026
+
+Base publiée `14b232b06505ef673a9a4bebf0446c1692f0cc2f`, branche `seo/sitemap-lastmod-20261110`. Le correctif ajoute `2026-11-03` aux seules 17 URL éditoriales d'une liste explicite : elles ont réellement reçu les données structurées/liens du layout vitrine publiés ce jour-là. Les quatre autres URL éditoriales et les 73 fiches catalogue gardent une date omise. Aucun contenu, URL, canonique, date d'article, verrou de publication ou requête DB n'est modifié. La génération dynamique et son repli restent identiques.
+
+**Publication non effectuée; verdict technique en attente de CI exacte et revue métier indépendante.** Le workflow `seo_audit` doit vérifier TypeScript/lint/smokes et le XML réellement servi, puis conserver image et budget de couches pour le préflight disque de l'orchestrateur. Aucun build/serveur/navigateur local, accès à une base réelle, migration ou déploiement n'est requis par cet agent. La suite globale avec écritures DB n'est pas exécutée dans ce périmètre XML en lecture seule; les contraintes historiques des autres modules ne sont pas levées. L'indexation, les sitelinks et les citations ne sont pas garantis.
+
 ## Performance accueil — candidat isolé du 3 novembre 2026
 
 Base publiée `b4f3086`, branche `perf/home-lcp-20261103`. Le rapport Lighthouse mobile public réel mesure LCP 6,6 s, performance 75, SEO 100 et accessibilité 100. L'élément LCP est le paragraphe du hero, masqué dans le HTML initial (`opacity:0`) jusqu'à l'hydratation et l'animation. Le candidat rend les sept blocs du premier écran immédiatement visibles avec `initial={false}`, sans modifier les textes, liens, images ou métadonnées. Le smoke SSR ciblé passe 7/7. La comparaison Lighthouse et la preuve de rendu sans JavaScript doivent être exécutées sur le runner Linux via l'option `performance_audit` du workflow existant; les résultats publics et ceux du runner restent des mesures distinctes.

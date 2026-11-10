@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { blogArticles } from "@/content/blog-data";
 import { siteUrl } from "@/lib/site-seo";
+import { editorialLastModified } from "@/lib/sitemap-lastmod";
 import { logger } from "@/lib/logger";
 import { getPublicCatalogSitemapPaths } from "@/server/marketplace-seo";
 
@@ -34,9 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Do not log Prisma messages, connection strings, or unpublished records.
     logger.warn("public_sitemap_catalogue_unavailable", { errorType: error instanceof Error ? error.name : "UnknownError" });
   }
-  return [...new Set([...ROUTES, ...catalogPaths])].map((path) => ({
-    url: siteUrl(path || "/"),
-    changeFrequency: path === "/blog" || path === "/marketplace" ? "weekly" : "monthly",
-    priority: path === "" ? 1 : path.startsWith("/legal/") ? 0.2 : 0.8,
-  }));
+  return [...new Set([...ROUTES, ...catalogPaths])].map((path) => {
+    const lastModified = editorialLastModified(path || "/");
+    return {
+      url: siteUrl(path || "/"),
+      ...(lastModified ? { lastModified } : {}),
+      changeFrequency: path === "/blog" || path === "/marketplace" ? "weekly" : "monthly",
+      priority: path === "" ? 1 : path.startsWith("/legal/") ? 0.2 : 0.8,
+    };
+  });
 }

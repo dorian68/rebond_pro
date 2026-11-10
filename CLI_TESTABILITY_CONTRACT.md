@@ -69,11 +69,13 @@ Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un
 
 ### Public SEO (3 novembre 2026)
 
-`npm run smoke:public-seo` vérifie sans base ni mutation : visibilité du hero d'accueil dans le HTML serveur avant hydratation, identité de l'éditeur, échappement JSON-LD, liens HTML initiaux, disclosures natifs, cohérence du fil d'Ariane et verrou de publication du catalogue sitemap. `npm run smoke:public-seo -- --base-url http://127.0.0.1:3763` ajoute le contrôle HTTP de dix pages publiques (H1, canonique, navigation, JSON-LD), du sitemap et d'une vraie 404. Le mode HTTP ne soumet aucun formulaire et ne déclenche aucun paiement ni écriture externe.
+`npm run smoke:public-seo` vérifie sans base ni mutation : visibilité du hero d'accueil dans le HTML serveur avant hydratation, identité de l'éditeur, échappement JSON-LD, liens HTML initiaux, disclosures natifs, cohérence du fil d'Ariane, verrou de publication du catalogue sitemap et absence de date non vérifiée pour catalogue/pages publiques/futurs articles. `npm run smoke:public-seo -- --base-url http://127.0.0.1:3763` ajoute le contrôle HTTP de dix pages publiques (H1, canonique, navigation, JSON-LD), du sitemap (17 dates fixes vérifiées, omission ailleurs) et d'une vraie 404. Le mode HTTP ne soumet aucun formulaire et ne déclenche aucun paiement ni écriture externe.
 
 La publication du catalogue complet exige une base contenant les vrais centres approuvés. Sans base, le sitemap conserve les pages éditoriales et journalise explicitement l'indisponibilité ; ce repli ne prouve pas la validation de l'intégration catalogue en production.
 
 L'option `performance_audit=true` du workflow `Build tested SEO image` construit sur le runner Linux le candidat exact et la base publiée `b4f3086`, sans base joignable. `scripts/audit-home-performance.mjs` compare le rendu headless mobile/desktop avec et sans JavaScript (visibilité, contenu, liens, identité, canonique et géométrie finale), puis trois audits Lighthouse mobiles alternés par version. L'artefact conserve captures et rapports complets. Le contrôle exige une amélioration médiane LCP d'au moins 20 %, SEO et accessibilité préservés, et aucun surcroît CLS supérieur à 0,02. Il ne mesure pas les Core Web Vitals terrain et n'exécute aucune publication.
+
+L'option distincte `seo_audit=true` construit et contrôle le candidat sur le runner Linux sans lancer Lighthouse ni navigateur. Elle conserve le XML réellement servi, son résumé (21 URL éditoriales sans base joignable, 17 dates vérifiées et 4 omissions), les contrôles HTTP SEO, l'image exacte et un budget mesuré de ses couches. Le budget liste les diffIds, les tailles des membres de l'archive, la taille d'image Docker et celle du fichier transférable; le préflight VPS et la publication restent séparés.
 
 Les scripts smoke écrivent une ligne JSON par étape avec `status: pass|fail`. Aucun secret ne doit être écrit. Un code de sortie non nul signale un échec.
 

@@ -207,6 +207,7 @@ Pour Orchestration : `npm run smoke:orchestration`, `npm run smoke:orchestration
 - Les fils d'Ariane visibles et `BreadcrumbList` décrivent les mêmes pages. Les libellés issus de la base sont échappés dans le JSON-LD.
 - Les fiches centre et formation possèdent leur propre canonique. Le sitemap conserve les 21 URL éditoriales et ajoute uniquement les fiches réellement publiables avec le verrou existant (centre approuvé, revue humaine, profil activé ; formation publique, publiée et non supprimée).
 - Le sitemap ne rend pas publiques les données CARIF, démo, personnelles ou administratives. Une formation sans `publicSlug` n'y reçoit pas de fausse URL. L'absence de base de données conserve le sitemap éditorial et produit un avertissement structuré sans secret.
+- `lastmod` reflète uniquement une modification importante réellement publiée et vérifiable. La liste fixe des 17 pages vitrine connues au 3 novembre 2026 porte `2026-11-03`; les quatre autres pages éditoriales et le catalogue n'ont pas de date déduite ou inventée. Un futur article n'hérite pas de cette date. Aucun horodatage de génération/build ni date de publication d'article n'est substitué à une preuve de modification.
 - Validation : smoke SEO pur, audit HTTP du HTML initial et des métadonnées, TypeScript et build. Aucun changement de base, de formulaire, de paiement ou d'autorisation n'est requis.
 - Ces corrections facilitent la compréhension et l'exploration. L'indexation, les sitelinks et la citation par les moteurs génératifs restent décidés par les moteurs.
 
