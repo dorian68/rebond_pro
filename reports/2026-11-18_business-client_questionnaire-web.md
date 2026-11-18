@@ -91,3 +91,15 @@ Ces notes sont un jugement expert issu des parcours ci-dessus, pas une mesure d'
 **Business Client Mystère : PASS pour la fonctionnalité questionnaire V2, consultation et statistiques admin dans l'environnement local isolé, après correction du changement de canal.**
 
 Aucun blocage business local restant identifié. Ce verdict porte sur la fonctionnalité testée, sans lever les réserves historiques du reste du site. La publication, la migration et l'installation de la purge sont sous responsabilité du lead technique ; aucune validation du déploiement public n'est revendiquée ici. Aucun email n'a été envoyé par cette revue.
+
+## Réexamen après mise à jour du framework
+
+Le lead a remplacé Next et sa configuration ESLint de la version 16.3.0 par 16.4.6 avant publication, sans changement annoncé du contenu ou des fonctions du questionnaire. Le navigateur local et le package réellement chargé ont été vérifiés à nouveau : `next/package.json` retourne **16.4.6**.
+
+**Vérifications directes Business Client Mystère sur 16.4.6 :** rendu mobile à 390 pixels sans débordement horizontal ; inspection de la nouvelle capture `.run/questionnaire/public-mobile-next1646-business.png` ; progression sur les trois écrans ; freins et âge laissés facultatifs ; validation d'un téléphone invalide avec accord coché ; passage vers email sans message téléphonique résiduel ; passage sans rappel avec coordonnées masquées et bouton « Terminer » ; retour arrière avec choix conservés. Aucun POST vers `/api/questionnaire` n'a été effectué dans ce réexamen : aucune nouvelle donnée créée. La liste admin anonyme est toujours refusée en 403.
+
+L'ancienne session admin synthétique est refusée en 403, les fixtures des répétitions techniques n'étant pas conservées. Ce contrôle n'est donc pas présenté comme une seconde revue admin authentifiée par cet agent. La revue complète admin détaillée plus haut reste la preuve business antérieure.
+
+**Répétition technique rapportée par le lead sur 16.4.6 : PASS** du smoke UI/API complet, avec parcours public, panne et nouvelle tentative, détail admin, statut après rafraîchissement, statistiques, CSV, refus des accès anonyme et centre, mobile et Axe. Les fixtures de cette répétition ont été supprimées automatiquement. Ces résultats sont attribués au lead et ne sont pas assimilés à des observations directes de cet agent. L'image du candidat `06ac3e0` était encore en compilation lors de cette mise à jour du rapport.
+
+**Verdict Business Client Mystère maintenu : PASS pour la fonctionnalité locale sur le périmètre décrit**, avec nouvelle vérification directe du public sur 16.4.6 et répétition technique complète des parcours privés par le lead. Aucun nouveau blocage business constaté. La production reste déclarée sur `1ea433e` à ce stade ; aucun déploiement VPS ni contrôle de la release publique n'est validé par ce réexamen.

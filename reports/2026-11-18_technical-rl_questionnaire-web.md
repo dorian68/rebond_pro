@@ -36,3 +36,17 @@ Un ancien conteneur de vérification SEO arrêté depuis deux semaines, sans mon
 ## Verdict
 
 Technical RL : PASS local pour le périmètre questionnaire. Business Client Mystère : PASS local après correction. Validation de la release et de la purge production à consigner après activation. Durée réelle de réponse et usages terrain non mesurés.
+
+## Validation finale en production
+
+Release activée le 18 novembre 2026 : `06ac3e044ede7a70b8ea8b6e9739ec85aa0bb2dd`, Next.js 16.4.6. Image Linux amd64 précompilée et testée avant transfert ; identifiant `sha256:3f95e96b8387690558034f08e80e1bda5ef4962a1ddec0fe8fb23b0cd93355f3`. Couches RootFS et label de révision identiques après chargement sur le VPS. Aucun build n'a été lancé sur le VPS.
+
+- Recette complète UI/API rejouée sur l'image finale, en mode production local : PASS, y compris mobile/Axe, réel enregistrement, panne/réessai, session super-admin, refus centre/anonyme, CSV et statut après refresh.
+- Sauvegarde PostgreSQL préalable compressée et vérifiée ; migration appliquée avec Prisma 6.19.3 ; 30 migrations terminées et RLS actif sur la nouvelle table.
+- HTTPS `https://lebonrebond.fr/questionnaire` : 200, contenu approuvé et noindex présents. Aucun lien dans les ancres de l'accueil ni dans le sitemap.
+- Test positif d'envoi depuis l'adresse publique : réponse `{ok:true}` puis ligne vérifiée en base. Données entièrement synthétiques, identifiées comme test temporaire ; suppression exacte de cette seule réponse et absence résiduelle vérifiées.
+- Liste, détail et CSV admin anonymes : 403 ; page admin renvoie vers la connexion. Parcours admin authentifié vérifié sur l'image identique avant transfert, sans créer de compte de test en production.
+- Purge installée dans `/etc/cron.d/rebondpro-questionnaires`, service cron actif, script vérifié et exécution manuelle `DELETE 0` réussie. L'exécution future planifiée n'est pas présentée comme déjà observée.
+- Contrôle de santé public : service opérationnel, base accessible. Ancienne image conservée pour rollback. Aucun email envoyé.
+
+**Technical RL : PASS pour la fonctionnalité déployée. Business Client Mystère : PASS pour le périmètre revu et retesté.** Les limites historiques du site restent distinctes. Le serveur conserve environ 947 Mio libres, soit 98 % de disque utilisé : capacité d'exploitation à surveiller, sans suppression de données métier dans cette intervention. Preuves de déploiement et de vérification conservées sous `.run/questionnaire` localement ; aucun secret n'est versionné.

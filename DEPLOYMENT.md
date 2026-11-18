@@ -10,6 +10,14 @@ Après application de la migration `20261118120000_questionnaire_responses`, ins
 
 La tâche ne supprime que les réponses dont `expiresAt` est atteint ; son journal contient uniquement le nombre de suppressions PostgreSQL. Les interfaces excluent déjà ces réponses dès l'échéance. Vérifier `sh -n`, exécution à blanc sans réponse échue, puis la présence du cron. Les sauvegardes PostgreSQL restent soumises au cycle de rotation d'exploitation et ne doivent pas réintroduire de réponses expirées après une restauration.
 
+## Release questionnaire du 18 novembre 2026
+
+La production sert `06ac3e044ede7a70b8ea8b6e9739ec85aa0bb2dd`, construit dans le worktree `rebondpro-questionnaire` sur la branche `feat/questionnaire-rebond`, depuis la base de production exacte `1ea433e`. Cette branche n'est pas un descendant de `origin/main` ; aucune réécriture de la branche principale ni reprise du checkout historique modifié n'a été effectuée.
+
+Pour cette publication, l'image a été compilée hors VPS puis transférée par `docker save` et `docker load` en flux, sans archive d'image supplémentaire sur le disque serveur. Les couches RootFS, architecture et label de révision ont été comparés avant activation. La sauvegarde PostgreSQL, `prisma migrate deploy` dans un conteneur éphémère 6.19.3, la purge et les contrôles ont précédé la finalisation de `DEPLOYED_COMMIT`. Seul le service `app` a été recréé avec `docker compose up -d --no-deps app`. Cette méthode évite un build sur le VPS, dont les ressources restent contraintes.
+
+L'image précédente est conservée sous `rebondpro-app:rollback-questionnaire-1ea433e51c8d2ab9abd589101594bbed7f848bb2`. Une restauration de l'image conserve la nouvelle table, additive ; ne pas supprimer cette table ni ses réponses pour revenir à l'interface précédente. Les contrôles publics ont été effectués après activation et la seule réponse de recette a été supprimée.
+
 Dernière validation : 12 juillet 2026.
 
 Ce document décrit l'infrastructure réellement utilisée par `lebonrebond.optiquant-ia.com`. Le déploiement courant est automatisé par `scripts/deploy.mjs` et conserve les secrets, la base et le proxy déjà présents sur le VPS.
