@@ -25,6 +25,8 @@ Les API de liste, détail, CSV, statut et suppression contrôlent les droits pla
 
 ## Déploiement
 
+Le contrôle des dépendances avant publication a signalé Next.js 16.3.0 dans la plage de vulnérabilités critiques (notamment [optimisation AVIF](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4) et [fonctions use cache](https://github.com/advisories/GHSA-673q-mjm6-r5xr)). Next et sa configuration ESLint ont été mis à jour ensemble vers 16.4.6, avec verrou de dépendances actualisé. Le nouvel audit des dépendances de production ne signale plus Next ni de vulnérabilité critique ; six alertes hautes et une modérée restent dans les dépendances préexistantes. Ce constat ne constitue pas une certification générale du site. Les recettes du questionnaire sont relancées sur cette version avant activation.
+
 L'image sera précompilée hors VPS, selon le précédent déploiement qui évite les builds sur ce serveur. Vérification préalable : production exacte et 29 migrations ; disque à 99 %. Trois anciennes archives de transfert d'images, toutes sous `/opt/rebondpro/releases`, ont été identifiées puis retirées après contrôle des chemins et empreintes ; les sources, images actuelles, données et sauvegardes sont conservées. Espace retrouvé : environ 1,2 Gio.
 
 La sauvegarde quotidienne du stockage distant est déjà PARTIAL ; une sauvegarde PostgreSQL préalable à la migration de cette table est requise. Le périmètre ne change aucun fichier bénéficiaire ni le stockage distant. L'activation inclura la purge quotidienne de cette collecte, la santé applicative, la garde admin et la page publique.

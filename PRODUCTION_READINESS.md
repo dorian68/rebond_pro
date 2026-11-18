@@ -6,6 +6,8 @@
 
 La suite globale `smoke:all:local` s'arrête sur un défaut préexistant de `smoke:roadmap-2:agentic-gmail` : séparateur « — » attendu par le test et absent du corps normalisé. Les fichiers Gmail concernés sont inchangés par cette évolution ; ce blocage reste distinct du verdict ciblé questionnaire. Aucun succès global de la plateforme ne découle de ce déploiement.
 
+Le contrôle avant publication a également conduit à remplacer Next.js et eslint-config-next 16.3.0 par 16.4.6. L'audit production après cette mise à jour retourne zéro alerte critique et aucune alerte Next ; six alertes hautes et une modérée restent sur des dépendances préexistantes. Le patch questionnaire n'est pas une levée de ces alertes globales.
+
 ## Variante de build reproductible — 10 novembre 2026
 
 Branche `seo/sitemap-lastmod-repro-20261110`, base `ec83dce`. Aucun fichier applicatif, test de date, URL, contenu ou requête DB ne diffère du correctif XML précédent. Seule la recette Docker accepte une base optionnelle, vide par défaut dans le workflow, afin de construire explicitement sur la base Node déjà active. Le tag courant reste le comportement par défaut. Le digest choisi pour la validation, `sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da`, est celui du build publié le 3 novembre; son manifeste linux/amd64 et ses cinq couches correspondent à la production actuelle, Node 22.23.4. La preuve est conservée dans `seo-operations/resume-20261110/production-base-layers.json` et les métadonnées officielles du registre.
