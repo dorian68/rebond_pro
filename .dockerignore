@@ -16,5 +16,6 @@ coverage
 .idea
 .DS_Store
 reports
+.run
 # Compose dev (services locaux, hors image app)
 docker-compose.yml

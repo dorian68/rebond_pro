@@ -1,5 +1,10 @@
 # CLI Testability Contract
 
+## Questionnaire de premier contact
+
+- `npm run smoke:questionnaire` : validation serveur, persistance, rejeux simultanés, absence de coordonnées sans rappel, maxima/exclusivités, statistiques, CSV et dates/expiration. Fixtures globales isolées et supprimées après la recette. Ajout au chaînage `smoke:all`.
+- `npm run smoke:questionnaire:ui` : serveur local requis (`SMOKE_BASE_URL`, défaut `http://localhost:3105`). Chromium teste le parcours public, erreur récupérable, persistance, accès anonymes et administrateur de centre refusés, session super-admin synthétique réelle, détail, statut après refresh, statistiques, export CSV, desktop/mobile et Axe. Aucun fournisseur externe. La recette refuse un hôte distant et conserve seulement ses fixtures locales si `KEEP_QUESTIONNAIRE_FIXTURE=true`, pour la revue client mystère ; nettoyage après revue.
+
 ## Goal
 
 Les parcours critiques doivent être vérifiables sans dépendre uniquement d'un navigateur. Un agent doit pouvoir valider le produit depuis la CLI.

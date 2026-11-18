@@ -1,5 +1,15 @@
 # Déploiement VPS - RebondPro
 
+## Conservation des questionnaires
+
+Après application de la migration `20261118120000_questionnaire_responses`, installer `ops/purge-questionnaires.sh` sous `/opt/rebondpro/ops/purge-questionnaires.sh` avec permissions 0750 et une tâche `/etc/cron.d/rebondpro-questionnaires` :
+
+```cron
+17 3 * * * root /opt/rebondpro/ops/purge-questionnaires.sh >> /opt/rebondpro/backups/questionnaires-purge.log 2>&1
+```
+
+La tâche ne supprime que les réponses dont `expiresAt` est atteint ; son journal contient uniquement le nombre de suppressions PostgreSQL. Les interfaces excluent déjà ces réponses dès l'échéance. Vérifier `sh -n`, exécution à blanc sans réponse échue, puis la présence du cron. Les sauvegardes PostgreSQL restent soumises au cycle de rotation d'exploitation et ne doivent pas réintroduire de réponses expirées après une restauration.
+
 Dernière validation : 12 juillet 2026.
 
 Ce document décrit l'infrastructure réellement utilisée par `lebonrebond.optiquant-ia.com`. Le déploiement courant est automatisé par `scripts/deploy.mjs` et conserve les secrets, la base et le proxy déjà présents sur le VPS.

@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 
 export const HEADLESS_SMOKE_SUITES = [
+  "smoke:questionnaire",
   "smoke:health",
   "smoke:lot5",
   "smoke:auth",

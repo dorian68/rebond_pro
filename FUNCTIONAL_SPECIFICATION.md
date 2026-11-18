@@ -1,5 +1,19 @@
 # Functional Specification
 
+## Questionnaire de premier contact 18 novembre 2026
+
+Page publique `/questionnaire`, accessible directement sans ajout à la navigation publique ni au sitemap, avec `noindex`. Le contenu reproduit les douze questions V2 approuvées, notamment les choix entrepreneuriat, compétences, confiance et marché de l'emploi. Trois étapes, retour sans perte tant que la page reste ouverte, maxima et réponses exclusives validés côté client et serveur. Commune, âge, freins et précision métier/idée restent facultatifs. Aucune coordonnée sans demande d'échange ; un seul canal est enregistré selon le choix. Un consentement distinct au traitement est recueilli avant envoi, sans inscription marketing ni partage partenaire.
+
+`POST /api/questionnaire` : JSON limité à 16 Kio, origine du site, limite de débit, honeypot, valeurs autorisées, consentement et coordonnées conditionnelles. La réponse `{ok:true}` suit exclusivement la persistance PostgreSQL. Clé d'envoi UUID unique et empreinte du contenu : les tentatives identiques, même concurrentes, créent une seule réponse ; une clé réutilisée avec un autre contenu produit une erreur explicite. Aucune dépendance email pour conserver une réponse.
+
+Objet plateforme `QuestionnaireResponse`, indépendant des centres : réponses JSON, version, précision facultative, coordonnées conditionnelles, statut `NEW/IN_PROGRESS/DONE`, dates d'accord, création, modification et expiration. Table avec RLS, lectures et mutations uniquement via gardes super-admin ; aucune API publique de lecture. Les réponses expirent six mois calendaires après envoi, sont exclues des consultations à échéance et supprimées par une purge quotidienne VPS.
+
+`/admin/questionnaires` : entrée de navigation admin uniquement. Liste paginée, détail fidèle, filtres dates civiles de Guadeloupe/statut/demande d'échange, statut persistant, suppression confirmée et export CSV des réponses filtrées. Le CSV protège les cellules contre les formules. Les statistiques couvrent toutes les réponses filtrées et non la seule page visible : effectifs, demandes d'échange, réponses à traiter, distributions par question, non-réponses et dénominateurs explicites. Un chargement ou une erreur ne s'affiche jamais comme zéro réponse.
+
+API admin : `GET /api/admin/questionnaires` (liste, agrégats ou CSV), `GET/PATCH/DELETE /api/admin/questionnaires/[id]` (détail, statut, suppression), garde super-admin à chaque point d'entrée et contrôle d'origine pour les écritures. Dates affichées en `America/Guadeloupe`. Aucun score d'employabilité, décision de financement ou admission automatique.
+
+Critères d'acceptation : parcours sans rappel et avec rappel persistés, invariance des douze questions approuvées, rejeu sans doublon, refus des valeurs hors liste et sélections incompatibles, contrôle d'accès anonyme et administrateur de centre sur liste/détail/export/mutations, cohérence des agrégats et filtres, récupération après échec sans fausse confirmation, affichage desktop/mobile et vérification d'accessibilité, lint/TypeScript/build et recettes CLI. La recette globale conserve ses éventuels blocages antérieurs documentés dans PRODUCTION_READINESS.
+
 ## 1. Product overview
 
 Le Bon Rebond est une plateforme d’orientation et de formation destinée aux personnes en transition professionnelle. Elle relie deux parcours publics principaux — trouver une formation ou clarifier sa direction par un bilan — à un réseau de centres partenaires équipé d’un cockpit SaaS multi-tenant.

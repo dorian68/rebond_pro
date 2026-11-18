@@ -13,6 +13,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Collecte publique du service plateforme, accessible aux seuls super-admins.
+model QuestionnaireResponse {
+  id             String   @id @default(cuid())
+  submissionKey  String   @unique
+  requestHash    String
+  version        String
+  answers        Json
+  sectorDetail   String?
+  firstName      String?
+  phone          String?
+  email          String?
+  contactSlot    String?
+  status         String   @default("NEW")
+  consentedAt    DateTime
+  privacyVersion String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  expiresAt      DateTime
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([expiresAt])
+}
+
 // ----------------------------- ENUMS -----------------------------
 
 enum Role {

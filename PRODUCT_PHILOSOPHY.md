@@ -1,5 +1,9 @@
 # Product Philosophy
 
+## Premier contact par questionnaire
+
+Un questionnaire court permet à la personne de partager son projet d'emploi, de formation ou d'activité indépendante, ses aspirations et le soutien qu'elle souhaite. Les compétences, la confiance et les repères sur le marché sont des besoins distincts. Le premier résultat attendu est un échange utile et une prochaine étape choisie avec elle. La collecte n'impose pas de compte, de budget personnel ou de rappel. Les réponses restent réservées à l'équipe plateforme habilitée ; ni le questionnaire ni ses statistiques ne valent éligibilité, jugement de motivation ou décision automatisée.
+
 ## Product name
 
 Le Bon Rebond (`lebonrebond.fr`).

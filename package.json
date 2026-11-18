@@ -91,7 +91,9 @@
     "smoke:e2e": "npm run smoke:ui && npm run smoke:agui-e2e",
     "smoke:all": "node scripts/smoke-all.mjs",
     "smoke:all:local": "node scripts/smoke-all-local.mjs",
-    "smoke:production": "npm run lint && npm run build"
+    "smoke:production": "npm run lint && npm run build",
+    "smoke:questionnaire": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-questionnaire.ts",
+    "smoke:questionnaire:ui": "tsx --tsconfig scripts/tsconfig.json scripts/smoke-questionnaire-ui.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

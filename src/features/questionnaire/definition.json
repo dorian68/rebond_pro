@@ -1,0 +1,236 @@
+{
+  "title": "Votre prochaine étape professionnelle",
+  "brand": "Le Bon Rebond",
+  "version": "2026-11-18 v2",
+  "duration": "Environ 4 minutes",
+  "intro": "Quelques questions pour comprendre vos envies et vous proposer une prochaine étape adaptée : emploi, formation ou accompagnement. Nous étudierons avec vous les possibilités de prise en charge. Aucun budget personnel ne vous est demandé. Ce questionnaire ne vous engage à aucune prestation.",
+  "instructions": "Cochez une réponse, sauf indication contraire. Vous pouvez choisir « Je ne sais pas encore ». Les questions signalées comme facultatives peuvent être laissées vides.",
+  "questions": [
+    {
+      "id": "situation",
+      "number": 1,
+      "label": "Quelle est votre situation aujourd’hui ?",
+      "type": "single",
+      "required": true,
+      "options": [
+        "Sans emploi depuis moins de 6 mois",
+        "Sans emploi depuis 6 à 12 mois",
+        "Sans emploi depuis plus de 12 mois",
+        "À la recherche de mon premier emploi",
+        "En emploi, avec un projet de changement",
+        "En formation ou dans une autre situation"
+      ]
+    },
+    {
+      "id": "objectif",
+      "number": 2,
+      "label": "Quelle est votre priorité ?",
+      "type": "single",
+      "required": true,
+      "options": [
+        "Candidater maintenant à un métier que je connais",
+        "Me préparer à un métier qui m’intéresse",
+        "Trouver une formation pour un projet déjà choisi",
+        "Clarifier mon projet ou ma reconversion",
+        "Créer ou reprendre une activité à mon compte",
+        "Un autre projet, à préciser ensemble"
+      ]
+    },
+    {
+      "id": "secteurs",
+      "number": 3,
+      "label": "Quels domaines aimeriez-vous explorer ?",
+      "type": "multiple",
+      "required": true,
+      "max_choices": 2,
+      "exclusive": [
+        "Je ne sais pas encore"
+      ],
+      "hint": "2 choix maximum. Vous pouvez aussi indiquer un métier précis.",
+      "options": [
+        "Hôtellerie, restauration, tourisme",
+        "Commerce, vente, accueil",
+        "Aide à la personne, santé, social",
+        "Bâtiment, travaux, maintenance",
+        "Transport, logistique",
+        "Administration, gestion, numérique",
+        "Agriculture, espaces verts, environnement",
+        "Un autre domaine",
+        "Je ne sais pas encore"
+      ],
+      "optional_text": {
+        "label": "Métier ou autre domaine, si vous le souhaitez (ou idée d’activité)",
+        "max_length": 80
+      }
+    },
+    {
+      "id": "aspirations",
+      "number": 4,
+      "label": "Qu’est-ce qui compte le plus pour votre prochain emploi ?",
+      "type": "multiple",
+      "required": true,
+      "max_choices": 2,
+      "exclusive": [
+        "Je ne sais pas encore"
+      ],
+      "hint": "2 choix maximum. Pensez aussi à une activité indépendante.",
+      "options": [
+        "Un emploi stable",
+        "Un revenu adapté à mes besoins",
+        "Un métier qui m’intéresse ou me rend utile",
+        "Des horaires compatibles avec ma vie",
+        "Un lieu de travail accessible",
+        "Apprendre et évoluer",
+        "Je ne sais pas encore"
+      ]
+    },
+    {
+      "id": "besoins",
+      "number": 5,
+      "label": "Sur quoi aimeriez-vous être aidé en priorité ?",
+      "type": "multiple",
+      "required": true,
+      "max_choices": 2,
+      "exclusive": [
+        "Je me sens prêt à avancer seul",
+        "Je ne sais pas encore"
+      ],
+      "hint": "2 choix maximum.",
+      "options": [
+        "Choisir mon projet et repérer mes compétences",
+        "Améliorer mon CV ou préparer mes entretiens",
+        "Trouver des offres et rencontrer des employeurs",
+        "Découvrir ou tester un métier sur le terrain",
+        "Trouver une formation ou une qualification",
+        "Organiser mes démarches et reprendre confiance",
+        "Développer mes compétences pour un métier",
+        "Comprendre le marché de l’emploi",
+        "Prendre confiance et valoriser mes atouts",
+        "Faire avancer mon projet d’activité",
+        "Je me sens prêt à avancer seul",
+        "Je ne sais pas encore"
+      ]
+    },
+    {
+      "id": "freins",
+      "number": 6,
+      "label": "Qu’est-ce qui complique vos démarches aujourd’hui ?",
+      "type": "multiple",
+      "required": false,
+      "max_choices": 3,
+      "exclusive": [
+        "Rien de particulier",
+        "Je préfère en parler lors d’un échange"
+      ],
+      "hint": "Facultatif. 3 choix maximum, sans donner de détails personnels.",
+      "options": [
+        "Les déplacements",
+        "Les horaires ou les obligations familiales",
+        "L’accès à internet ou aux outils numériques",
+        "La lecture, l’écriture ou le calcul",
+        "Le manque de confiance ou le découragement",
+        "Les dépenses liées aux démarches",
+        "Une autre difficulté du quotidien",
+        "Rien de particulier",
+        "Je préfère en parler lors d’un échange"
+      ]
+    },
+    {
+      "id": "demarrage",
+      "number": 7,
+      "label": "Quand aimeriez-vous commencer cette prochaine étape ?",
+      "type": "single",
+      "required": true,
+      "options": [
+        "Dès maintenant",
+        "D’ici un mois",
+        "Dans plus d’un mois",
+        "Je ne sais pas encore"
+      ]
+    },
+    {
+      "id": "commune",
+      "number": 8,
+      "label": "Dans quelle commune vivez-vous ?",
+      "type": "text",
+      "required": false,
+      "max_length": 80,
+      "hint": "Facultatif. La commune suffit, sans adresse complète."
+    },
+    {
+      "id": "age",
+      "number": 9,
+      "label": "Quelle est votre tranche d’âge ?",
+      "type": "single",
+      "required": false,
+      "hint": "Facultatif. Cela aide à repérer les dispositifs à vérifier.",
+      "options": [
+        "Moins de 18 ans",
+        "18 à 25 ans",
+        "26 à 49 ans",
+        "50 ans ou plus",
+        "Je préfère ne pas répondre"
+      ]
+    },
+    {
+      "id": "france_travail",
+      "number": 10,
+      "label": "Êtes-vous inscrit à France Travail ?",
+      "type": "single",
+      "required": true,
+      "hint": "Pour préparer l’étude des prises en charge possibles.",
+      "options": [
+        "Oui",
+        "Non",
+        "Mon inscription est en cours",
+        "Je ne sais pas / je préfère en parler"
+      ]
+    },
+    {
+      "id": "accompagnement",
+      "number": 11,
+      "label": "Une structure vous accompagne-t-elle déjà ?",
+      "type": "multiple",
+      "required": true,
+      "exclusive": [
+        "Aucune pour le moment",
+        "Je ne sais pas / je préfère en parler"
+      ],
+      "hint": "Plusieurs réponses possibles. Aucun nom de conseiller n’est demandé.",
+      "options": [
+        "France Travail",
+        "Mission Locale",
+        "Département, mairie ou CCAS",
+        "Une autre structure d’emploi ou d’insertion",
+        "Une association",
+        "Aucune pour le moment",
+        "Je ne sais pas / je préfère en parler"
+      ]
+    },
+    {
+      "id": "rappel",
+      "number": 12,
+      "label": "Souhaitez-vous échanger avec Le Bon Rebond sur la suite ?",
+      "type": "single",
+      "required": true,
+      "options": [
+        "Oui, par téléphone",
+        "Oui, par email",
+        "Non, pas pour le moment"
+      ],
+      "conditional_contact": {
+        "show_if": [
+          "Oui, par téléphone",
+          "Oui, par email"
+        ],
+        "first_name_required": false,
+        "phone_required_if": "Oui, par téléphone",
+        "email_required_if": "Oui, par email",
+        "optional": "Créneau souhaité, en heure de Guadeloupe",
+        "collect_both_channels": false,
+        "text": "Si oui : prénom (facultatif) et uniquement la coordonnée correspondant à votre choix. Votre demande concerne cet échange, sans inscription à une newsletter."
+      }
+    }
+  ],
+  "closing": "Merci. Si vous avez demandé un échange, nous reprendrons vos réponses avec vous pour choisir une prochaine étape et examiner les possibilités de prise en charge. Une formation, une place ou un financement reste à confirmer avec les organismes concernés."
+}
