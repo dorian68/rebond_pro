@@ -3,3 +3,6 @@ public/salon/*.pdf binary
 public/salon/*.png binary
 public/salon/*.webp binary
 public/salon/fonts/*.ttf binary
+public/salon*.html text eol=lf
+public/salon/*.svg text eol=lf
+public/salon/fonts/*-OFL.txt text eol=lf
