@@ -22,9 +22,14 @@ try {
   assert.equal((html.match(/<h1\b/g) || []).length, 1);
   assert(!/Digitalys|Bourguignon|Bourguibon|TODO|placeholder/i.test(html));
   assert(/noindex,follow/.test(html));
+  assert(!/<p\b/i.test(html), "The salon flyer must not require paragraphs");
+  for (const target of ["/bilan-de-competences", "/marketplace", "/bilan-orientation", "/questionnaire"]) {
+    assert(html.includes(`href="${target}"`), `Missing visitor action: ${target}`);
+  }
+  assert(html.includes('id="flyer-hotspots"') && html.includes(".offer-3{"), "Flyer links have no compiled geometry");
   const origin = new URL(base).hostname;
   if (origin !== "127.0.0.1" && origin !== "localhost") {
-    for (const path of ["/questionnaire", "/marketplace", "/bilan-de-competences", "/contact", "/legal/confidentialite", "/legal/mentions"]) {
+    for (const path of ["/questionnaire", "/marketplace", "/bilan-de-competences", "/bilan-orientation", "/contact", "/legal/confidentialite", "/legal/mentions"]) {
       const response = await fetch(new URL(path, base), { signal: AbortSignal.timeout(20000) });
       assert.equal(response.status, 200, path);
       await response.arrayBuffer();

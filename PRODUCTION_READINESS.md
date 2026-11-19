@@ -1,5 +1,9 @@
 # Production Readiness
 
+## 19 novembre 2026 — flyer infographique salon
+
+La nouvelle demande remplace la page longue par un flyer : trois prestations immédiatement identifiables, schémas courts, résultats, CTA et QR. Deux SVG autonomes servent de rendu réel à la page et aux PNG inspectés en grand format et en réduction 390 px ; les liens HTML sont compilés depuis les mêmes coordonnées. **Technical RL PASS ciblé local**, 18 assets HTTP exacts, QR PNG/PDF vérifiés, aucun backend ou état métier modifié. Recette métier et publication documentées dans `reports/2026-11-19_business-client_salon-infographie.md` et `reports/2026-11-19_technical-rl_salon-infographie.md`.
+
 ## 19 novembre 2026 — supports numériques salon
 
 Présentation directe, affiche QR adaptative, exports PNG/PDF et QR téléchargeables : **Technical RL PASS et Business Client Mystère PASS ciblés en production**. Révision active `c91318310585a8b48573a02bec29c1d01f606818`. QR décodés sur les deux affiches finales, rendus PNG/PDF inspectés, 16 assets HTTPS identiques aux sources et six CTA publics existants vérifiés. Santé/DB up ; retrait Digitalys rejoué PASS. La recette visuelle HTML en navigateur reste indisponible : blocage de Computer Use documenté dans le rapport technique, sans contournement. Publication par ajout des seuls fichiers publics sur l'image applicative active, sans migration ni nouvelle compilation ; douze couches applicatives inchangées, deux couches publiques ajoutées. Détails : `reports/2026-11-19_technical-rl_salon.md` et `reports/2026-11-19_business-client_salon.md`.

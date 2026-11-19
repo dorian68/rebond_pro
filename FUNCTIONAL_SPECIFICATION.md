@@ -1,5 +1,11 @@
 # Functional Specification
 
+## Refonte infographique salon — 19 novembre 2026
+
+La présentation longue est remplacée, à la demande du propriétaire, par un flyer visuel. En cinq secondes, le visiteur doit identifier trois prestations réelles : bilan de compétences, formations professionnelles avec mise en relation, et bilan d'orientation réservé aux collégiens/lycéens/étudiants. Schémas courts besoin → aide → résultat, aucune photo dominante, aucun paragraphe nécessaire à la compréhension. Un CTA principal vers le questionnaire et un QR vers la page salon assurent la suite du parcours.
+
+La page affiche des SVG autonomes adaptés au format d'écran, avec liens HTML superposés accessibles au clavier et libellés explicites. Le rendu correspond aux affiches PNG/PDF inspectées, dont les liens et QR restent valides. Critères : offres immédiatement lisibles même en réduction, aucun chevauchement, QR décodés sur les affiches finales, contenu accessible sans JavaScript, empreintes des fichiers servis identiques aux sources vérifiées, destinations des trois offres et CTA HTTP 200. Publication directe sur le site existant, sans changement de données ou de services métier.
+
 ## Présentation pour le salon — 19 novembre 2026
 
 Page directe `/salon.html` dans la charte Le Bon Rebond : promesse, besoins orientation/formation/projet, étapes de l'échange, questionnaire existant, contact et professionnels de l'insertion. Le texte s'adresse exclusivement aux visiteurs, sans notes internes ni promesses d'emploi ou de financement. Aucun nouveau backend ou formulaire ; les CTA réutilisent `/questionnaire`, `/marketplace`, `/bilan-de-competences` et `/contact`.

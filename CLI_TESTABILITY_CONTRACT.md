@@ -2,6 +2,8 @@
 
 ## Supports salon
 
+Refonte infographique : `python scripts/create-salon-infographic.py` génère les deux SVG autonomes, compile les zones cliquables HTML depuis les mêmes coordonnées, rasterise les PNG avec sharp et produit les PDF avec cinq liens. Il vérifie les limites des textes et le décodage des QR finaux. `create-salon-visuals.py` délègue à ce générateur unique. Le smoke HTTP contrôle désormais les 18 assets, l'absence de paragraphes et les trois offres reliées à leurs pages ; la recette visuelle porte sur les mêmes SVG que ceux affichés dans la page, y compris un aperçu à 390 px.
+
 `node scripts/smoke-salon.mjs` compare les SHA-256 de tous les assets servis avec les sources locales, contrôle les deux pages, les destinations publiques des CTA et la santé de production, sans soumettre de formulaire. `SMOKE_BASE_URL=http://127.0.0.1:3116` permet la recette d'un serveur statique local. `python scripts/create-salon-visuals.py` produit les PDF des affiches avec les fontes embarquées ; `pdftoppm -png -singlefile -r 72` génère les PNG aux dimensions d'origine. Les QR sont décodés depuis les PNG finaux, pas seulement depuis leur fichier source.
 
 ## Retrait Digitalys
