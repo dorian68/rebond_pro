@@ -1,5 +1,9 @@
 # Déploiement VPS - RebondPro
 
+## Flyer infographique du salon — 19 novembre 2026
+
+Production active : `bc6060f7703cd708daaac76689d4b76f3344ea4a`, branche `feat/salon-infographie-20261119`. Même pipeline de fichiers publics, base exacte `rebondpro-app:c91318310585a8b48573a02bec29c1d01f606818`, quatorze couches conservées et deux couches publiques ajoutées. Contexte Git de 2,4 Mo limité au Dockerfile et aux assets nécessaires ; code source complet poussé sur la branche. Les 18 fichiers HTTPS, les sept destinations et la santé ont été contrôlés ; aucun état métier n'est modifié. Image précédente conservée pour rollback. Les anciens rapports salon décrivent la version précédente, désormais remplacée par le flyer vectoriel.
+
 ## Release de fichiers publics du salon — 19 novembre 2026
 
 Production active : `c91318310585a8b48573a02bec29c1d01f606818`, branche `feat/salon-20261119`. `ops/Dockerfile.public-assets` a ajouté seulement `/app/public/salon.html`, `/app/public/salon-affiche.html` et `/app/public/salon/` à l'image exacte `rebondpro-app:06ac3e044ede7a70b8ea8b6e9739ec85aa0bb2dd`. Douze couches applicatives conservées, deux couches publiques ajoutées ; ni dépendances, ni compilation Next.js, ni migration, ni secret modifié. Archive Git et assets vérifiés avant build ; seul `app` a été recréé.

@@ -2,7 +2,7 @@
 
 ## 19 novembre 2026 — flyer infographique salon
 
-La nouvelle demande remplace la page longue par un flyer : trois prestations immédiatement identifiables, schémas courts, résultats, CTA et QR. Deux SVG autonomes servent de rendu réel à la page et aux PNG inspectés en grand format et en réduction 390 px ; les liens HTML sont compilés depuis les mêmes coordonnées. **Technical RL PASS ciblé local**, 18 assets HTTP exacts, QR PNG/PDF vérifiés, aucun backend ou état métier modifié. Recette métier et publication documentées dans `reports/2026-11-19_business-client_salon-infographie.md` et `reports/2026-11-19_technical-rl_salon-infographie.md`.
+La nouvelle demande remplace la page longue par un flyer : trois prestations immédiatement identifiables, schémas courts, résultats, CTA et QR. Deux SVG autonomes servent de rendu réel à la page et aux PNG inspectés en grand format et en réduction 390 px ; les liens HTML sont compilés depuis les mêmes coordonnées. **Technical RL PASS et Business Client Mystère PASS ciblés en production**, révision active `bc6060f7703cd708daaac76689d4b76f3344ea4a`. Dix-huit assets HTTPS exacts, sept destinations HTTP 200, santé/DB up, QR PNG/PDF vérifiés. Quatorze couches précédentes conservées et deux couches publiques ajoutées ; aucun backend ou état métier modifié. Les six anciennes URLs Digitalys restent 404. Recette métier et publication documentées dans `reports/2026-11-19_business-client_salon-infographie.md` et `reports/2026-11-19_technical-rl_salon-infographie.md`.
 
 ## 19 novembre 2026 — supports numériques salon
 

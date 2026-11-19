@@ -70,3 +70,11 @@ Preuves : `.run/business-salon-infographic/preview-http.json` et `preview-http-f
 Le navigateur reste indisponible ; aucune automatisation alternative n'a été tentée. La revue visuelle porte sur les artefacts finaux et leurs réductions, et l'inspection du HTML/SVG servi. L'usage tactile, le clavier réel et l'alignement des zones cliquables ne sont pas certifiés par un essai navigateur de cet agent. La page utilise le même SVG autonome que la composition inspectée, ce qui réduit l'incertitude de restitution du texte ; cela ne remplace pas le contrôle des interactions.
 
 Le décodage numérique ne vaut pas test de scan d'une impression ou d'un écran distant. Aucune volonté de payer ni conversion réelle n'est déduite de la revue. La publication exige encore le contrôle HTTPS du contenu final à l'URL du QR ; ce rapport sera confirmé après bascule.
+
+## Confirmation finale en production
+
+Publication annoncée par le responsable technique sur la révision `bc6060f7703cd708daaac76689d4b76f3344ea4a`. Recette indépendante HTTPS terminée le 19 novembre 2026 à `15:17:00.024Z` : `/salon.html`, `/salon-affiche.html`, les deux SVG et les deux PNG finaux répondent 200 sur `https://lebonrebond.fr`. Les six SHA-256 correspondent exactement aux fichiers et compositions relus. La page cible du QR présente donc bien l'infographie inspectée, avec les trois offres et le CTA questionnaire, sans paragraphe ni référence à Digitalys.
+
+Preuve : `.run/business-salon-infographic/production-http.json`. Le responsable technique a également communiqué son PASS HTTPS sur les 18 ressources, dont les PDF, et sur les destinations métier existantes.
+
+**Verdict final Business Client Mystère : PASS ciblé en production**, avec les limites d'interaction navigateur et de scan physique explicitement conservées ci-dessus.

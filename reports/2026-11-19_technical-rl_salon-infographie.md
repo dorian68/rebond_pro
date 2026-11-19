@@ -28,4 +28,10 @@ La recette ne dépend pas d'un navigateur pour la composition : le flyer servi e
 
 ## Verdict
 
-**Technical RL : PASS ciblé local.** Verdict métier indépendant et confirmation HTTPS consignés après publication.
+**Technical RL et Business Client Mystère : PASS ciblés en production.**
+
+## Publication et contrôle final
+
+Source `bc6060f7703cd708daaac76689d4b76f3344ea4a` poussée sur `origin/feat/salon-infographie-20261119`. Le contexte Git limité aux fichiers nécessaires mesure 2406400 octets ; ses 18 assets ont été comparés octet par octet aux fichiers validés avant transfert. Les quatorze couches de la base active restent identiques et seules deux couches publiques sont ajoutées. Le service app seul a été recréé, l'image précédente reste disponible.
+
+`node scripts/smoke-salon.mjs` sur `https://lebonrebond.fr` : **PASS, 18 assets HTTP 200 aux SHA-256 exacts**, sept destinations publiques HTTP 200, santé et DB up. Les six anciennes URLs Digitalys restent 404. `DEPLOYED_COMMIT` finalisé après comparaison de l'image réellement exécutée avec la candidate et les contrôles HTTPS. Confirmation métier indépendante : les deux HTML, les deux SVG et les deux PNG de production correspondent aux fichiers inspectés, PASS final du rapport métier.
