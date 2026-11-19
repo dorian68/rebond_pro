@@ -77,3 +77,11 @@ Au moment de cette revue, les nouveaux fichiers sont candidats à publication. L
 **Business Client Mystère : PASS ciblé pour le contenu, les deux affiches et le parcours de découverte préparé pour publication.**
 
 Aucun correctif P0/P1 identifié dans le périmètre observé. La limite de recette navigateur HTML doit rester explicite ; elle n'empêche pas la publication de ce support statique et de ses parcours existants. Le contrôle HTTPS final relève de la bascule de production, puis d'une confirmation de ce rapport.
+
+## Confirmation après publication
+
+Contrôle indépendant en lecture seule terminé le 19 novembre 2026 à `13:08:47.758Z` : `https://lebonrebond.fr/salon.html`, `/salon-affiche.html`, les deux PNG finaux et le QR SVG répondent en HTTPS 200. Les empreintes SHA-256 des cinq ressources correspondent exactement aux fichiers relus et aux affiches inspectées. La page complète conserve les liens questionnaire/contact et ne contient aucune référence à Digitalys. La cible du QR est donc bien publiée avec la présentation attendue.
+
+Preuve : `.run/business-salon/http-production.json`. Le contrôle technique des seize ressources, dont les PDF, reste consigné séparément par le responsable technique.
+
+**Verdict final Business Client Mystère : PASS ciblé en production**, dans les limites de recette HTML et sans certification navigateur mobile décrites ci-dessus.

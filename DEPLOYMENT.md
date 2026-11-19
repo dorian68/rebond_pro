@@ -1,5 +1,11 @@
 # Déploiement VPS - RebondPro
 
+## Release de fichiers publics du salon — 19 novembre 2026
+
+Production active : `c91318310585a8b48573a02bec29c1d01f606818`, branche `feat/salon-20261119`. `ops/Dockerfile.public-assets` a ajouté seulement `/app/public/salon.html`, `/app/public/salon-affiche.html` et `/app/public/salon/` à l'image exacte `rebondpro-app:06ac3e044ede7a70b8ea8b6e9739ec85aa0bb2dd`. Douze couches applicatives conservées, deux couches publiques ajoutées ; ni dépendances, ni compilation Next.js, ni migration, ni secret modifié. Archive Git et assets vérifiés avant build ; seul `app` a été recréé.
+
+Smoke HTTPS : 16 assets aux SHA-256 exacts, six CTA HTTP 200, santé DB up. Retrait Digitalys toujours PASS après bascule. L'image `rebondpro-app:06ac3e044ede7a70b8ea8b6e9739ec85aa0bb2dd` reste disponible pour rollback : la retaguer `latest`, puis `docker compose -f /opt/rebondpro/docker-compose.yml up -d --no-deps app`, vérifier la santé et rétablir le marqueur de commit après contrôle. Le retrait Digitalys, stocké en base, est conservé lors d'un rollback applicatif.
+
 ## Conservation des questionnaires
 
 Après application de la migration `20261118120000_questionnaire_responses`, installer `ops/purge-questionnaires.sh` sous `/opt/rebondpro/ops/purge-questionnaires.sh` avec permissions 0750 et une tâche `/etc/cron.d/rebondpro-questionnaires` :

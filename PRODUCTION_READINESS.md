@@ -2,7 +2,7 @@
 
 ## 19 novembre 2026 — supports numériques salon
 
-Présentation directe, affiche QR adaptative, exports PNG/PDF et QR téléchargeables : **Technical RL PASS et Business Client Mystère PASS ciblés avant publication**. QR décodés sur les deux affiches finales, rendus PNG/PDF inspectés, 16 assets locaux exacts et CTA publics existants vérifiés. La recette visuelle HTML en navigateur reste indisponible : blocage de Computer Use documenté dans le rapport technique, sans contournement. Publication par ajout des seuls fichiers publics sur l'image applicative active, sans migration ni nouvelle compilation. Détails : `reports/2026-11-19_technical-rl_salon.md` et `reports/2026-11-19_business-client_salon.md`.
+Présentation directe, affiche QR adaptative, exports PNG/PDF et QR téléchargeables : **Technical RL PASS et Business Client Mystère PASS ciblés en production**. Révision active `c91318310585a8b48573a02bec29c1d01f606818`. QR décodés sur les deux affiches finales, rendus PNG/PDF inspectés, 16 assets HTTPS identiques aux sources et six CTA publics existants vérifiés. Santé/DB up ; retrait Digitalys rejoué PASS. La recette visuelle HTML en navigateur reste indisponible : blocage de Computer Use documenté dans le rapport technique, sans contournement. Publication par ajout des seuls fichiers publics sur l'image applicative active, sans migration ni nouvelle compilation ; douze couches applicatives inchangées, deux couches publiques ajoutées. Détails : `reports/2026-11-19_technical-rl_salon.md` et `reports/2026-11-19_business-client_salon.md`.
 
 ## 19 novembre 2026 — retrait Digitalys Formation
 

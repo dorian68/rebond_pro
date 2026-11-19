@@ -30,4 +30,12 @@ Source committée/poussée puis archive Git vers la release correspondante ; ima
 
 ## Verdict
 
-**Technical RL PASS ciblé avant publication**, avec limite navigateur explicitée. Publication et recette HTTPS à consigner après bascule ; ce rapport ne déclare pas une recette globale des autres fonctionnalités.
+**Technical RL PASS ciblé en production**, avec limite navigateur explicitée. Ce rapport ne déclare pas une recette globale des autres fonctionnalités.
+
+## Publication réalisée
+
+Révision `c91318310585a8b48573a02bec29c1d01f606818` poussée sur `origin/feat/salon-20261119`, archivée et activée le 19 novembre 2026. Les assets de l'archive Git ont été comparés octet par octet aux fichiers vérifiés. Des attributs Git explicites conservent les binaires et les fins de ligne des nouveaux fichiers texte sur Windows et Linux ; le préflight a corrigé une différence de fins de ligne avant tout transfert.
+
+Les douze couches de l'image applicative précédente sont identiques ; seules deux couches de fichiers publics sont ajoutées. Bascule du seul service app, ancienne image conservée pour rollback. `node scripts/smoke-salon.mjs` en HTTPS public : **PASS, 16 assets HTTP 200 et SHA-256 exacts**, six destinations des CTA HTTP 200, santé applicative et DB up, aucun formulaire envoyé. Recette indépendante Client Mystère : **PASS en production** avec octets des deux affiches, QR et pages identiques aux sources relues. Le smoke complet du retrait Digitalys est rejoué après la bascule : **PASS 16/16**, neuf autres centres et 58 formations conservés. `DEPLOYED_COMMIT` finalisé après ces contrôles et comparaison de l'image réellement exécutée. Espace disque restant : 859 Mio ; aucune purge n'a été lancée.
+
+URLs publiées : `https://lebonrebond.fr/salon-affiche.html` et `https://lebonrebond.fr/salon.html`.
