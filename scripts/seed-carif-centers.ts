@@ -1,7 +1,7 @@
 import "./_env";
 import { prisma } from "../src/lib/prisma";
 
-// Insère 10 centres de formation issus du catalogue CARIF/INTERCARIFOREF.
+// Insère 9 centres de formation issus du catalogue CARIF/INTERCARIFOREF.
 // Idempotent : identifiés par leur slug préfixé "carif-".
 // Ces fiches restent NON PUBLIQUES tant qu'un administrateur n'a pas vérifié
 // l'identité, le mandat de diffusion et les preuves commerciales du centre.
@@ -9,20 +9,6 @@ import { prisma } from "../src/lib/prisma";
 const PREFIX = "carif-";
 
 const CENTERS = [
-  {
-    slug: `${PREFIX}digitalys-formation`,
-    name: "Digitalys Formation",
-    siret: "10035810000012",
-    tagline: "La formation numérique au cœur de La Réunion",
-    city: "Saint-Denis (La Réunion)",
-    description:
-      "Organisme de formation spécialisé dans le numérique et le digital à La Réunion. Accompagne les professionnels et les entreprises dans leur montée en compétences digitales.",
-    publicEmail: "contact@digitalysformation.fr",
-    publicPhone: "02 62 73 83 52",
-    specialties: ["Numérique", "Digital", "Informatique", "Marketing digital"],
-    modalities: ["PRESENTIEL", "DISTANCIEL"],
-    certifications: ["Qualiopi"],
-  },
   {
     slug: `${PREFIX}agroparistech-executive`,
     name: "AgroParisTech – Formation Continue",

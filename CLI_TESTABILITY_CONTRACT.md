@@ -1,5 +1,9 @@
 # CLI Testability Contract
 
+## Retrait Digitalys
+
+`node scripts/smoke-digitalys-removal.mjs` vérifie en lecture seule la santé DB, l'absence de référencement, les six anciennes URLs en 404, le sitemap et toutes les fiches CARIF restantes. `SMOKE_BASE_URL` choisit le domaine. `ops/withdraw-digitalys.sql` simule par défaut la transaction et termine par ROLLBACK ; seul `psql -v apply=true` persiste le retrait et son audit, après sauvegarde d'exploitation.
+
 ## Questionnaire de premier contact
 
 - `npm run smoke:questionnaire` : validation serveur, persistance, rejeux simultanés, absence de coordonnées sans rappel, maxima/exclusivités, statistiques, CSV et dates/expiration. Fixtures globales isolées et supprimées après la recette. Ajout au chaînage `smoke:all`.

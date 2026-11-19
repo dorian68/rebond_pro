@@ -1,5 +1,9 @@
 # Functional Specification
 
+## Retrait du référencement Digitalys — 19 novembre 2026
+
+Sur demande du propriétaire, Digitalys Formation et ses cinq formations sont dépubliés de toutes les surfaces publiques : annuaire, catalogue, recherche, fiches directes et sitemap. Les anciennes fiches retournent 404 sans nom, coordonnées ni CTA. Les neuf autres centres et leurs 58 formations restent accessibles. La fiche est retirée du seed CARIF pour éviter sa réintroduction ; les données métier internes sont conservées. La mutation de production est transactionnelle, auditée et précédée d'une sauvegarde. Critères CLI : simulation SQL avec rollback, vérification des données et `node scripts/smoke-digitalys-removal.mjs` sur les deux domaines publics.
+
 ## Questionnaire de premier contact 18 novembre 2026
 
 Page publique `/questionnaire`, accessible directement sans ajout à la navigation publique ni au sitemap, avec `noindex`. Le contenu reproduit les douze questions V2 approuvées, notamment les choix entrepreneuriat, compétences, confiance et marché de l'emploi. Trois étapes, retour sans perte tant que la page reste ouverte, maxima et réponses exclusives validés côté client et serveur. Commune, âge, freins et précision métier/idée restent facultatifs. Aucune coordonnée sans demande d'échange ; un seul canal est enregistré selon le choix. Un consentement distinct au traitement est recueilli avant envoi, sans inscription marketing ni partage partenaire.

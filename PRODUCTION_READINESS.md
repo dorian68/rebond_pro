@@ -1,5 +1,9 @@
 # Production Readiness
 
+## 19 novembre 2026 — retrait Digitalys Formation
+
+Retrait public appliqué directement dans la base de production : une fiche centre et cinq formations dépubliées, sauvegarde PostgreSQL vérifiée avant mutation, transaction sérialisable et audit durable. Même image applicative ; seul le service app a été recréé pour vider immédiatement les caches. Annuaire/recherche/catalogue/sitemap contrôlés, six anciennes URLs 404, neuf autres centres et 58 formations conservés. Le seed source ne recrée plus cette fiche. **Technical RL PASS et Business Client Mystère PASS ciblés en production**, sur les deux domaines publics. La recette métier indépendante confirme exactement les 88 URLs sitemap restantes et l'identité des neuf autres fiches et de leurs 58 liens formations. Aucun changement au verdict global historique. Détails dans `reports/2026-11-19_technical-rl_digitalys-removal.md` et `reports/2026-11-19_business-client_digitalys-removal.md`.
+
 ## 18 novembre 2026 Questionnaire de premier contact
 
 Évolution isolée du questionnaire, basée sur la révision actuellement déployée `1ea433e51c8d2ab9abd589101594bbed7f848bb2`, sans reprendre les modifications du checkout historique. Le périmètre comporte la collecte persistante, le tableau de bord super-admin, les statistiques, l'export et la conservation six mois. Recettes ciblées et déploiement consignés dans `reports/2026-11-18_technical-rl_questionnaire-web.md`.
