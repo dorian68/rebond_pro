@@ -1,1 +1,5 @@
 *.sh text eol=lf
+public/salon/*.pdf binary
+public/salon/*.png binary
+public/salon/*.webp binary
+public/salon/fonts/*.ttf binary
