@@ -1,5 +1,9 @@
 # Production Readiness
 
+## 19 novembre 2026 — supports numériques salon
+
+Présentation directe, affiche QR adaptative, exports PNG/PDF et QR téléchargeables : **Technical RL PASS et Business Client Mystère PASS ciblés avant publication**. QR décodés sur les deux affiches finales, rendus PNG/PDF inspectés, 16 assets locaux exacts et CTA publics existants vérifiés. La recette visuelle HTML en navigateur reste indisponible : blocage de Computer Use documenté dans le rapport technique, sans contournement. Publication par ajout des seuls fichiers publics sur l'image applicative active, sans migration ni nouvelle compilation. Détails : `reports/2026-11-19_technical-rl_salon.md` et `reports/2026-11-19_business-client_salon.md`.
+
 ## 19 novembre 2026 — retrait Digitalys Formation
 
 Retrait public appliqué directement dans la base de production : une fiche centre et cinq formations dépubliées, sauvegarde PostgreSQL vérifiée avant mutation, transaction sérialisable et audit durable. Même image applicative ; seul le service app a été recréé pour vider immédiatement les caches. Annuaire/recherche/catalogue/sitemap contrôlés, six anciennes URLs 404, neuf autres centres et 58 formations conservés. Le seed source ne recrée plus cette fiche. **Technical RL PASS et Business Client Mystère PASS ciblés en production**, sur les deux domaines publics. La recette métier indépendante confirme exactement les 88 URLs sitemap restantes et l'identité des neuf autres fiches et de leurs 58 liens formations. Aucun changement au verdict global historique. Détails dans `reports/2026-11-19_technical-rl_digitalys-removal.md` et `reports/2026-11-19_business-client_digitalys-removal.md`.

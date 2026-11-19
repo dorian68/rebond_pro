@@ -1,0 +1,6 @@
+# Publish verified public assets on top of the exact active application image.
+# No dependencies, application compilation or migrations run on the VPS.
+ARG APPLICATION_IMAGE
+FROM ${APPLICATION_IMAGE}
+COPY --chown=node:node public/salon.html public/salon-affiche.html /app/public/
+COPY --chown=node:node public/salon /app/public/salon

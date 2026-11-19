@@ -1,5 +1,9 @@
 # CLI Testability Contract
 
+## Supports salon
+
+`node scripts/smoke-salon.mjs` compare les SHA-256 de tous les assets servis avec les sources locales, contrôle les deux pages, les destinations publiques des CTA et la santé de production, sans soumettre de formulaire. `SMOKE_BASE_URL=http://127.0.0.1:3116` permet la recette d'un serveur statique local. `python scripts/create-salon-visuals.py` produit les PDF des affiches avec les fontes embarquées ; `pdftoppm -png -singlefile -r 72` génère les PNG aux dimensions d'origine. Les QR sont décodés depuis les PNG finaux, pas seulement depuis leur fichier source.
+
 ## Retrait Digitalys
 
 `node scripts/smoke-digitalys-removal.mjs` vérifie en lecture seule la santé DB, l'absence de référencement, les six anciennes URLs en 404, le sitemap et toutes les fiches CARIF restantes. `SMOKE_BASE_URL` choisit le domaine. `ops/withdraw-digitalys.sql` simule par défaut la transaction et termine par ROLLBACK ; seul `psql -v apply=true` persiste le retrait et son audit, après sauvegarde d'exploitation.

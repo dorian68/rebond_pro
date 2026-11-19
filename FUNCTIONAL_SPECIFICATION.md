@@ -1,5 +1,11 @@
 # Functional Specification
 
+## Présentation pour le salon — 19 novembre 2026
+
+Page directe `/salon.html` dans la charte Le Bon Rebond : promesse, besoins orientation/formation/projet, étapes de l'échange, questionnaire existant, contact et professionnels de l'insertion. Le texte s'adresse exclusivement aux visiteurs, sans notes internes ni promesses d'emploi ou de financement. Aucun nouveau backend ou formulaire ; les CTA réutilisent `/questionnaire`, `/marketplace`, `/bilan-de-competences` et `/contact`.
+
+L'affiche `/salon-affiche.html` présente un QR vers `https://lebonrebond.fr/salon.html`. Déclinaisons PNG/PDF verticales 1080×1920 et horizontales 1920×1080, QR SVG/PNG téléchargeables. Critères : QR décodé sur les exports, destinations et fichiers HTTP 200, marque exacte, contenu/contacts réels, affichage adapté aux petits écrans, liens accessibles et aucune mutation de données lors de la consultation. La page reste hors navigation principale et sitemap ; la diffusion se fait par son lien et le QR.
+
 ## Retrait du référencement Digitalys — 19 novembre 2026
 
 Sur demande du propriétaire, Digitalys Formation et ses cinq formations sont dépubliés de toutes les surfaces publiques : annuaire, catalogue, recherche, fiches directes et sitemap. Les anciennes fiches retournent 404 sans nom, coordonnées ni CTA. Les neuf autres centres et leurs 58 formations restent accessibles. La fiche est retirée du seed CARIF pour éviter sa réintroduction ; les données métier internes sont conservées. La mutation de production est transactionnelle, auditée et précédée d'une sauvegarde. Critères CLI : simulation SQL avec rollback, vérification des données et `node scripts/smoke-digitalys-removal.mjs` sur les deux domaines publics.
